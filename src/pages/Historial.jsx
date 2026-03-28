@@ -52,6 +52,20 @@ export default function Historial() {
   const monthGym     = monthPast.filter(d => history[d]?.gym).length;
   const monthPct     = monthPlanned > 0 ? Math.round((monthDone / monthPlanned) * 100) : 0;
 
+  function validateBackup(data) {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Formato inválido.');
+    if (!('catalog' in data && 'routines' in data && 'schedule' in data && 'history' in data))
+      throw new Error('Faltan claves obligatorias (catalog, routines, schedule, history).');
+    if (typeof data.catalog !== 'object' || Array.isArray(data.catalog))
+      throw new Error('El campo "catalog" tiene formato incorrecto.');
+    if (!Array.isArray(data.routines))
+      throw new Error('El campo "routines" debe ser un array.');
+    if (typeof data.schedule !== 'object' || Array.isArray(data.schedule))
+      throw new Error('El campo "schedule" tiene formato incorrecto.');
+    if (typeof data.history !== 'object' || Array.isArray(data.history))
+      throw new Error('El campo "history" tiene formato incorrecto.');
+  }
+
   function handleFileChange(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -59,29 +73,51 @@ export default function Historial() {
     reader.onload = (ev) => {
       try {
         const parsed = JSON.parse(ev.target.result);
-        if (!parsed || typeof parsed !== 'object') throw new Error();
-        // Validate expected keys
-        const valid = ['catalog','routines','schedule','history'].every(k => k in parsed);
-        if (!valid) throw new Error('missing keys');
+        validateBackup(parsed);
         setPendingData(parsed);
         setImportError('');
         setImportConfirm(true);
-      } catch {
-        setImportError('El archivo no es un backup válido.');
+      } catch (err) {
+        setImportError(err.message || 'El archivo no es un backup válido.');
       }
     };
     reader.readAsText(file);
-    // Reset input so same file can be selected again
     e.target.value = '';
   }
 
   function confirmImport() {
     if (!pendingData) return;
-    localStorage.setItem('catalog',  JSON.stringify(pendingData.catalog));
-    localStorage.setItem('routines', JSON.stringify(pendingData.routines));
-    localStorage.setItem('schedule', JSON.stringify(pendingData.schedule));
-    localStorage.setItem('history',  JSON.stringify(pendingData.history));
-    window.location.reload();
+    // Guardar copia de seguridad antes de reemplazar
+    try {
+      const preBackup = {
+        catalog:  localStorage.getItem('catalog'),
+        routines: localStorage.getItem('routines'),
+        schedule: localStorage.getItem('schedule'),
+        history:  localStorage.getItem('history'),
+      };
+      localStorage.setItem('tb_backup_pre_import', JSON.stringify(preBackup));
+    } catch { /* si no hay espacio, seguimos igual */ }
+
+    try {
+      localStorage.setItem('catalog',  JSON.stringify(pendingData.catalog));
+      localStorage.setItem('routines', JSON.stringify(pendingData.routines));
+      localStorage.setItem('schedule', JSON.stringify(pendingData.schedule));
+      localStorage.setItem('history',  JSON.stringify(pendingData.history));
+      window.location.reload();
+    } catch (err) {
+      // Algo salió mal: intentar restaurar desde el pre-backup
+      try {
+        const saved = JSON.parse(localStorage.getItem('tb_backup_pre_import') || 'null');
+        if (saved) {
+          if (saved.catalog  !== null) localStorage.setItem('catalog',  saved.catalog);
+          if (saved.routines !== null) localStorage.setItem('routines', saved.routines);
+          if (saved.schedule !== null) localStorage.setItem('schedule', saved.schedule);
+          if (saved.history  !== null) localStorage.setItem('history',  saved.history);
+        }
+      } catch { /* si tampoco se puede restaurar, al menos no quedamos en blanco */ }
+      setImportConfirm(false);
+      setImportError('Error al importar. Tus datos anteriores fueron restaurados.');
+    }
   }
 
   return (
@@ -120,7 +156,7 @@ export default function Historial() {
               ¿Importar datos?
             </div>
             <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
-              Esto va a reemplazar <strong>todos tus datos actuales</strong> (rutinas, catálogo, historial, planificación). La acción no se puede deshacer.
+              Esto va a reemplazar <strong>todos tus datos actuales</strong> (rutinas, catálogo, historial, planificación). Se guarda una copia de seguridad automática por si algo sale mal.
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setImportConfirm(false)}>
