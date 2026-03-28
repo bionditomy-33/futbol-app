@@ -60,7 +60,7 @@ let state = {
   history: loadFromLS('history', {}),
 };
 
-function getState() { return state; }
+export function getState() { return state; }
 
 function setState(partial) {
   state = { ...state, ...partial };

@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { useStore } from '../store/useStore';
+import { useStore, getState } from '../store/useStore';
+import { INITIAL_CATALOG } from '../data/initialData';
 import { todayStr, formatDate, getDayName } from '../utils/dates';
 import { GymIcon } from '../components/Icons';
 
@@ -10,12 +11,15 @@ function getCurrentMonthStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+// Lee del estado del store (en memoria), no de localStorage.
+// Así evitamos exportar null cuando catalog nunca fue persistido.
 function exportData() {
+  const s = getState();
   const data = {
-    catalog:  JSON.parse(localStorage.getItem('catalog')  || 'null'),
-    routines: JSON.parse(localStorage.getItem('routines') || 'null'),
-    schedule: JSON.parse(localStorage.getItem('schedule') || 'null'),
-    history:  JSON.parse(localStorage.getItem('history')  || 'null'),
+    catalog:  s.catalog,
+    routines: s.routines,
+    schedule: s.schedule,
+    history:  s.history,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
@@ -52,18 +56,25 @@ export default function Historial() {
   const monthGym     = monthPast.filter(d => history[d]?.gym).length;
   const monthPct     = monthPlanned > 0 ? Math.round((monthDone / monthPlanned) * 100) : 0;
 
-  function validateBackup(data) {
-    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Formato inválido.');
-    if (!('catalog' in data && 'routines' in data && 'schedule' in data && 'history' in data))
-      throw new Error('Faltan claves obligatorias (catalog, routines, schedule, history).');
-    if (typeof data.catalog !== 'object' || Array.isArray(data.catalog))
-      throw new Error('El campo "catalog" tiene formato incorrecto.');
+  // Valida y normaliza el backup. Retorna el objeto listo para importar.
+  function normalizeBackup(data) {
+    if (!data || typeof data !== 'object' || Array.isArray(data))
+      throw new Error('Formato inválido.');
+    if (!('routines' in data && 'schedule' in data && 'history' in data))
+      throw new Error('Faltan claves obligatorias (routines, schedule, history).');
     if (!Array.isArray(data.routines))
       throw new Error('El campo "routines" debe ser un array.');
-    if (typeof data.schedule !== 'object' || Array.isArray(data.schedule))
+    if (data.schedule === null || typeof data.schedule !== 'object' || Array.isArray(data.schedule))
       throw new Error('El campo "schedule" tiene formato incorrecto.');
-    if (typeof data.history !== 'object' || Array.isArray(data.history))
+    if (data.history === null || typeof data.history !== 'object' || Array.isArray(data.history))
       throw new Error('El campo "history" tiene formato incorrecto.');
+
+    // catalog null o ausente → usar catálogo por defecto
+    const catalog = (data.catalog && typeof data.catalog === 'object' && !Array.isArray(data.catalog))
+      ? data.catalog
+      : INITIAL_CATALOG;
+
+    return { ...data, catalog };
   }
 
   function handleFileChange(e) {
@@ -73,8 +84,8 @@ export default function Historial() {
     reader.onload = (ev) => {
       try {
         const parsed = JSON.parse(ev.target.result);
-        validateBackup(parsed);
-        setPendingData(parsed);
+        const normalized = normalizeBackup(parsed);
+        setPendingData(normalized);
         setImportError('');
         setImportConfirm(true);
       } catch (err) {
