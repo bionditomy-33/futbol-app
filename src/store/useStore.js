@@ -143,6 +143,17 @@ export function useStore() {
     setState({ schedule: s });
   }, []);
 
+  const updatePhaseObjective = useCallback((routineId, phaseIndex, objective) => {
+    const updatedRoutines = state.routines.map(r => {
+      if (r.id !== routineId) return r;
+      return {
+        ...r,
+        phases: r.phases.map((p, i) => i === phaseIndex ? { ...p, objective: objective || null } : p),
+      };
+    });
+    setState({ routines: updatedRoutines });
+  }, []);
+
   const duplicateRoutine = useCallback((id) => {
     const source = state.routines.find(r => r.id === id);
     if (!source) return null;
@@ -215,6 +226,7 @@ export function useStore() {
     saveRoutine,
     deleteRoutine,
     duplicateRoutine,
+    updatePhaseObjective,
     addExercise,
     editExercise,
     deleteExercise,

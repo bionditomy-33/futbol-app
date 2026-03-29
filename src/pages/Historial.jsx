@@ -9,6 +9,14 @@ const RATING_LABELS = ['', 'Muy mal', 'Mal', 'Regular', 'Bien', 'Excelente'];
 
 const TODAY = todayStr();
 
+// Retorna el lunes de la semana que contiene dateStr (YYYY-MM-DD)
+function weekStartStr(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const dow = d.getDay();
+  d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function getCurrentMonthStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -73,6 +81,47 @@ export default function Historial() {
         return { name: r ? r.name : 'Rutina eliminada', count };
       })
       .sort((a, b) => b.count - a.count);
+  })();
+
+  // Rachas por tipo de rutina (semanas consecutivas)
+  const streaksByType = (() => {
+    // routineId → Set<weekStartStr>
+    const routineWeeks = {};
+    for (const [dateStr, day] of Object.entries(history)) {
+      if (!day.done || !day.routineId) continue;
+      const ws = weekStartStr(dateStr);
+      if (!routineWeeks[day.routineId]) routineWeeks[day.routineId] = new Set();
+      routineWeeks[day.routineId].add(ws);
+    }
+
+    const currentWS = weekStartStr(TODAY);
+
+    return Object.entries(routineWeeks).map(([routineId, weeks]) => {
+      const r = routines.find(r => r.id === routineId);
+      const name = r ? r.name : 'Rutina eliminada';
+
+      // Semanas consecutivas desde la semana actual hacia atrás
+      let streak = 0;
+      const d = new Date(currentWS + 'T12:00:00');
+      while (weeks.has(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)) {
+        streak++;
+        d.setDate(d.getDate() - 7);
+      }
+
+      // Si racha = 0, cuántas semanas atrás fue la última vez
+      let lastWeeksAgo = null;
+      if (streak === 0) {
+        const c = new Date(currentWS + 'T12:00:00');
+        c.setDate(c.getDate() - 7);
+        for (let i = 1; i <= 52; i++) {
+          const ws = `${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,'0')}-${String(c.getDate()).padStart(2,'0')}`;
+          if (weeks.has(ws)) { lastWeeksAgo = i; break; }
+          c.setDate(c.getDate() - 7);
+        }
+      }
+
+      return { name, streak, lastWeeksAgo };
+    }).sort((a, b) => b.streak - a.streak);
   })();
 
   // Valida y normaliza el backup. Retorna el objeto listo para importar.
@@ -183,6 +232,27 @@ export default function Historial() {
               <span style={{ fontSize: 13, color: '#37474F', flex: 1, marginRight: 8 }}>{name}</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#1B5E20', whiteSpace: 'nowrap' }}>
                 {count} {count === 1 ? 'vez' : 'veces'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Rachas por tipo */}
+      {streaksByType.length > 0 && (
+        <div className="card">
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Rachas por tipo
+          </div>
+          {streaksByType.map(({ name, streak, lastWeeksAgo }, i) => (
+            <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, marginBottom: 8, borderBottom: i < streaksByType.length - 1 ? '0.5px solid #F1F5F4' : 'none' }}>
+              <span style={{ fontSize: 13, color: '#37474F', flex: 1, marginRight: 8 }}>{name}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', color: streak > 0 ? '#1B5E20' : '#78909C' }}>
+                {streak > 0
+                  ? `${streak} sem. consecutiva${streak !== 1 ? 's' : ''}`
+                  : lastWeeksAgo
+                    ? `0 sem. · última hace ${lastWeeksAgo}`
+                    : '0 semanas'}
               </span>
             </div>
           ))}

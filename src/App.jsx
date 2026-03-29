@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import Hoy from './pages/Hoy';
 import Semana from './pages/Semana';
+import Calendario from './pages/Calendario';
 import Rutinas from './pages/Rutinas';
 import Lab from './pages/Lab';
 import Catalogo from './pages/Catalogo';
@@ -9,8 +10,9 @@ import Historial from './pages/Historial';
 
 const TABS = [
   { id: 'hoy',      label: 'HOY' },
-  { id: 'semana',   label: 'SEMANA' },
-  { id: 'rutinas',  label: 'RUTINAS' },
+  { id: 'semana',     label: 'SEMANA' },
+  { id: 'calendario', label: 'CALENDARIO' },
+  { id: 'rutinas',    label: 'RUTINAS' },
   { id: 'lab',      label: 'LAB' },
   { id: 'catalogo', label: 'CATALOGO' },
   { id: 'partidos', label: 'PARTIDOS' },
@@ -83,7 +85,8 @@ export default function App() {
 
       {/* Pages */}
       {tab === 'hoy'      && <Hoy />}
-      {tab === 'semana'   && <Semana />}
+      {tab === 'semana'      && <Semana />}
+      {tab === 'calendario'  && <Calendario />}
       {tab === 'rutinas'  && (
         <Rutinas
           onEdit={(routine) => goToLab(routine)}
