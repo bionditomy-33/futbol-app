@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { ChevronDown, ChevronUp, PlayIcon, EditIcon, TrashIcon, PlusIcon, XIcon, CheckIcon } from '../components/Icons';
+import { ChevronDown, ChevronUp, PlayIcon, EditIcon, TrashIcon, PlusIcon, XIcon, CheckIcon, ChevronLeft } from '../components/Icons';
 
 function generateId(category) {
   return `custom-${category.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
 }
 
-export default function Catalogo() {
+export default function Catalogo({ onBack } = {}) {
   const { catalog, addExercise, editExercise, deleteExercise, addCategory, deleteCategory, isExerciseUsed } = useStore();
   const [open, setOpen] = useState({});
 
@@ -89,7 +89,12 @@ export default function Catalogo() {
   return (
     <div className="page-content">
       <div className="page-header" style={{ paddingBottom: 8 }}>
-        <h1 className="page-title">Catalogo</h1>
+        {onBack && (
+          <button className="btn btn-ghost" style={{ padding: '6px 8px', marginRight: 4 }} onClick={onBack}>
+            <ChevronLeft size={18} />
+          </button>
+        )}
+        <h1 className="page-title">Catálogo</h1>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <span className="badge badge-gray">{totalExercises} ejercicios</span>
           <button className="btn btn-primary btn-sm" onClick={() => setShowAddEx(true)}>

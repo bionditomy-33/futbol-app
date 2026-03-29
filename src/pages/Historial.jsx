@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useStore, getState } from '../store/useStore';
 import { INITIAL_CATALOG } from '../data/initialData';
 import { todayStr, formatDate, getDayName } from '../utils/dates';
-import { GymIcon } from '../components/Icons';
+import { GymIcon, ChevronLeft } from '../components/Icons';
 
 const RATING_COLORS = ['', '#EF5350', '#FF7043', '#FFC107', '#66BB6A', '#2E7D32'];
 const RATING_LABELS = ['', 'Muy mal', 'Mal', 'Regular', 'Bien', 'Excelente'];
@@ -41,7 +41,7 @@ function exportData() {
   URL.revokeObjectURL(url);
 }
 
-export default function Historial() {
+export default function Historial({ onBack } = {}) {
   const { history, routines, schedule } = useStore();
   const fileInputRef = useRef(null);
   const [importConfirm, setImportConfirm] = useState(false);
@@ -202,6 +202,11 @@ export default function Historial() {
   return (
     <div className="page-content">
       <div className="page-header">
+        {onBack && (
+          <button className="btn btn-ghost" style={{ padding: '6px 8px', marginRight: 4 }} onClick={onBack}>
+            <ChevronLeft size={18} />
+          </button>
+        )}
         <h1 className="page-title">Historial</h1>
       </div>
 

@@ -181,3 +181,39 @@ export function StarIcon({ size = 14 }) {
     </svg>
   );
 }
+
+export function HomeIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 10.5L12 3L21 10.5V20C21 20.55 20.55 21 20 21H15V15H9V21H4C3.45 21 3 20.55 3 20V10.5Z" />
+    </svg>
+  );
+}
+
+export function TrophyIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 21H16M12 17V21M7 4H17V13C17 16.31 14.76 19 12 19C9.24 19 7 16.31 7 13V4Z" />
+      <path d="M7 6.5H4C3.45 6.5 3 6.95 3 7.5V9C3 11.21 4.79 13 7 13" />
+      <path d="M17 6.5H20C20.55 6.5 21 6.95 21 7.5V9C21 11.21 19.21 13 17 13" />
+    </svg>
+  );
+}
+
+export function MoreHorizIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="5" cy="12" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="19" cy="12" r="1.8" />
+    </svg>
+  );
+}
+
+export function ChevronRight({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <polyline points="5,3 9,7 5,11" />
+    </svg>
+  );
+}

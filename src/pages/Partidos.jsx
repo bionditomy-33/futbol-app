@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { todayStr, formatDate, getDayName } from '../utils/dates';
-import { PlusIcon } from '../components/Icons';
+import { PlusIcon, EditIcon, TrashIcon } from '../components/Icons';
 
 const COMPETITIONS = ['Arsenal Liga', 'Premier', 'Otro'];
 const RESULTS = [
@@ -26,13 +26,35 @@ function emptyForm() {
 
 export default function Partidos() {
   const [matches, setMatches] = useState(loadMatches);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(emptyForm);
-  const [errors, setErrors] = useState({});
+  const [showForm, setShowForm]         = useState(false);
+  const [editingId, setEditingId]       = useState(null); // null = new, string = editing existing
+  const [form, setForm]                 = useState(emptyForm);
+  const [errors, setErrors]             = useState({});
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   function updateForm(field, value) {
     setForm(f => ({ ...f, [field]: value }));
     if (errors[field]) setErrors(e => ({ ...e, [field]: null }));
+  }
+
+  function openNew() {
+    setEditingId(null);
+    setForm(emptyForm());
+    setErrors({});
+    setShowForm(true);
+  }
+
+  function openEdit(match) {
+    setEditingId(match.id);
+    setForm({
+      date: match.date,
+      competition: match.competition,
+      result: match.result,
+      minutes: match.minutes != null ? String(match.minutes) : '',
+      notes: match.notes || '',
+    });
+    setErrors({});
+    setShowForm(true);
   }
 
   function handleSave() {
@@ -40,25 +62,47 @@ export default function Partidos() {
     if (!form.date) errs.date = 'La fecha es obligatoria';
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
-    const match = {
-      id: `m-${Date.now()}`,
-      date: form.date,
-      competition: form.competition,
-      result: form.result,
-      minutes: form.minutes ? parseInt(form.minutes, 10) : null,
-      notes: form.notes.trim() || null,
-    };
-    const updated = [match, ...matches].sort((a, b) => b.date.localeCompare(a.date));
+    let updated;
+    if (editingId) {
+      updated = matches.map(m => m.id === editingId ? {
+        ...m,
+        date: form.date,
+        competition: form.competition,
+        result: form.result,
+        minutes: form.minutes ? parseInt(form.minutes, 10) : null,
+        notes: form.notes.trim() || null,
+      } : m);
+    } else {
+      const match = {
+        id: `m-${Date.now()}`,
+        date: form.date,
+        competition: form.competition,
+        result: form.result,
+        minutes: form.minutes ? parseInt(form.minutes, 10) : null,
+        notes: form.notes.trim() || null,
+      };
+      updated = [match, ...matches];
+    }
+    updated = updated.sort((a, b) => b.date.localeCompare(a.date));
     setMatches(updated);
     saveMatches(updated);
     setForm(emptyForm());
+    setEditingId(null);
     setShowForm(false);
   }
 
   function handleCancel() {
     setForm(emptyForm());
     setErrors({});
+    setEditingId(null);
     setShowForm(false);
+  }
+
+  function handleDelete(id) {
+    const updated = matches.filter(m => m.id !== id);
+    setMatches(updated);
+    saveMatches(updated);
+    setDeleteConfirmId(null);
   }
 
   return (
@@ -66,7 +110,7 @@ export default function Partidos() {
       <div className="page-header">
         <h1 className="page-title">Partidos</h1>
         {!showForm && (
-          <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
+          <button className="btn btn-primary btn-sm" onClick={openNew}>
             <PlusIcon size={12} /> Cargar
           </button>
         )}
@@ -76,7 +120,7 @@ export default function Partidos() {
       {showForm && (
         <div className="card">
           <div style={{ fontWeight: 700, fontSize: 14, color: '#263238', marginBottom: 16 }}>
-            Nuevo partido
+            {editingId ? 'Editar partido' : 'Nuevo partido'}
           </div>
 
           {/* Fecha */}
@@ -157,7 +201,7 @@ export default function Partidos() {
               Cancelar
             </button>
             <button className="btn btn-primary" style={{ flex: 2 }} onClick={handleSave}>
-              Guardar partido
+              {editingId ? 'Guardar cambios' : 'Guardar partido'}
             </button>
           </div>
         </div>
@@ -167,7 +211,7 @@ export default function Partidos() {
       {matches.length === 0 && !showForm && (
         <div className="empty-state">
           <p>No hay partidos registrados todavía.</p>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+          <button className="btn btn-primary" onClick={openNew}>
             Cargar primer partido
           </button>
         </div>
@@ -187,12 +231,30 @@ export default function Partidos() {
                   {getDayName(match.date)} · {formatDate(match.date).split(',')[1]?.trim() || match.date}
                 </div>
               </div>
-              <span style={{
-                fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 20,
-                background: resultInfo.bg, color: resultInfo.color,
-              }}>
-                {resultInfo.label}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{
+                  fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 20,
+                  background: resultInfo.bg, color: resultInfo.color,
+                }}>
+                  {resultInfo.label}
+                </span>
+                <button
+                  className="btn btn-ghost"
+                  style={{ padding: '5px 6px', color: '#78909C' }}
+                  onClick={() => openEdit(match)}
+                  title="Editar"
+                >
+                  <EditIcon size={14} />
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  style={{ padding: '5px 6px', color: '#EF5350' }}
+                  onClick={() => setDeleteConfirmId(match.id)}
+                  title="Eliminar"
+                >
+                  <TrashIcon size={14} />
+                </button>
+              </div>
             </div>
 
             {match.minutes != null && (
@@ -213,6 +275,36 @@ export default function Partidos() {
           </div>
         );
       })}
+
+      {/* Confirmación de eliminación */}
+      {deleteConfirmId && (() => {
+        const match = matches.find(m => m.id === deleteConfirmId);
+        if (!match) return null;
+        return (
+          <div className="modal-overlay" onClick={() => setDeleteConfirmId(null)}>
+            <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
+              <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
+                Eliminar partido
+              </div>
+              <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
+                ¿Eliminar el partido de {match.competition} del {formatDate(match.date)}? Esta acción no se puede deshacer.
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setDeleteConfirmId(null)}>
+                  Cancelar
+                </button>
+                <button
+                  className="btn btn-primary"
+                  style={{ flex: 1, background: '#C62828', borderColor: '#C62828' }}
+                  onClick={() => handleDelete(deleteConfirmId)}
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
