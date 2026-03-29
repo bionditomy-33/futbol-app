@@ -199,26 +199,32 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                   </span>
                 </div>
                 {!isFixed && (
-                  <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                     <button
                       className="btn btn-ghost"
-                      style={{ padding: '3px 5px', color: '#607D8B' }}
+                      style={{
+                        padding: '5px 7px', color: '#607D8B',
+                        opacity: pi <= FIXED_PHASES.length ? 0.25 : 1,
+                        pointerEvents: pi <= FIXED_PHASES.length ? 'none' : 'auto',
+                      }}
                       onClick={() => movePhase(pi, -1)}
-                      disabled={pi <= FIXED_PHASES.length}
                     >
-                      <ArrowUpIcon size={12} />
+                      <ArrowUpIcon size={14} />
                     </button>
                     <button
                       className="btn btn-ghost"
-                      style={{ padding: '3px 5px', color: '#607D8B' }}
+                      style={{
+                        padding: '5px 7px', color: '#607D8B',
+                        opacity: pi >= form.phases.length - 1 ? 0.25 : 1,
+                        pointerEvents: pi >= form.phases.length - 1 ? 'none' : 'auto',
+                      }}
                       onClick={() => movePhase(pi, 1)}
-                      disabled={pi >= form.phases.length - 1}
                     >
-                      <ArrowDownIcon size={12} />
+                      <ArrowDownIcon size={14} />
                     </button>
                     <button
                       className="btn btn-ghost"
-                      style={{ padding: '3px 6px', color: '#EF5350' }}
+                      style={{ padding: '5px 7px', color: '#EF5350' }}
                       onClick={() => {
                         if (phase.exercises.length > 0) {
                           setDeleteConfirmPhase(pi);
@@ -227,7 +233,7 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                         }
                       }}
                     >
-                      <TrashIcon size={13} />
+                      <TrashIcon size={14} />
                     </button>
                   </div>
                 )}
@@ -264,10 +270,18 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                               {info ? info.name : ex.ref}
                             </span>
                             <div style={{ display: 'flex', gap: 2 }}>
-                              <button className="btn btn-ghost" style={{ padding: '3px 5px' }} onClick={() => moveExercise(pi, ei, -1)} disabled={ei === 0}>
+                              <button
+                                className="btn btn-ghost"
+                                style={{ padding: '3px 5px', opacity: ei === 0 ? 0.25 : 1, pointerEvents: ei === 0 ? 'none' : 'auto' }}
+                                onClick={() => moveExercise(pi, ei, -1)}
+                              >
                                 <ArrowUpIcon size={12} />
                               </button>
-                              <button className="btn btn-ghost" style={{ padding: '3px 5px' }} onClick={() => moveExercise(pi, ei, 1)} disabled={ei === phase.exercises.length - 1}>
+                              <button
+                                className="btn btn-ghost"
+                                style={{ padding: '3px 5px', opacity: ei === phase.exercises.length - 1 ? 0.25 : 1, pointerEvents: ei === phase.exercises.length - 1 ? 'none' : 'auto' }}
+                                onClick={() => moveExercise(pi, ei, 1)}
+                              >
                                 <ArrowDownIcon size={12} />
                               </button>
                               <button className="btn btn-ghost" style={{ padding: '3px 5px', color: '#EF5350' }} onClick={() => removeExercise(pi, ei)}>
