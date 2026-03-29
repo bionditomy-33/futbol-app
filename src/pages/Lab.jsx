@@ -132,10 +132,9 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
   }
 
   function movePhase(pi, dir) {
-    const target = pi + dir;
-    if (target < FIXED_PHASES.length) return;
     setForm(f => {
-      if (target >= f.phases.length) return f;
+      const target = pi + dir;
+      if (target < 0 || target >= f.phases.length) return f;
       const phases = [...f.phases];
       [phases[pi], phases[target]] = [phases[target], phases[pi]];
       return { ...f, phases };
@@ -198,30 +197,30 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                     {phase.phase}
                   </span>
                 </div>
-                {!isFixed && (
-                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                    <button
-                      className="btn btn-ghost"
-                      style={{
-                        padding: '5px 7px', color: '#607D8B',
-                        opacity: pi <= FIXED_PHASES.length ? 0.25 : 1,
-                        pointerEvents: pi <= FIXED_PHASES.length ? 'none' : 'auto',
-                      }}
-                      onClick={() => movePhase(pi, -1)}
-                    >
-                      <ArrowUpIcon size={14} />
-                    </button>
-                    <button
-                      className="btn btn-ghost"
-                      style={{
-                        padding: '5px 7px', color: '#607D8B',
-                        opacity: pi >= form.phases.length - 1 ? 0.25 : 1,
-                        pointerEvents: pi >= form.phases.length - 1 ? 'none' : 'auto',
-                      }}
-                      onClick={() => movePhase(pi, 1)}
-                    >
-                      <ArrowDownIcon size={14} />
-                    </button>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <button
+                    className="btn btn-ghost"
+                    style={{
+                      padding: '5px 7px', color: '#607D8B',
+                      opacity: pi === 0 ? 0.25 : 1,
+                      pointerEvents: pi === 0 ? 'none' : 'auto',
+                    }}
+                    onClick={() => movePhase(pi, -1)}
+                  >
+                    <ArrowUpIcon size={14} />
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    style={{
+                      padding: '5px 7px', color: '#607D8B',
+                      opacity: pi >= form.phases.length - 1 ? 0.25 : 1,
+                      pointerEvents: pi >= form.phases.length - 1 ? 'none' : 'auto',
+                    }}
+                    onClick={() => movePhase(pi, 1)}
+                  >
+                    <ArrowDownIcon size={14} />
+                  </button>
+                  {!isFixed && (
                     <button
                       className="btn btn-ghost"
                       style={{ padding: '5px 7px', color: '#EF5350' }}
@@ -235,8 +234,8 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                     >
                       <TrashIcon size={14} />
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               <div style={{ padding: '12px 14px' }}>
