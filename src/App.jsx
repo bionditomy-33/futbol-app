@@ -4,6 +4,7 @@ import Semana from './pages/Semana';
 import Rutinas from './pages/Rutinas';
 import Lab from './pages/Lab';
 import Catalogo from './pages/Catalogo';
+import Partidos from './pages/Partidos';
 import Historial from './pages/Historial';
 
 const TABS = [
@@ -12,6 +13,7 @@ const TABS = [
   { id: 'rutinas',  label: 'RUTINAS' },
   { id: 'lab',      label: 'LAB' },
   { id: 'catalogo', label: 'CATALOGO' },
+  { id: 'partidos', label: 'PARTIDOS' },
   { id: 'historial',label: 'HISTORIAL' },
 ];
 
@@ -96,6 +98,7 @@ export default function App() {
         />
       )}
       {tab === 'catalogo'  && <Catalogo />}
+      {tab === 'partidos'  && <Partidos />}
       {tab === 'historial' && <Historial />}
 
       {/* Diálogo: cambios sin guardar */}

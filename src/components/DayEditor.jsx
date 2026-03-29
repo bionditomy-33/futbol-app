@@ -5,9 +5,12 @@ import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, XIcon } from './Icons';
 
 const TIMER_PRESETS = [20, 30, 45, 60, 90];
 
+const RATING_COLORS = ['', '#EF5350', '#FF7043', '#FFC107', '#66BB6A', '#2E7D32'];
+const RATING_LABELS = ['', 'Muy mal', 'Mal', 'Regular', 'Bien', 'Excelente'];
+
 function RestTimer({ onClose }) {
-  const [seconds, setSeconds] = useState(null);   // null = no running, number = remaining
-  const [selected, setSelected] = useState(null); // preset selected
+  const [seconds, setSeconds] = useState(null);
+  const [selected, setSelected] = useState(null);
   const [finished, setFinished] = useState(false);
   const intervalRef = useRef(null);
 
@@ -43,86 +46,147 @@ function RestTimer({ onClose }) {
 
   return (
     <div style={{
-      position: 'fixed',
-      bottom: 0,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: '100%',
-      maxWidth: 480,
-      background: '#1B5E20',
-      borderRadius: '16px 16px 0 0',
-      padding: '16px 20px 32px',
-      zIndex: 300,
-      boxShadow: '0 -4px 24px rgba(0,0,0,0.25)',
+      position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+      width: '100%', maxWidth: 480, background: '#1B5E20',
+      borderRadius: '16px 16px 0 0', padding: '16px 20px 32px',
+      zIndex: 300, boxShadow: '0 -4px 24px rgba(0,0,0,0.25)',
     }}>
-      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <span style={{ color: 'white', fontWeight: 700, fontSize: 15 }}>Timer de descanso</span>
         <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, padding: '4px 8px', cursor: 'pointer', color: 'white' }}>
           <XIcon size={15} />
         </button>
       </div>
-
-      {/* Presets */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {TIMER_PRESETS.map(s => (
-          <button
-            key={s}
-            onClick={() => startTimer(s)}
-            style={{
-              flex: 1,
-              padding: '8px 4px',
-              borderRadius: 8,
-              border: 'none',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: 13,
-              fontWeight: 700,
-              background: selected === s ? '#A5D6A7' : 'rgba(255,255,255,0.15)',
-              color: selected === s ? '#1B5E20' : 'white',
-              transition: 'background 0.15s',
-            }}
-          >
+          <button key={s} onClick={() => startTimer(s)} style={{
+            flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+            background: selected === s ? '#A5D6A7' : 'rgba(255,255,255,0.15)',
+            color: selected === s ? '#1B5E20' : 'white', transition: 'background 0.15s',
+          }}>
             {s}s
           </button>
         ))}
       </div>
-
-      {/* Countdown */}
       {seconds !== null && (
         <div style={{ textAlign: 'center' }}>
           {finished ? (
-            <div style={{ fontSize: 40, fontWeight: 800, color: '#A5D6A7', letterSpacing: '-0.02em' }}>
-              ¡Tiempo!
-            </div>
+            <div style={{ fontSize: 40, fontWeight: 800, color: '#A5D6A7', letterSpacing: '-0.02em' }}>¡Tiempo!</div>
           ) : (
             <div style={{ fontSize: 56, fontWeight: 800, color: 'white', letterSpacing: '-0.02em', lineHeight: 1 }}>
               {mins > 0 ? `${mins}:${String(secs).padStart(2,'0')}` : `${secs}s`}
             </div>
           )}
-          <button
-            onClick={cancelTimer}
-            style={{
-              marginTop: 12,
-              background: 'rgba(255,255,255,0.15)',
-              border: 'none',
-              borderRadius: 8,
-              padding: '8px 20px',
-              color: 'white',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
+          <button onClick={cancelTimer} style={{
+            marginTop: 12, background: 'rgba(255,255,255,0.15)', border: 'none',
+            borderRadius: 8, padding: '8px 20px', color: 'white',
+            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}>
             Cancelar
           </button>
         </div>
       )}
-
       {seconds === null && (
         <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
           Elegí un tiempo para empezar
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RatingModal({ onSave, onSkip }) {
+  const [rating, setRating] = useState(null);
+  const [hardest, setHardest] = useState('');
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
+        <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 4 }}>
+          ¿Cómo estuvo la sesión?
+        </div>
+        <div style={{ fontSize: 13, color: '#78909C', marginBottom: 20 }}>
+          Evaluá tu entrenamiento de hoy
+        </div>
+
+        {/* Rating 1-5 */}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 8 }}>
+          {[1,2,3,4,5].map(n => (
+            <button
+              key={n}
+              onClick={() => setRating(n)}
+              style={{
+                width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: 'pointer',
+                fontFamily: 'inherit', fontWeight: 800, fontSize: 18,
+                background: rating === n ? RATING_COLORS[n] : '#F1F5F4',
+                color: rating === n ? 'white' : '#78909C',
+                transition: 'all 0.15s',
+                transform: rating === n ? 'scale(1.15)' : 'scale(1)',
+              }}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+        {rating && (
+          <div style={{ textAlign: 'center', fontSize: 13, color: RATING_COLORS[rating], fontWeight: 700, marginBottom: 20 }}>
+            {RATING_LABELS[rating]}
+          </div>
+        )}
+        {!rating && <div style={{ height: 28 }} />}
+
+        {/* Ejercicio más difícil */}
+        <div className="form-group" style={{ marginBottom: 24 }}>
+          <label className="form-label">¿Qué ejercicio te costó más? <span style={{ color: '#B0BEC5' }}>(opcional)</span></label>
+          <input
+            className="input"
+            placeholder="ej: Rondos, Sprint 1v1..."
+            value={hardest}
+            onChange={e => setHardest(e.target.value)}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onSkip}>
+            Saltear
+          </button>
+          <button
+            className="btn btn-primary"
+            style={{ flex: 2 }}
+            onClick={() => onSave(rating, hardest.trim() || null)}
+          >
+            Guardar y cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RatingDisplay({ rating, hardestExercise }) {
+  if (!rating) return null;
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center', marginBottom: hardestExercise ? 6 : 0 }}>
+        {[1,2,3,4,5].map(n => (
+          <div key={n} style={{
+            width: 26, height: 26, borderRadius: '50%',
+            background: n <= rating ? RATING_COLORS[rating] : '#E8ECEB',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 700,
+            color: n <= rating ? 'white' : '#B0BEC5',
+          }}>
+            {n}
+          </div>
+        ))}
+        <span style={{ fontSize: 13, color: RATING_COLORS[rating], fontWeight: 700, marginLeft: 4 }}>
+          {RATING_LABELS[rating]}
+        </span>
+      </div>
+      {hardestExercise && (
+        <div style={{ fontSize: 12, color: '#78909C', textAlign: 'center' }}>
+          Más difícil: <span style={{ color: '#37474F', fontWeight: 600 }}>{hardestExercise}</span>
         </div>
       )}
     </div>
@@ -166,20 +230,14 @@ function ExerciseRow({ ex, exerciseMap, completed, onToggle }) {
   );
 }
 
-// Selector de rutina: incluye Descanso/Limpiar + todas las rutinas
 function RoutineSelector({ routines, onSelect, onClear, onCancel, showCancel }) {
   return (
     <div className="card" style={{ marginTop: 0 }}>
       <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#263238' }}>
         Seleccionar rutina
       </div>
-
-      {/* Opcion Descanso / Sin rutina */}
       <div
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 0', borderBottom: '0.5px solid #F1F5F4', cursor: 'pointer',
-        }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '0.5px solid #F1F5F4', cursor: 'pointer' }}
         onClick={onClear}
       >
         <div>
@@ -188,17 +246,12 @@ function RoutineSelector({ routines, onSelect, onClear, onCancel, showCancel }) 
         </div>
         <span style={{ color: '#78909C', fontWeight: 700, fontSize: 13 }}>Limpiar</span>
       </div>
-
       {routines.length === 0 ? (
         <div style={{ color: '#78909C', fontSize: 13, padding: '10px 0' }}>No hay rutinas creadas.</div>
       ) : (
         routines.map(r => (
-          <div
-            key={r.id}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '10px 0', borderBottom: '0.5px solid #F1F5F4', cursor: 'pointer',
-            }}
+          <div key={r.id}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '0.5px solid #F1F5F4', cursor: 'pointer' }}
             onClick={() => onSelect(r.id)}
           >
             <div>
@@ -209,7 +262,6 @@ function RoutineSelector({ routines, onSelect, onClear, onCancel, showCancel }) 
           </div>
         ))
       )}
-
       {showCancel && (
         <button className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={onCancel}>
           Cancelar
@@ -219,7 +271,6 @@ function RoutineSelector({ routines, onSelect, onClear, onCancel, showCancel }) 
   );
 }
 
-// Componente principal: editor de un día cualquiera
 export default function DayEditor({ dateStr }) {
   const {
     routines, schedule, exerciseMap,
@@ -229,6 +280,7 @@ export default function DayEditor({ dateStr }) {
 
   const [showSelector, setShowSelector] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
+  const [showRating, setShowRating] = useState(false);
 
   const assignedId = schedule[dateStr];
   const routine = routines.find(r => r.id === assignedId) || null;
@@ -251,7 +303,23 @@ export default function DayEditor({ dateStr }) {
   }
 
   function handleComplete() {
+    setShowRating(true);
+  }
+
+  function handleRatingSave(rating, hardestExercise) {
     completeDay(dateStr, assignedId);
+    if (rating !== null || hardestExercise) {
+      updateDay(dateStr, {
+        ...(rating !== null ? { rating } : {}),
+        ...(hardestExercise ? { hardestExercise } : {}),
+      });
+    }
+    setShowRating(false);
+  }
+
+  function handleRatingSkip() {
+    completeDay(dateStr, assignedId);
+    setShowRating(false);
   }
 
   function handleUncomplete() {
@@ -271,9 +339,12 @@ export default function DayEditor({ dateStr }) {
             Entrenamiento completado
           </div>
           {r && <div style={{ fontSize: 14, color: '#37474F', marginBottom: 6 }}>{r.name}</div>}
-          <div style={{ fontSize: 13, color: '#78909C', marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: '#78909C', marginBottom: 12 }}>
             {doneCount}/{totalEx} ejercicios{day.gym ? ' · Gym ✓' : ''}
           </div>
+
+          <RatingDisplay rating={day.rating} hardestExercise={day.hardestExercise} />
+
           {day.notes && (
             <div style={{ fontSize: 13, color: '#37474F', background: 'white', borderRadius: 8, padding: '8px 12px', textAlign: 'left', marginBottom: 16 }}>
               {day.notes}
@@ -284,7 +355,6 @@ export default function DayEditor({ dateStr }) {
           </button>
         </div>
 
-        {/* Gym siempre visible, incluso si está completado */}
         <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <GymIcon size={16} />
@@ -307,19 +377,12 @@ export default function DayEditor({ dateStr }) {
       {!routine && !showSelector && (
         <div className="card" style={{ textAlign: 'center', padding: '20px 16px' }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>⚽</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#263238', marginBottom: 4 }}>
-            Sin rutina asignada
-          </div>
-          <div style={{ fontSize: 13, color: '#78909C', marginBottom: 16 }}>
-            Elegí una rutina o dejá el dia como descanso
-          </div>
-          <button className="btn btn-primary" onClick={() => setShowSelector(true)}>
-            Asignar rutina
-          </button>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#263238', marginBottom: 4 }}>Sin rutina asignada</div>
+          <div style={{ fontSize: 13, color: '#78909C', marginBottom: 16 }}>Elegí una rutina o dejá el dia como descanso</div>
+          <button className="btn btn-primary" onClick={() => setShowSelector(true)}>Asignar rutina</button>
         </div>
       )}
 
-      {/* Selector */}
       {showSelector && (
         <RoutineSelector
           routines={routines}
@@ -330,7 +393,6 @@ export default function DayEditor({ dateStr }) {
         />
       )}
 
-      {/* Rutina asignada */}
       {routine && !showSelector && (
         <>
           <div className="card" style={{ padding: '14px 16px' }}>
@@ -338,13 +400,9 @@ export default function DayEditor({ dateStr }) {
               <div>
                 <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', letterSpacing: '-0.01em' }}>{routine.name}</div>
                 {routine.subtitle && <div style={{ fontSize: 13, color: '#78909C', marginTop: 2 }}>{routine.subtitle}</div>}
-                <div style={{ fontSize: 12, color: '#78909C', marginTop: 4 }}>
-                  {routine.duration} · {totalEx} ejercicios
-                </div>
+                <div style={{ fontSize: 12, color: '#78909C', marginTop: 4 }}>{routine.duration} · {totalEx} ejercicios</div>
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowSelector(true)}>
-                Cambiar
-              </button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowSelector(true)}>Cambiar</button>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: 13, color: '#78909C' }}>Progreso</span>
@@ -383,7 +441,6 @@ export default function DayEditor({ dateStr }) {
         </>
       )}
 
-      {/* Gym: siempre visible */}
       {!showSelector && (
         <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -399,7 +456,6 @@ export default function DayEditor({ dateStr }) {
         </div>
       )}
 
-      {/* Notas */}
       {!showSelector && (
         <div className="card">
           <div className="form-label">Notas</div>
@@ -412,7 +468,6 @@ export default function DayEditor({ dateStr }) {
         </div>
       )}
 
-      {/* Boton completar (solo si hay rutina y no está completado) */}
       {routine && !showSelector && (
         <div style={{ padding: '0 16px 8px' }}>
           <button className="btn btn-primary btn-full" onClick={handleComplete} style={{ padding: '14px 18px', fontSize: 15 }}>
@@ -421,36 +476,27 @@ export default function DayEditor({ dateStr }) {
         </div>
       )}
 
-      {/* Boton flotante timer — solo cuando hay rutina activa */}
       {!showSelector && !day.done && (
         <>
-          <div style={{ height: 72 }} /> {/* espacio para no tapar contenido */}
+          <div style={{ height: 72 }} />
           <button
             onClick={() => setShowTimer(t => !t)}
             style={{
-              position: 'fixed',
-              bottom: 24,
-              right: 'calc(50% - 228px)',
-              zIndex: 250,
-              background: showTimer ? '#2E7D32' : '#1B5E20',
-              color: 'white',
-              border: 'none',
-              borderRadius: 99,
-              padding: '12px 20px',
-              fontSize: 14,
-              fontWeight: 700,
-              fontFamily: 'inherit',
-              cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(27,94,32,0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
+              position: 'fixed', bottom: 24, right: 'calc(50% - 228px)', zIndex: 250,
+              background: showTimer ? '#2E7D32' : '#1B5E20', color: 'white',
+              border: 'none', borderRadius: 99, padding: '12px 20px',
+              fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(27,94,32,0.4)', display: 'flex', alignItems: 'center', gap: 8,
             }}
           >
             ⏱ Timer
           </button>
           {showTimer && <RestTimer onClose={() => setShowTimer(false)} />}
         </>
+      )}
+
+      {showRating && (
+        <RatingModal onSave={handleRatingSave} onSkip={handleRatingSkip} />
       )}
     </div>
   );

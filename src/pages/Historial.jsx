@@ -4,6 +4,9 @@ import { INITIAL_CATALOG } from '../data/initialData';
 import { todayStr, formatDate, getDayName } from '../utils/dates';
 import { GymIcon } from '../components/Icons';
 
+const RATING_COLORS = ['', '#EF5350', '#FF7043', '#FFC107', '#66BB6A', '#2E7D32'];
+const RATING_LABELS = ['', 'Muy mal', 'Mal', 'Regular', 'Bien', 'Excelente'];
+
 const TODAY = todayStr();
 
 function getCurrentMonthStr() {
@@ -55,6 +58,22 @@ export default function Historial() {
   const monthDone    = monthPast.filter(d => history[d]?.done).length;
   const monthGym     = monthPast.filter(d => history[d]?.gym).length;
   const monthPct     = monthPlanned > 0 ? Math.round((monthDone / monthPlanned) * 100) : 0;
+
+  // Sesiones por tipo de rutina (todos los tiempos)
+  const sessionsByType = (() => {
+    const counts = {};
+    for (const day of Object.values(history)) {
+      if (!day.done) continue;
+      const key = day.routineId || '__none__';
+      counts[key] = (counts[key] || 0) + 1;
+    }
+    return Object.entries(counts)
+      .map(([id, count]) => {
+        const r = routines.find(r => r.id === id);
+        return { name: r ? r.name : 'Rutina eliminada', count };
+      })
+      .sort((a, b) => b.count - a.count);
+  })();
 
   // Valida y normaliza el backup. Retorna el objeto listo para importar.
   function normalizeBackup(data) {
@@ -153,6 +172,23 @@ export default function Historial() {
         </div>
       </div>
 
+      {/* Sesiones por tipo */}
+      {sessionsByType.length > 0 && (
+        <div className="card">
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Sesiones por tipo
+          </div>
+          {sessionsByType.map(({ name, count }) => (
+            <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, marginBottom: 8, borderBottom: '0.5px solid #F1F5F4' }}>
+              <span style={{ fontSize: 13, color: '#37474F', flex: 1, marginRight: 8 }}>{name}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#1B5E20', whiteSpace: 'nowrap' }}>
+                {count} {count === 1 ? 'vez' : 'veces'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {entries.length === 0 && (
         <div className="empty-state">
           <p>No hay actividad registrada todavía.</p>
@@ -214,8 +250,31 @@ export default function Historial() {
             </div>
 
             {isTraining && (
-              <div style={{ display: 'flex', gap: 12, marginBottom: day.notes ? 8 : 0 }}>
+              <div style={{ display: 'flex', gap: 12, marginBottom: (day.rating || day.hardestExercise || day.notes) ? 8 : 0 }}>
                 <span style={{ fontSize: 12, color: '#6b7280' }}>{doneCount} ejercicios</span>
+              </div>
+            )}
+
+            {/* Rating de la sesión */}
+            {isTraining && day.rating && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: day.hardestExercise || day.notes ? 6 : 0 }}>
+                {[1,2,3,4,5].map(n => (
+                  <div key={n} style={{
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: n <= day.rating ? RATING_COLORS[day.rating] : '#E8ECEB',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, fontWeight: 700,
+                    color: n <= day.rating ? 'white' : '#B0BEC5',
+                  }}>{n}</div>
+                ))}
+                <span style={{ fontSize: 12, color: RATING_COLORS[day.rating], fontWeight: 700 }}>
+                  {RATING_LABELS[day.rating]}
+                </span>
+              </div>
+            )}
+            {isTraining && day.hardestExercise && (
+              <div style={{ fontSize: 12, color: '#78909C', marginBottom: day.notes ? 6 : 0 }}>
+                Más difícil: <span style={{ color: '#374151', fontWeight: 600 }}>{day.hardestExercise}</span>
               </div>
             )}
 
