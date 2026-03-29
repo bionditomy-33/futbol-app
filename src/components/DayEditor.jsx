@@ -285,6 +285,11 @@ export default function DayEditor({ dateStr }) {
     assignRoutine, removeSchedule, updatePhaseObjective,
   } = useStore();
 
+  const assignedId = schedule[dateStr];
+  const routine = routines.find(r => r.id === assignedId) || null;
+  const day = getDay(dateStr);
+  const completed = day.completed || {};
+
   const [showSelector, setShowSelector] = useState(false);
   const [showTimer, setShowTimer]       = useState(false);
   const [showRating, setShowRating]     = useState(false);
@@ -298,11 +303,6 @@ export default function DayEditor({ dateStr }) {
       setObjectives(Object.fromEntries(routine.phases.map((p, i) => [i, p.objective || ''])));
     }
   }, [routine?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const assignedId = schedule[dateStr];
-  const routine = routines.find(r => r.id === assignedId) || null;
-  const day = getDay(dateStr);
-  const completed = day.completed || {};
 
   const allExercises = routine ? routine.phases.flatMap(p => p.exercises) : [];
   const totalEx = allExercises.length;
