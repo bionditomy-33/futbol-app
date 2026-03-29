@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr } from '../utils/dates';
-import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, XIcon } from './Icons';
+import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, XIcon, GripIcon } from './Icons';
+import { useDragSort } from '../hooks/useDragSort';
 
 function getPhaseColor(phaseName) {
   if (phaseName === 'Calentamiento corporal') return '#2E7D32';
@@ -294,15 +295,30 @@ export default function DayEditor({ dateStr }) {
   const [showTimer, setShowTimer]       = useState(false);
   const [showRating, setShowRating]     = useState(false);
 
-  // Objetivos locales por índice de fase; se sincronizan cuando cambia la rutina
+  // Objetivos locales por nombre de fase; se sincronizan cuando cambia la rutina
   const [objectives, setObjectives] = useState(() =>
-    routine ? Object.fromEntries(routine.phases.map((p, i) => [i, p.objective || ''])) : {}
+    routine ? Object.fromEntries(routine.phases.map(p => [p.phase, p.objective || ''])) : {}
   );
   useEffect(() => {
     if (routine) {
-      setObjectives(Object.fromEntries(routine.phases.map((p, i) => [i, p.objective || ''])));
+      setObjectives(Object.fromEntries(routine.phases.map(p => [p.phase, p.objective || ''])));
     }
   }, [routine?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Orden visual de fases (local, no persiste en la rutina)
+  const [localPhases, setLocalPhases] = useState(() => routine ? [...routine.phases] : []);
+  useEffect(() => {
+    if (routine) setLocalPhases([...routine.phases]);
+  }, [routine?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Drag sort para fases (visual only)
+  const {
+    containerRef: phaseContainerRef,
+    displayItems: displayPhases,
+    origIndices: phaseOrigIndices,
+    getItemStyle: getPhaseItemStyle,
+    onHandlePointerDown: onPhaseHandleDown,
+  } = useDragSort(localPhases, setLocalPhases);
 
   const allExercises = routine ? routine.phases.flatMap(p => p.exercises) : [];
   const totalEx = allExercises.length;
@@ -431,12 +447,13 @@ export default function DayEditor({ dateStr }) {
           </div>
 
           {/* Bloques de fases con diseño de flujo vertical */}
-          <div style={{ padding: '0 16px' }}>
-            {routine.phases.map((phase, pi) => {
+          <div ref={phaseContainerRef} style={{ padding: '0 16px' }}>
+            {displayPhases.map((phase, displayIdx) => {
+              const pi     = phaseOrigIndices[displayIdx]; // índice original en routine.phases
               const color  = getPhaseColor(phase.phase);
-              const isLast = pi === routine.phases.length - 1;
+              const isLast = displayIdx === displayPhases.length - 1;
               return (
-                <div key={pi}>
+                <div key={phase.phase} style={getPhaseItemStyle(displayIdx)}>
                   {/* Tarjeta del bloque */}
                   <div style={{
                     background: 'white',
@@ -447,9 +464,17 @@ export default function DayEditor({ dateStr }) {
                   }}>
                     {/* Header del bloque */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px 8px', borderBottom: '0.5px solid #F1F5F4' }}>
-                      <span style={{ fontWeight: 800, fontSize: 12, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                        {phase.phase}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div
+                          onPointerDown={e => onPhaseHandleDown(e, displayIdx)}
+                          style={{ cursor: 'grab', color: '#C8D8CC', padding: '3px 2px', touchAction: 'none', flexShrink: 0 }}
+                        >
+                          <GripIcon size={12} />
+                        </div>
+                        <span style={{ fontWeight: 800, fontSize: 12, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          {phase.phase}
+                        </span>
+                      </div>
                       {phase.time && (
                         <span style={{ fontSize: 11, color: '#B0BEC5', fontWeight: 600 }}>{phase.time}</span>
                       )}
@@ -465,12 +490,13 @@ export default function DayEditor({ dateStr }) {
                           className="input"
                           style={{ fontSize: 12, minHeight: 48, resize: 'none', lineHeight: 1.4 }}
                           placeholder="¿Qué querés lograr en este bloque?"
-                          value={objectives[pi] !== undefined ? objectives[pi] : (phase.objective || '')}
-                          onChange={e => setObjectives(o => ({ ...o, [pi]: e.target.value }))}
+                          value={objectives[phase.phase] !== undefined ? objectives[phase.phase] : (phase.objective || '')}
+                          onChange={e => setObjectives(o => ({ ...o, [phase.phase]: e.target.value }))}
                           onBlur={e => {
                             const val = e.target.value;
+                            const origIdx = routine.phases.findIndex(p => p.phase === phase.phase);
                             if (val !== (phase.objective || '')) {
-                              updatePhaseObjective(routine.id, pi, val || null);
+                              updatePhaseObjective(routine.id, origIdx, val || null);
                             }
                           }}
                         />

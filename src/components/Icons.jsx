@@ -210,6 +210,19 @@ export function MoreHorizIcon({ size = 24 }) {
   );
 }
 
+export function GripIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="currentColor">
+      <circle cx="4.5" cy="3"  r="1.2" />
+      <circle cx="9.5" cy="3"  r="1.2" />
+      <circle cx="4.5" cy="7"  r="1.2" />
+      <circle cx="9.5" cy="7"  r="1.2" />
+      <circle cx="4.5" cy="11" r="1.2" />
+      <circle cx="9.5" cy="11" r="1.2" />
+    </svg>
+  );
+}
+
 export function ChevronRight({ size = 14 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

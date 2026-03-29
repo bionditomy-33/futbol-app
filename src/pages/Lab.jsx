@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import ExercisePicker from '../components/ExercisePicker';
-import { PlusIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon, XIcon, BodyIcon, BallIcon, FireIcon } from '../components/Icons';
+import { PlusIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon, XIcon, BodyIcon, BallIcon, FireIcon, GripIcon } from '../components/Icons';
+import { useDragSort } from '../hooks/useDragSort';
 
 const FIXED_PHASES = ['Calentamiento corporal', 'Calentamiento con balon', 'Sesion principal'];
 
@@ -36,6 +37,91 @@ function emptyRoutine() {
   };
 }
 
+// ── Sub-component: exercise list with drag sort ───────────────────────────────
+function PhaseExercises({ exercises, exerciseMap, onReorder, onMove, onRemove, onUpdate }) {
+  const { containerRef, displayItems, origIndices, getItemStyle, onHandlePointerDown } =
+    useDragSort(exercises, onReorder);
+
+  return (
+    <div ref={containerRef} style={{ marginBottom: 10 }}>
+      {displayItems.map((ex, displayIdx) => {
+        const ei = origIndices[displayIdx];
+        const info = exerciseMap[ex.ref];
+        return (
+          <div key={ei} style={{ marginBottom: 6, ...getItemStyle(displayIdx) }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.75)',
+              borderRadius: 8,
+              padding: '10px 12px',
+              border: '1px solid rgba(0,0,0,0.07)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+                  <div
+                    onPointerDown={e => onHandlePointerDown(e, displayIdx)}
+                    style={{ cursor: 'grab', color: '#B0BEC5', padding: '3px 2px', touchAction: 'none', flexShrink: 0 }}
+                  >
+                    <GripIcon size={12} />
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#263238', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {info ? info.name : ex.ref}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ padding: '3px 5px', opacity: ei === 0 ? 0.25 : 1, pointerEvents: ei === 0 ? 'none' : 'auto' }}
+                    onClick={() => onMove(ei, -1)}
+                  >
+                    <ArrowUpIcon size={12} />
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ padding: '3px 5px', opacity: ei === exercises.length - 1 ? 0.25 : 1, pointerEvents: ei === exercises.length - 1 ? 'none' : 'auto' }}
+                    onClick={() => onMove(ei, 1)}
+                  >
+                    <ArrowDownIcon size={12} />
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ padding: '3px 5px', color: '#EF5350' }}
+                    onClick={() => onRemove(ei)}
+                  >
+                    <XIcon size={12} />
+                  </button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <label className="form-label" style={{ fontSize: 9 }}>Series</label>
+                  <input
+                    className="input"
+                    style={{ padding: '6px 8px', fontSize: 13 }}
+                    placeholder="ej: 3"
+                    value={ex.series}
+                    onChange={e => onUpdate(ei, 'series', e.target.value)}
+                  />
+                </div>
+                <div style={{ flex: 2 }}>
+                  <label className="form-label" style={{ fontSize: 9 }}>Reps / Indicacion</label>
+                  <input
+                    className="input"
+                    style={{ padding: '6px 8px', fontSize: 13 }}
+                    placeholder="ej: 10 reps"
+                    value={ex.reps}
+                    onChange={e => onUpdate(ei, 'reps', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) {
   const { catalog, saveRoutine, exerciseMap } = useStore();
   const initialFormRef = useRef(null);
@@ -44,11 +130,20 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
     initialFormRef.current = JSON.stringify(data);
     return data;
   });
-  const [picker, setPicker] = useState(null); // phase index
+  const [picker, setPicker] = useState(null); // original phase index
   const [errors, setErrors] = useState({});
   const [newPhaseName, setNewPhaseName] = useState('');
   const [showAddPhase, setShowAddPhase] = useState(false);
-  const [deleteConfirmPhase, setDeleteConfirmPhase] = useState(null); // phase index pending delete confirm
+  const [deleteConfirmPhase, setDeleteConfirmPhase] = useState(null);
+
+  // Drag sort for phases
+  const {
+    containerRef: phasesContainerRef,
+    displayItems: displayPhases,
+    origIndices: phaseOrigIndices,
+    getItemStyle: getPhaseItemStyle,
+    onHandlePointerDown: onPhaseHandleDown,
+  } = useDragSort(form.phases, newPhases => setForm(f => ({ ...f, phases: newPhases })));
 
   useEffect(() => {
     if (onDirtyChange) {
@@ -62,41 +157,37 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
   }
 
   function updatePhase(pi, field, value) {
-    setForm(f => {
-      const phases = f.phases.map((p, i) => i === pi ? { ...p, [field]: value } : p);
-      return { ...f, phases };
-    });
+    setForm(f => ({
+      ...f,
+      phases: f.phases.map((p, i) => i === pi ? { ...p, [field]: value } : p),
+    }));
   }
 
   function addExercise(pi, exInfo) {
-    setForm(f => {
-      const phases = f.phases.map((p, i) => {
-        if (i !== pi) return p;
-        return { ...p, exercises: [...p.exercises, { ref: exInfo.id, series: '', reps: '' }] };
-      });
-      return { ...f, phases };
-    });
+    setForm(f => ({
+      ...f,
+      phases: f.phases.map((p, i) =>
+        i !== pi ? p : { ...p, exercises: [...p.exercises, { ref: exInfo.id, series: '', reps: '' }] }
+      ),
+    }));
   }
 
   function removeExercise(pi, ei) {
-    setForm(f => {
-      const phases = f.phases.map((p, i) => {
-        if (i !== pi) return p;
-        return { ...p, exercises: p.exercises.filter((_, j) => j !== ei) };
-      });
-      return { ...f, phases };
-    });
+    setForm(f => ({
+      ...f,
+      phases: f.phases.map((p, i) =>
+        i !== pi ? p : { ...p, exercises: p.exercises.filter((_, j) => j !== ei) }
+      ),
+    }));
   }
 
   function updateExercise(pi, ei, field, value) {
-    setForm(f => {
-      const phases = f.phases.map((p, i) => {
-        if (i !== pi) return p;
-        const exercises = p.exercises.map((ex, j) => j === ei ? { ...ex, [field]: value } : ex);
-        return { ...p, exercises };
-      });
-      return { ...f, phases };
-    });
+    setForm(f => ({
+      ...f,
+      phases: f.phases.map((p, i) =>
+        i !== pi ? p : { ...p, exercises: p.exercises.map((ex, j) => j === ei ? { ...ex, [field]: value } : ex) }
+      ),
+    }));
   }
 
   function moveExercise(pi, ei, dir) {
@@ -113,6 +204,13 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
     });
   }
 
+  function reorderExercises(pi, newExercises) {
+    setForm(f => ({
+      ...f,
+      phases: f.phases.map((p, i) => i === pi ? { ...p, exercises: newExercises } : p),
+    }));
+  }
+
   function addCustomPhase() {
     const name = newPhaseName.trim();
     if (!name) return;
@@ -125,10 +223,7 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
   }
 
   function removeCustomPhase(pi) {
-    setForm(f => ({
-      ...f,
-      phases: f.phases.filter((_, i) => i !== pi)
-    }));
+    setForm(f => ({ ...f, phases: f.phases.filter((_, i) => i !== pi) }));
   }
 
   function movePhase(pi, dir) {
@@ -182,141 +277,106 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
 
       {/* Phases */}
       <div style={{ padding: '0 16px' }}>
-        {form.phases.map((phase, pi) => {
-          const isFixed = FIXED_PHASES.includes(phase.phase);
-          const phaseClass = getPhaseClass(phase.phase);
-          const accentColor = getPhaseAccentColor(phase.phase);
-          const icon = getPhaseIcon(phase.phase);
+        {/* Phases container — only phase items here so drag index matches children */}
+        <div ref={phasesContainerRef}>
+          {displayPhases.map((phase, displayIdx) => {
+            const pi = phaseOrigIndices[displayIdx]; // original index in form.phases
+            const isFixed = FIXED_PHASES.includes(phase.phase);
+            const phaseClass = getPhaseClass(phase.phase);
+            const accentColor = getPhaseAccentColor(phase.phase);
+            const icon = getPhaseIcon(phase.phase);
 
-          return (
-            <div key={`${phase.phase}-${pi}`} className={`phase-block ${phaseClass}`} style={{ marginBottom: 12 }}>
-              <div className="phase-block-header" style={{ justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {icon && <span style={{ color: accentColor }}>{icon}</span>}
-                  <span style={{ fontWeight: 700, fontSize: 12, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    {phase.phase}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                  <button
-                    className="btn btn-ghost"
-                    style={{
-                      padding: '5px 7px', color: '#607D8B',
-                      opacity: pi === 0 ? 0.25 : 1,
-                      pointerEvents: pi === 0 ? 'none' : 'auto',
-                    }}
-                    onClick={() => movePhase(pi, -1)}
-                  >
-                    <ArrowUpIcon size={14} />
-                  </button>
-                  <button
-                    className="btn btn-ghost"
-                    style={{
-                      padding: '5px 7px', color: '#607D8B',
-                      opacity: pi >= form.phases.length - 1 ? 0.25 : 1,
-                      pointerEvents: pi >= form.phases.length - 1 ? 'none' : 'auto',
-                    }}
-                    onClick={() => movePhase(pi, 1)}
-                  >
-                    <ArrowDownIcon size={14} />
-                  </button>
-                  {!isFixed && (
+            return (
+              <div
+                key={phase.phase}
+                style={{ marginBottom: 12, borderRadius: 12, ...getPhaseItemStyle(displayIdx) }}
+              >
+                <div className={`phase-block ${phaseClass}`} style={{ margin: 0 }}>
+                  <div className="phase-block-header" style={{ justifyContent: 'space-between' }}>
+                    {/* Left: grip + icon + name */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+                      <div
+                        onPointerDown={e => onPhaseHandleDown(e, displayIdx)}
+                        style={{ cursor: 'grab', color: '#B0BEC5', padding: '4px 3px', touchAction: 'none', flexShrink: 0 }}
+                      >
+                        <GripIcon size={14} />
+                      </div>
+                      {icon && <span style={{ color: accentColor, flexShrink: 0 }}>{icon}</span>}
+                      <span style={{ fontWeight: 700, fontSize: 12, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {phase.phase}
+                      </span>
+                    </div>
+                    {/* Right: up/down + optional delete */}
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ padding: '5px 7px', color: '#607D8B', opacity: pi === 0 ? 0.25 : 1, pointerEvents: pi === 0 ? 'none' : 'auto' }}
+                        onClick={() => movePhase(pi, -1)}
+                      >
+                        <ArrowUpIcon size={14} />
+                      </button>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ padding: '5px 7px', color: '#607D8B', opacity: pi >= form.phases.length - 1 ? 0.25 : 1, pointerEvents: pi >= form.phases.length - 1 ? 'none' : 'auto' }}
+                        onClick={() => movePhase(pi, 1)}
+                      >
+                        <ArrowDownIcon size={14} />
+                      </button>
+                      {!isFixed && (
+                        <button
+                          className="btn btn-ghost"
+                          style={{ padding: '5px 7px', color: '#EF5350' }}
+                          onClick={() => {
+                            if (phase.exercises.length > 0) setDeleteConfirmPhase(pi);
+                            else removeCustomPhase(pi);
+                          }}
+                        >
+                          <TrashIcon size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '12px 14px' }}>
+                    {/* Time + Note */}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <label className="form-label">Tiempo</label>
+                        <input className="input" placeholder="ej: 8 min" value={phase.time} onChange={e => updatePhase(pi, 'time', e.target.value)} />
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 12 }}>
+                      <label className="form-label">Nota (opcional)</label>
+                      <input className="input" placeholder="Indicaciones generales..." value={phase.note} onChange={e => updatePhase(pi, 'note', e.target.value)} />
+                    </div>
+
+                    {/* Exercises with drag sort */}
+                    {phase.exercises.length > 0 && (
+                      <PhaseExercises
+                        exercises={phase.exercises}
+                        exerciseMap={exerciseMap}
+                        onReorder={newExs => reorderExercises(pi, newExs)}
+                        onMove={(ei, dir) => moveExercise(pi, ei, dir)}
+                        onRemove={ei => removeExercise(pi, ei)}
+                        onUpdate={(ei, field, value) => updateExercise(pi, ei, field, value)}
+                      />
+                    )}
+
                     <button
-                      className="btn btn-ghost"
-                      style={{ padding: '5px 7px', color: '#EF5350' }}
-                      onClick={() => {
-                        if (phase.exercises.length > 0) {
-                          setDeleteConfirmPhase(pi);
-                        } else {
-                          removeCustomPhase(pi);
-                        }
-                      }}
+                      className="btn btn-sm"
+                      style={{ background: 'rgba(255,255,255,0.8)', border: `1.5px solid ${accentColor}40`, color: accentColor, fontWeight: 600 }}
+                      onClick={() => setPicker(pi)}
                     >
-                      <TrashIcon size={14} />
+                      <PlusIcon size={11} /> Agregar ejercicio
                     </button>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ padding: '12px 14px' }}>
-                {/* Time + Note */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <label className="form-label">Tiempo</label>
-                    <input className="input" placeholder="ej: 8 min" value={phase.time} onChange={e => updatePhase(pi, 'time', e.target.value)} />
                   </div>
                 </div>
-                <div style={{ marginBottom: 12 }}>
-                  <label className="form-label">Nota (opcional)</label>
-                  <input className="input" placeholder="Indicaciones generales..." value={phase.note} onChange={e => updatePhase(pi, 'note', e.target.value)} />
-                </div>
-
-                {/* Exercises */}
-                {phase.exercises.length > 0 && (
-                  <div style={{ marginBottom: 10 }}>
-                    {phase.exercises.map((ex, ei) => {
-                      const info = exerciseMap[ex.ref];
-                      return (
-                        <div key={ei} style={{
-                          background: 'rgba(255,255,255,0.75)',
-                          borderRadius: 8,
-                          padding: '10px 12px',
-                          marginBottom: 6,
-                          border: '1px solid rgba(0,0,0,0.07)',
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: '#263238', flex: 1, marginRight: 8 }}>
-                              {info ? info.name : ex.ref}
-                            </span>
-                            <div style={{ display: 'flex', gap: 2 }}>
-                              <button
-                                className="btn btn-ghost"
-                                style={{ padding: '3px 5px', opacity: ei === 0 ? 0.25 : 1, pointerEvents: ei === 0 ? 'none' : 'auto' }}
-                                onClick={() => moveExercise(pi, ei, -1)}
-                              >
-                                <ArrowUpIcon size={12} />
-                              </button>
-                              <button
-                                className="btn btn-ghost"
-                                style={{ padding: '3px 5px', opacity: ei === phase.exercises.length - 1 ? 0.25 : 1, pointerEvents: ei === phase.exercises.length - 1 ? 'none' : 'auto' }}
-                                onClick={() => moveExercise(pi, ei, 1)}
-                              >
-                                <ArrowDownIcon size={12} />
-                              </button>
-                              <button className="btn btn-ghost" style={{ padding: '3px 5px', color: '#EF5350' }} onClick={() => removeExercise(pi, ei)}>
-                                <XIcon size={12} />
-                              </button>
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <div style={{ flex: 1 }}>
-                              <label className="form-label" style={{ fontSize: 9 }}>Series</label>
-                              <input className="input" style={{ padding: '6px 8px', fontSize: 13 }} placeholder="ej: 3" value={ex.series} onChange={e => updateExercise(pi, ei, 'series', e.target.value)} />
-                            </div>
-                            <div style={{ flex: 2 }}>
-                              <label className="form-label" style={{ fontSize: 9 }}>Reps / Indicacion</label>
-                              <input className="input" style={{ padding: '6px 8px', fontSize: 13 }} placeholder="ej: 10 reps" value={ex.reps} onChange={e => updateExercise(pi, ei, 'reps', e.target.value)} />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <button
-                  className="btn btn-sm"
-                  style={{ background: 'rgba(255,255,255,0.8)', border: `1.5px solid ${accentColor}40`, color: accentColor, fontWeight: 600 }}
-                  onClick={() => setPicker(pi)}
-                >
-                  <PlusIcon size={11} /> Agregar ejercicio
-                </button>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
 
-        {/* Add custom phase */}
+        {/* Add custom phase (outside containerRef so it doesn't interfere with drag index) */}
         {showAddPhase ? (
           <div className="card" style={{ marginBottom: 12 }}>
             <div style={{ fontWeight: 600, fontSize: 13, color: '#263238', marginBottom: 10 }}>Nueva seccion</div>
@@ -394,7 +454,7 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
       {picker !== null && (
         <ExercisePicker
           catalog={catalog}
-          onSelect={(ex) => addExercise(picker, ex)}
+          onSelect={ex => addExercise(picker, ex)}
           onClose={() => setPicker(null)}
         />
       )}
