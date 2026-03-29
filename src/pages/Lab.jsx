@@ -48,6 +48,7 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
   const [errors, setErrors] = useState({});
   const [newPhaseName, setNewPhaseName] = useState('');
   const [showAddPhase, setShowAddPhase] = useState(false);
+  const [deleteConfirmPhase, setDeleteConfirmPhase] = useState(null); // phase index pending delete confirm
 
   useEffect(() => {
     if (onDirtyChange) {
@@ -218,9 +219,15 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                     <button
                       className="btn btn-ghost"
                       style={{ padding: '3px 6px', color: '#EF5350' }}
-                      onClick={() => removeCustomPhase(pi)}
+                      onClick={() => {
+                        if (phase.exercises.length > 0) {
+                          setDeleteConfirmPhase(pi);
+                        } else {
+                          removeCustomPhase(pi);
+                        }
+                      }}
                     >
-                      <XIcon size={13} />
+                      <TrashIcon size={13} />
                     </button>
                   </div>
                 )}
@@ -337,6 +344,38 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
           {initialRoutine ? 'Guardar cambios' : 'Crear rutina'}
         </button>
       </div>
+
+      {/* Delete phase confirmation modal */}
+      {deleteConfirmPhase !== null && (() => {
+        const phase = form.phases[deleteConfirmPhase];
+        if (!phase) return null;
+        return (
+          <div className="modal-overlay" onClick={() => setDeleteConfirmPhase(null)}>
+            <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
+              <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
+                Eliminar sección
+              </div>
+              <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
+                La sección <strong style={{ color: '#263238' }}>"{phase.phase}"</strong> tiene{' '}
+                <strong style={{ color: '#263238' }}>{phase.exercises.length} ejercicio{phase.exercises.length !== 1 ? 's' : ''}</strong>.
+                {' '}¿Estás seguro de que querés eliminarla?
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setDeleteConfirmPhase(null)}>
+                  Cancelar
+                </button>
+                <button
+                  className="btn btn-primary"
+                  style={{ flex: 1, background: '#C62828', borderColor: '#C62828' }}
+                  onClick={() => { removeCustomPhase(deleteConfirmPhase); setDeleteConfirmPhase(null); }}
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Exercise picker modal */}
       {picker !== null && (
