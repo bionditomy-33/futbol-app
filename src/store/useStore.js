@@ -1,20 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
 import { INITIAL_CATALOG, INITIAL_ROUTINES } from '../data/initialData';
-
-function loadFromLS(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function saveToLS(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {}
-}
 
 // Migrate old phase names to new ones
 const PHASE_MIGRATION = {
@@ -33,7 +20,6 @@ function migrateRoutines(routines) {
   }));
 }
 
-// Flat map of all exercises by id
 function buildExerciseMap(catalog) {
   const map = {};
   for (const [, exercises] of Object.entries(catalog)) {
@@ -44,32 +30,88 @@ function buildExerciseMap(catalog) {
   return map;
 }
 
+// ─── Module-level singleton state ────────────────────────────────────────────
+
 let listeners = [];
 
-const rawRoutines = loadFromLS('routines', INITIAL_ROUTINES);
-const migratedRoutines = migrateRoutines(rawRoutines);
-// Save migrated back if there were changes
-if (JSON.stringify(rawRoutines) !== JSON.stringify(migratedRoutines)) {
-  saveToLS('routines', migratedRoutines);
-}
-
 let state = {
-  catalog: loadFromLS('catalog', INITIAL_CATALOG),
-  routines: migratedRoutines,
-  schedule: loadFromLS('schedule', {}),
-  history: loadFromLS('history', {}),
+  catalog:  INITIAL_CATALOG,
+  routines: INITIAL_ROUTINES,
+  schedule: {},
+  history:  {},
+  matches:  [],
+  isReady:  false,
 };
 
 export function getState() { return state; }
 
 function setState(partial) {
   state = { ...state, ...partial };
-  if (partial.catalog !== undefined) saveToLS('catalog', state.catalog);
-  if (partial.routines !== undefined) saveToLS('routines', state.routines);
-  if (partial.schedule !== undefined) saveToLS('schedule', state.schedule);
-  if (partial.history !== undefined) saveToLS('history', state.history);
   listeners.forEach(l => l());
 }
+
+// ─── Firestore helpers ────────────────────────────────────────────────────────
+
+function writeDoc(docName, data) {
+  setDoc(doc(db, 'app', docName), { data }).catch(err => {
+    console.error(`[store] Failed to write ${docName}:`, err);
+  });
+}
+
+// Track which docs have had their first snapshot (Set prevents double-counting)
+const docLoadedSet = new Set();
+const TOTAL_DOCS = 5;
+
+function onDocFirstLoad(docName) {
+  if (!docLoadedSet.has(docName)) {
+    docLoadedSet.add(docName);
+    if (docLoadedSet.size >= TOTAL_DOCS) {
+      setState({ isReady: true });
+    }
+  }
+}
+
+// ─── Firestore initialization (runs once at module load) ──────────────────────
+
+let initialized = false;
+
+function initFirestore() {
+  if (initialized) return;
+  initialized = true;
+
+  const DOCS = ['catalog', 'routines', 'schedule', 'history', 'matches'];
+
+  DOCS.forEach(docName => {
+    const ref = doc(db, 'app', docName);
+
+    onSnapshot(ref, (snap) => {
+      if (!snap.exists()) {
+        // Primera vez: crear el documento con los datos iniciales
+        let initialData;
+        if (docName === 'catalog')  initialData = INITIAL_CATALOG;
+        else if (docName === 'routines') initialData = INITIAL_ROUTINES;
+        else if (docName === 'matches')  initialData = [];
+        else initialData = {};
+
+        writeDoc(docName, initialData);
+        // El estado en memoria ya tiene los valores iniciales; solo marcar como listo
+        onDocFirstLoad(docName);
+      } else {
+        let data = snap.data().data;
+        if (docName === 'routines') data = migrateRoutines(data);
+        setState({ [docName]: data });
+        onDocFirstLoad(docName);
+      }
+    }, (err) => {
+      console.error(`[store] onSnapshot error for ${docName}:`, err);
+      onDocFirstLoad(docName); // No bloquear la app si un doc falla
+    });
+  });
+}
+
+initFirestore();
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useStore() {
   const [, forceRender] = useState(0);
@@ -80,78 +122,91 @@ export function useStore() {
     return () => { listeners = listeners.filter(l => l !== listener); };
   }, []);
 
-  const catalog = state.catalog;
-  const routines = state.routines;
-  const schedule = state.schedule;
-  const history = state.history;
+  const { catalog, routines, schedule, history, matches, isReady } = state;
   const exerciseMap = buildExerciseMap(catalog);
 
-  // Schedule actions
+  // ── Schedule ──────────────────────────────────────────────────────────────
   const assignRoutine = useCallback((dateStr, routineId) => {
-    setState({ schedule: { ...state.schedule, [dateStr]: routineId } });
+    const next = { ...state.schedule, [dateStr]: routineId };
+    setState({ schedule: next });
+    writeDoc('schedule', next);
   }, []);
 
   const removeSchedule = useCallback((dateStr) => {
-    const s = { ...state.schedule };
-    delete s[dateStr];
-    setState({ schedule: s });
+    const next = { ...state.schedule };
+    delete next[dateStr];
+    setState({ schedule: next });
+    writeDoc('schedule', next);
   }, []);
 
-  // History actions
+  // ── History ───────────────────────────────────────────────────────────────
   const getDay = useCallback((dateStr) => {
     return state.history[dateStr] || { done: false, routineId: null, completed: {}, gym: false, notes: '' };
   }, []);
 
   const updateDay = useCallback((dateStr, patch) => {
     const current = state.history[dateStr] || { done: false, routineId: null, completed: {}, gym: false, notes: '' };
-    setState({ history: { ...state.history, [dateStr]: { ...current, ...patch } } });
+    const next = { ...state.history, [dateStr]: { ...current, ...patch } };
+    setState({ history: next });
+    writeDoc('history', next);
   }, []);
 
   const toggleExercise = useCallback((dateStr, exerciseId) => {
     const day = state.history[dateStr] || { done: false, routineId: null, completed: {}, gym: false, notes: '' };
     const completed = { ...day.completed, [exerciseId]: !day.completed[exerciseId] };
-    setState({ history: { ...state.history, [dateStr]: { ...day, completed } } });
+    const next = { ...state.history, [dateStr]: { ...day, completed } };
+    setState({ history: next });
+    writeDoc('history', next);
   }, []);
 
   const completeDay = useCallback((dateStr, routineId) => {
     const day = state.history[dateStr] || { done: false, routineId, completed: {}, gym: false, notes: '' };
-    setState({ history: { ...state.history, [dateStr]: { ...day, done: true, routineId } } });
+    const next = { ...state.history, [dateStr]: { ...day, done: true, routineId } };
+    setState({ history: next });
+    writeDoc('history', next);
   }, []);
 
   const uncompleteDay = useCallback((dateStr) => {
     const day = state.history[dateStr];
     if (!day) return;
-    setState({ history: { ...state.history, [dateStr]: { ...day, done: false } } });
+    const next = { ...state.history, [dateStr]: { ...day, done: false } };
+    setState({ history: next });
+    writeDoc('history', next);
   }, []);
 
-  // Routine actions
+  // ── Routines ──────────────────────────────────────────────────────────────
   const saveRoutine = useCallback((routine) => {
     const exists = state.routines.find(r => r.id === routine.id);
-    if (exists) {
-      setState({ routines: state.routines.map(r => r.id === routine.id ? routine : r) });
-    } else {
-      setState({ routines: [...state.routines, routine] });
-    }
+    const next = exists
+      ? state.routines.map(r => r.id === routine.id ? routine : r)
+      : [...state.routines, routine];
+    setState({ routines: next });
+    writeDoc('routines', next);
   }, []);
 
   const deleteRoutine = useCallback((id) => {
-    setState({ routines: state.routines.filter(r => r.id !== id) });
-    const s = { ...state.schedule };
-    for (const [date, rid] of Object.entries(s)) {
-      if (rid === id) delete s[date];
+    const nextRoutines = state.routines.filter(r => r.id !== id);
+    setState({ routines: nextRoutines });
+    writeDoc('routines', nextRoutines);
+
+    const nextSchedule = { ...state.schedule };
+    for (const [date, rid] of Object.entries(nextSchedule)) {
+      if (rid === id) delete nextSchedule[date];
     }
-    setState({ schedule: s });
+    setState({ schedule: nextSchedule });
+    writeDoc('schedule', nextSchedule);
   }, []);
 
   const updatePhaseObjective = useCallback((routineId, phaseIndex, objective) => {
-    const updatedRoutines = state.routines.map(r => {
+    const next = state.routines.map(r => {
       if (r.id !== routineId) return r;
       return {
         ...r,
         phases: r.phases.map((p, i) => i === phaseIndex ? { ...p, objective: objective || null } : p),
       };
     });
-    setState({ routines: updatedRoutines });
+    setState({ routines: next });
+    writeDoc('routines', next);
   }, []);
 
   const duplicateRoutine = useCallback((id) => {
@@ -160,54 +215,76 @@ export function useStore() {
     const copy = {
       ...JSON.parse(JSON.stringify(source)),
       id: `r-${Date.now()}`,
-      name: `${source.name} (copia)`
+      name: `${source.name} (copia)`,
     };
-    setState({ routines: [...state.routines, copy] });
+    const next = [...state.routines, copy];
+    setState({ routines: next });
+    writeDoc('routines', next);
     return copy;
   }, []);
 
-  // Catalog CRUD
+  // ── Catalog ───────────────────────────────────────────────────────────────
   const addExercise = useCallback((category, exercise) => {
     const cat = state.catalog[category] || [];
-    setState({
-      catalog: { ...state.catalog, [category]: [...cat, exercise] }
-    });
+    const next = { ...state.catalog, [category]: [...cat, exercise] };
+    setState({ catalog: next });
+    writeDoc('catalog', next);
   }, []);
 
   const editExercise = useCallback((id, patch) => {
-    const newCatalog = {};
+    const next = {};
     for (const [cat, exercises] of Object.entries(state.catalog)) {
-      newCatalog[cat] = exercises.map(ex => ex.id === id ? { ...ex, ...patch } : ex);
+      next[cat] = exercises.map(ex => ex.id === id ? { ...ex, ...patch } : ex);
     }
-    setState({ catalog: newCatalog });
+    setState({ catalog: next });
+    writeDoc('catalog', next);
   }, []);
 
   const deleteExercise = useCallback((id) => {
-    const newCatalog = {};
+    const next = {};
     for (const [cat, exercises] of Object.entries(state.catalog)) {
-      const filtered = exercises.filter(ex => ex.id !== id);
-      if (filtered.length > 0) newCatalog[cat] = filtered;
-      else newCatalog[cat] = filtered; // keep empty categories visible until manually deleted
+      next[cat] = exercises.filter(ex => ex.id !== id); // keep category even if empty
     }
-    setState({ catalog: newCatalog });
+    setState({ catalog: next });
+    writeDoc('catalog', next);
   }, []);
 
   const addCategory = useCallback((name) => {
     if (state.catalog[name]) return;
-    setState({ catalog: { ...state.catalog, [name]: [] } });
+    const next = { ...state.catalog, [name]: [] };
+    setState({ catalog: next });
+    writeDoc('catalog', next);
   }, []);
 
   const deleteCategory = useCallback((name) => {
-    const newCatalog = { ...state.catalog };
-    delete newCatalog[name];
-    setState({ catalog: newCatalog });
+    const next = { ...state.catalog };
+    delete next[name];
+    setState({ catalog: next });
+    writeDoc('catalog', next);
   }, []);
 
-  // Check if exercise is used in any routine
   const isExerciseUsed = useCallback((id) => {
     return state.routines.some(r =>
       r.phases.some(p => p.exercises.some(ex => ex.ref === id))
     );
+  }, []);
+
+  // ── Matches ───────────────────────────────────────────────────────────────
+  const setMatches = useCallback((newMatches) => {
+    setState({ matches: newMatches });
+    writeDoc('matches', newMatches);
+  }, []);
+
+  // ── Import (reemplaza todos los datos) ────────────────────────────────────
+  const importData = useCallback(async ({ catalog: cat, routines: rts, schedule: sch, history: hist }) => {
+    const migratedRts = migrateRoutines(rts);
+    setState({ catalog: cat, routines: migratedRts, schedule: sch, history: hist });
+    await Promise.all([
+      setDoc(doc(db, 'app', 'catalog'),  { data: cat }),
+      setDoc(doc(db, 'app', 'routines'), { data: migratedRts }),
+      setDoc(doc(db, 'app', 'schedule'), { data: sch }),
+      setDoc(doc(db, 'app', 'history'),  { data: hist }),
+    ]);
   }, []);
 
   return {
@@ -215,6 +292,8 @@ export function useStore() {
     routines,
     schedule,
     history,
+    matches,
+    isReady,
     exerciseMap,
     assignRoutine,
     removeSchedule,
@@ -233,5 +312,7 @@ export function useStore() {
     addCategory,
     deleteCategory,
     isExerciseUsed,
+    setMatches,
+    importData,
   };
 }

@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useStore } from './store/useStore';
 import Hoy from './pages/Hoy';
 import Semana from './pages/Semana';
 import Calendario from './pages/Calendario';
@@ -47,6 +48,7 @@ const MAS_ITEMS = [
 ];
 
 export default function App() {
+  const { isReady } = useStore();
   const [mainTab, setMainTab]               = useState('inicio');
   const [entrenoTab, setEntrenoTab]         = useState('semana');
   const [masView, setMasView]               = useState(null); // null | 'lab' | 'catalogo' | 'historial'
@@ -54,6 +56,14 @@ export default function App() {
   const [labReturnToRutinas, setLabReturnToRutinas] = useState(false);
   const [pendingNav, setPendingNav]         = useState(null);
   const labIsDirtyRef = useRef(false);
+
+  if (!isReady) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: '#F5F7F5' }}>
+        <div style={{ color: '#78909C', fontSize: 14, fontFamily: 'inherit' }}>Cargando...</div>
+      </div>
+    );
+  }
 
   const isInLab = mainTab === 'mas' && masView === 'lab';
 

@@ -42,7 +42,7 @@ function exportData() {
 }
 
 export default function Historial({ onBack } = {}) {
-  const { history, routines, schedule } = useStore();
+  const { history, routines, schedule, importData } = useStore();
   const fileInputRef = useRef(null);
   const [importConfirm, setImportConfirm] = useState(false);
   const [pendingData, setPendingData]     = useState(null);
@@ -164,38 +164,15 @@ export default function Historial({ onBack } = {}) {
     e.target.value = '';
   }
 
-  function confirmImport() {
+  async function confirmImport() {
     if (!pendingData) return;
-    // Guardar copia de seguridad antes de reemplazar
     try {
-      const preBackup = {
-        catalog:  localStorage.getItem('catalog'),
-        routines: localStorage.getItem('routines'),
-        schedule: localStorage.getItem('schedule'),
-        history:  localStorage.getItem('history'),
-      };
-      localStorage.setItem('tb_backup_pre_import', JSON.stringify(preBackup));
-    } catch { /* si no hay espacio, seguimos igual */ }
-
-    try {
-      localStorage.setItem('catalog',  JSON.stringify(pendingData.catalog));
-      localStorage.setItem('routines', JSON.stringify(pendingData.routines));
-      localStorage.setItem('schedule', JSON.stringify(pendingData.schedule));
-      localStorage.setItem('history',  JSON.stringify(pendingData.history));
-      window.location.reload();
-    } catch (err) {
-      // Algo salió mal: intentar restaurar desde el pre-backup
-      try {
-        const saved = JSON.parse(localStorage.getItem('tb_backup_pre_import') || 'null');
-        if (saved) {
-          if (saved.catalog  !== null) localStorage.setItem('catalog',  saved.catalog);
-          if (saved.routines !== null) localStorage.setItem('routines', saved.routines);
-          if (saved.schedule !== null) localStorage.setItem('schedule', saved.schedule);
-          if (saved.history  !== null) localStorage.setItem('history',  saved.history);
-        }
-      } catch { /* si tampoco se puede restaurar, al menos no quedamos en blanco */ }
+      await importData(pendingData);
       setImportConfirm(false);
-      setImportError('Error al importar. Tus datos anteriores fueron restaurados.');
+      setPendingData(null);
+    } catch (err) {
+      setImportConfirm(false);
+      setImportError('Error al importar. Verificá tu conexión e intentá de nuevo.');
     }
   }
 

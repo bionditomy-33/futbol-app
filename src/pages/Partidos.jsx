@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useStore } from '../store/useStore';
 import { todayStr, formatDate, getDayName } from '../utils/dates';
 import { PlusIcon, EditIcon, TrashIcon } from '../components/Icons';
 
@@ -9,23 +10,12 @@ const RESULTS = [
   { value: 'empate',   label: 'Empate',   color: '#F57F17', bg: '#FFF8E1' },
 ];
 
-function loadMatches() {
-  try {
-    const raw = localStorage.getItem('matches');
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-
-function saveMatches(matches) {
-  try { localStorage.setItem('matches', JSON.stringify(matches)); } catch {}
-}
-
 function emptyForm() {
   return { date: todayStr(), competition: COMPETITIONS[0], result: 'ganamos', minutes: '', notes: '' };
 }
 
 export default function Partidos() {
-  const [matches, setMatches] = useState(loadMatches);
+  const { matches, setMatches } = useStore();
   const [showForm, setShowForm]         = useState(false);
   const [editingId, setEditingId]       = useState(null); // null = new, string = editing existing
   const [form, setForm]                 = useState(emptyForm);
@@ -85,7 +75,6 @@ export default function Partidos() {
     }
     updated = updated.sort((a, b) => b.date.localeCompare(a.date));
     setMatches(updated);
-    saveMatches(updated);
     setForm(emptyForm());
     setEditingId(null);
     setShowForm(false);
@@ -101,7 +90,6 @@ export default function Partidos() {
   function handleDelete(id) {
     const updated = matches.filter(m => m.id !== id);
     setMatches(updated);
-    saveMatches(updated);
     setDeleteConfirmId(null);
   }
 
