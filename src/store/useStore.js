@@ -3,11 +3,16 @@ import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { INITIAL_CATALOG, INITIAL_ROUTINES } from '../data/initialData';
 
-// Migrate old phase names to new ones
+// Migrate old phase names to current names (covers all previous versions in one pass)
 const PHASE_MIGRATION = {
-  'Movilidad': 'Calentamiento corporal',
-  'Calentamiento': 'Calentamiento con balon',
-  'Entrenamiento': 'Sesion principal',
+  // v1 names
+  'Movilidad':             'Activacion - Bloque Agilidad',
+  'Calentamiento':         'Bloque Entrenamiento Principal',
+  'Entrenamiento':         'Vuelta a la calma',
+  // v2 names
+  'Calentamiento corporal':  'Activacion - Bloque Agilidad',
+  'Calentamiento con balon': 'Bloque Entrenamiento Principal',
+  'Sesion principal':        'Vuelta a la calma',
 };
 
 function migrateRoutines(routines) {

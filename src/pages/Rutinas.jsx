@@ -20,26 +20,25 @@ function getCategories(routine, catalog) {
   return [...cats];
 }
 
-const FIXED_PHASES = ['Calentamiento corporal', 'Calentamiento con balon', 'Sesion principal'];
-
-function getPhaseStyle(phaseName) {
-  if (phaseName === 'Calentamiento corporal') return 'phase-corporal';
-  if (phaseName === 'Calentamiento con balon') return 'phase-balon';
-  if (phaseName === 'Sesion principal') return 'phase-principal';
+// Colores, estilos e iconos por posicion de la fase en el array
+function getPhaseStyle(pi) {
+  if (pi === 0) return 'phase-corporal';
+  if (pi === 1) return 'phase-balon';
+  if (pi === 2) return 'phase-principal';
   return 'phase-extra';
 }
 
-function getPhaseIcon(phaseName) {
-  if (phaseName === 'Calentamiento corporal') return <BodyIcon size={14} />;
-  if (phaseName === 'Calentamiento con balon') return <BallIcon size={14} />;
-  if (phaseName === 'Sesion principal') return <FireIcon size={14} />;
+function getPhaseIcon(pi) {
+  if (pi === 0) return <BodyIcon size={14} />;
+  if (pi === 1) return <BallIcon size={14} />;
+  if (pi === 2) return <FireIcon size={14} />;
   return null;
 }
 
-function getPhaseAccentColor(phaseName) {
-  if (phaseName === 'Calentamiento corporal') return '#2E7D32';
-  if (phaseName === 'Calentamiento con balon') return '#F57F17';
-  if (phaseName === 'Sesion principal') return '#1565C0';
+function getPhaseAccentColor(pi) {
+  if (pi === 0) return '#2E7D32';
+  if (pi === 1) return '#F57F17';
+  if (pi === 2) return '#1565C0';
   return '#607D8B';
 }
 
@@ -74,9 +73,9 @@ function RutinaDetail({ routine, exerciseMap, onClose }) {
       {/* Phases */}
       <div style={{ padding: '12px 16px 0' }}>
         {routine.phases.map((phase, pi) => {
-          const phaseClass = getPhaseStyle(phase.phase);
-          const icon = getPhaseIcon(phase.phase);
-          const accentColor = getPhaseAccentColor(phase.phase);
+          const phaseClass = getPhaseStyle(pi);
+          const icon = getPhaseIcon(pi);
+          const accentColor = getPhaseAccentColor(pi);
 
           return (
             <div key={pi} className={`phase-block ${phaseClass}`} style={{ marginBottom: 12 }}>

@@ -82,7 +82,7 @@ export const INITIAL_ROUTINES = [
     duration: "~50 min",
     phases: [
       {
-        phase: "Calentamiento corporal",
+        phase: "Activacion - Bloque Agilidad",
         time: "8 min",
         note: "",
         exercises: [
@@ -90,13 +90,13 @@ export const INITIAL_ROUTINES = [
         ]
       },
       {
-        phase: "Calentamiento con balon",
+        phase: "Bloque Entrenamiento Principal",
         time: "5 min",
         note: "Juggling y free dribbling 5 mins",
         exercises: []
       },
       {
-        phase: "Sesion principal",
+        phase: "Vuelta a la calma",
         time: "30-35 min",
         note: "",
         exercises: [
@@ -117,7 +117,7 @@ export const INITIAL_ROUTINES = [
     duration: "~60 min",
     phases: [
       {
-        phase: "Calentamiento corporal",
+        phase: "Activacion - Bloque Agilidad",
         time: "8 min",
         note: "",
         exercises: [
@@ -125,7 +125,7 @@ export const INITIAL_ROUTINES = [
         ]
       },
       {
-        phase: "Calentamiento con balon",
+        phase: "Bloque Entrenamiento Principal",
         time: "10 min",
         note: "",
         exercises: [
@@ -134,7 +134,7 @@ export const INITIAL_ROUTINES = [
         ]
       },
       {
-        phase: "Sesion principal",
+        phase: "Vuelta a la calma",
         time: "45 min",
         note: "",
         exercises: [
@@ -153,7 +153,7 @@ export const INITIAL_ROUTINES = [
     duration: "~60 min",
     phases: [
       {
-        phase: "Calentamiento corporal",
+        phase: "Activacion - Bloque Agilidad",
         time: "8 min",
         note: "",
         exercises: [
@@ -161,13 +161,13 @@ export const INITIAL_ROUTINES = [
         ]
       },
       {
-        phase: "Calentamiento con balon",
+        phase: "Bloque Entrenamiento Principal",
         time: "10 min",
         note: "",
         exercises: []
       },
       {
-        phase: "Sesion principal",
+        phase: "Vuelta a la calma",
         time: "45 min",
         note: "",
         exercises: []

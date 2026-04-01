@@ -4,28 +4,36 @@ import ExercisePicker from '../components/ExercisePicker';
 import { PlusIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon, XIcon, BodyIcon, BallIcon, FireIcon, GripIcon } from '../components/Icons';
 import { useDragSort } from '../hooks/useDragSort';
 
-const FIXED_PHASES = ['Calentamiento corporal', 'Calentamiento con balon', 'Sesion principal'];
+// Fases verdaderamente fijas: no se pueden renombrar ni eliminar
+const TRULY_FIXED = new Set(['Bloque Entrenamiento Principal', 'Vuelta a la calma']);
 
-function getPhaseClass(phaseName) {
-  if (phaseName === 'Calentamiento corporal') return 'phase-corporal';
-  if (phaseName === 'Calentamiento con balon') return 'phase-balon';
-  if (phaseName === 'Sesion principal') return 'phase-principal';
+// Colores y clases por posicion en el display (0=verde, 1=amarillo, 2=azul, 3+=gris)
+function getPhaseClass(displayIdx) {
+  if (displayIdx === 0) return 'phase-corporal';
+  if (displayIdx === 1) return 'phase-balon';
+  if (displayIdx === 2) return 'phase-principal';
   return 'phase-extra';
 }
 
-function getPhaseAccentColor(phaseName) {
-  if (phaseName === 'Calentamiento corporal') return '#2E7D32';
-  if (phaseName === 'Calentamiento con balon') return '#F57F17';
-  if (phaseName === 'Sesion principal') return '#1565C0';
+function getPhaseAccentColor(displayIdx) {
+  if (displayIdx === 0) return '#2E7D32';
+  if (displayIdx === 1) return '#F57F17';
+  if (displayIdx === 2) return '#1565C0';
   return '#607D8B';
 }
 
-function getPhaseIcon(phaseName) {
-  if (phaseName === 'Calentamiento corporal') return <BodyIcon size={13} />;
-  if (phaseName === 'Calentamiento con balon') return <BallIcon size={13} />;
-  if (phaseName === 'Sesion principal') return <FireIcon size={13} />;
+function getPhaseIcon(displayIdx) {
+  if (displayIdx === 0) return <BodyIcon size={13} />;
+  if (displayIdx === 1) return <BallIcon size={13} />;
+  if (displayIdx === 2) return <FireIcon size={13} />;
   return null;
 }
+
+const DEFAULT_PHASES = [
+  'Activacion - Bloque Agilidad',
+  'Bloque Entrenamiento Principal',
+  'Vuelta a la calma',
+];
 
 function emptyRoutine() {
   return {
@@ -33,7 +41,7 @@ function emptyRoutine() {
     name: '',
     subtitle: '',
     duration: '',
-    phases: FIXED_PHASES.map(phase => ({ phase, time: '', note: '', exercises: [] }))
+    phases: DEFAULT_PHASES.map(phase => ({ phase, time: '', note: '', exercises: [] })),
   };
 }
 
@@ -280,20 +288,22 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
         {/* Phases container — only phase items here so drag index matches children */}
         <div ref={phasesContainerRef}>
           {displayPhases.map((phase, displayIdx) => {
-            const pi = phaseOrigIndices[displayIdx]; // original index in form.phases
-            const isFixed = FIXED_PHASES.includes(phase.phase);
-            const phaseClass = getPhaseClass(phase.phase);
-            const accentColor = getPhaseAccentColor(phase.phase);
-            const icon = getPhaseIcon(phase.phase);
+            const pi          = phaseOrigIndices[displayIdx]; // original index in form.phases
+            const isTrulyFixed = TRULY_FIXED.has(phase.phase);
+            const canDelete    = !isTrulyFixed; // first phase + custom phases
+            const canRename    = pi === 0 && !isTrulyFixed; // only first slot if not truly fixed
+            const phaseClass   = getPhaseClass(displayIdx);
+            const accentColor  = getPhaseAccentColor(displayIdx);
+            const icon         = getPhaseIcon(displayIdx);
 
             return (
               <div
-                key={phase.phase}
+                key={pi}
                 style={{ marginBottom: 12, borderRadius: 12, ...getPhaseItemStyle(displayIdx) }}
               >
                 <div className={`phase-block ${phaseClass}`} style={{ margin: 0 }}>
                   <div className="phase-block-header" style={{ justifyContent: 'space-between' }}>
-                    {/* Left: grip + icon + name */}
+                    {/* Left: grip + icon + name (editable if canRename) */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
                       <div
                         onPointerDown={e => onPhaseHandleDown(e, displayIdx)}
@@ -302,9 +312,25 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                         <GripIcon size={14} />
                       </div>
                       {icon && <span style={{ color: accentColor, flexShrink: 0 }}>{icon}</span>}
-                      <span style={{ fontWeight: 700, fontSize: 12, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {phase.phase}
-                      </span>
+                      {canRename ? (
+                        <input
+                          className="input"
+                          style={{
+                            fontSize: 11, fontWeight: 700, color: accentColor,
+                            padding: '3px 7px', background: 'rgba(255,255,255,0.6)',
+                            border: `1px solid ${accentColor}50`, borderRadius: 5,
+                            textTransform: 'uppercase', letterSpacing: '0.05em',
+                            minWidth: 0, flex: 1,
+                          }}
+                          value={phase.phase}
+                          onChange={e => updatePhase(pi, 'phase', e.target.value)}
+                          placeholder="Nombre de la fase"
+                        />
+                      ) : (
+                        <span style={{ fontWeight: 700, fontSize: 12, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {phase.phase}
+                        </span>
+                      )}
                     </div>
                     {/* Right: up/down + optional delete */}
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
@@ -322,7 +348,7 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                       >
                         <ArrowDownIcon size={14} />
                       </button>
-                      {!isFixed && (
+                      {canDelete && (
                         <button
                           className="btn btn-ghost"
                           style={{ padding: '5px 7px', color: '#EF5350' }}

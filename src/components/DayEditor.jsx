@@ -4,10 +4,10 @@ import { todayStr } from '../utils/dates';
 import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, XIcon, GripIcon } from './Icons';
 import { useDragSort } from '../hooks/useDragSort';
 
-function getPhaseColor(phaseName) {
-  if (phaseName === 'Calentamiento corporal') return '#2E7D32';
-  if (phaseName === 'Calentamiento con balon') return '#F57F17';
-  if (phaseName === 'Sesion principal') return '#1565C0';
+function getPhaseColor(displayIdx) {
+  if (displayIdx === 0) return '#2E7D32';
+  if (displayIdx === 1) return '#F57F17';
+  if (displayIdx === 2) return '#1565C0';
   return '#607D8B';
 }
 
@@ -450,7 +450,7 @@ export default function DayEditor({ dateStr }) {
           <div ref={phaseContainerRef} style={{ padding: '0 16px' }}>
             {displayPhases.map((phase, displayIdx) => {
               const pi     = phaseOrigIndices[displayIdx]; // índice original en routine.phases
-              const color  = getPhaseColor(phase.phase);
+              const color  = getPhaseColor(displayIdx);
               const isLast = displayIdx === displayPhases.length - 1;
               return (
                 <div key={phase.phase} style={getPhaseItemStyle(displayIdx)}>
