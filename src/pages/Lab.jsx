@@ -5,7 +5,7 @@ import { PlusIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon, XIcon, BodyIcon, BallI
 import { useDragSort } from '../hooks/useDragSort';
 
 // Fases verdaderamente fijas: no se pueden renombrar ni eliminar
-const TRULY_FIXED = new Set(['Bloque Entrenamiento Principal', 'Vuelta a la calma']);
+const TRULY_FIXED = new Set(['Bloque Entrenamiento Principal', 'Calentamiento con pelota']);
 
 // Colores y clases por posicion en el display (0=verde, 1=amarillo, 2=azul, 3+=gris)
 function getPhaseClass(displayIdx) {
@@ -32,7 +32,7 @@ function getPhaseIcon(displayIdx) {
 const DEFAULT_PHASES = [
   'Activacion - Bloque Agilidad',
   'Bloque Entrenamiento Principal',
-  'Vuelta a la calma',
+  'Calentamiento con pelota',
 ];
 
 function emptyRoutine() {

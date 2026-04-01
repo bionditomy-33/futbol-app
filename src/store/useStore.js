@@ -12,7 +12,9 @@ const PHASE_MIGRATION = {
   // v2 names
   'Calentamiento corporal':  'Activacion - Bloque Agilidad',
   'Calentamiento con balon': 'Bloque Entrenamiento Principal',
-  'Sesion principal':        'Vuelta a la calma',
+  'Sesion principal':        'Calentamiento con pelota',
+  // v3 names
+  'Vuelta a la calma':       'Calentamiento con pelota',
 };
 
 function migrateRoutines(routines) {

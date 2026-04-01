@@ -96,7 +96,7 @@ export const INITIAL_ROUTINES = [
         exercises: []
       },
       {
-        phase: "Vuelta a la calma",
+        phase: "Calentamiento con pelota",
         time: "30-35 min",
         note: "",
         exercises: [
@@ -134,7 +134,7 @@ export const INITIAL_ROUTINES = [
         ]
       },
       {
-        phase: "Vuelta a la calma",
+        phase: "Calentamiento con pelota",
         time: "45 min",
         note: "",
         exercises: [
@@ -167,7 +167,7 @@ export const INITIAL_ROUTINES = [
         exercises: []
       },
       {
-        phase: "Vuelta a la calma",
+        phase: "Calentamiento con pelota",
         time: "45 min",
         note: "",
         exercises: []
