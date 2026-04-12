@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useStore } from '../store/useStore';
+import { useStore, getChallengeProgress } from '../store/useStore';
 import { todayStr, toDateStr, formatDate, getWeekDays } from '../utils/dates';
 import { CheckCircleIcon, GymIcon, CheckIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
@@ -9,8 +9,8 @@ const TODAY = todayStr();
 const DAY_LABELS_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const DAY_NAMES_FULL = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
 
-export default function Hoy() {
-  const { routines, schedule, history } = useStore();
+export default function Hoy({ onGoToDesafios }) {
+  const { routines, schedule, history, challenges } = useStore();
 
   const streak = useMemo(() => {
     let s = 0;
@@ -76,6 +76,11 @@ export default function Hoy() {
     return null;
   }, [schedule, routines]);
 
+  const activeChallenges = useMemo(
+    () => challenges.filter(c => c.status === 'active'),
+    [challenges]
+  );
+
   const todayDayName = DAY_NAMES_FULL[new Date(TODAY + 'T12:00:00').getDay()];
   const todayDateFull = formatDate(TODAY);
 
@@ -129,6 +134,42 @@ export default function Hoy() {
 
       {/* Editor del día de hoy — usa DayEditor */}
       <DayEditor dateStr={TODAY} />
+
+      {/* Desafios activos */}
+      {activeChallenges.length > 0 && (
+        <div
+          className="card"
+          style={{ cursor: onGoToDesafios ? 'pointer' : 'default' }}
+          onClick={onGoToDesafios}
+        >
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#78909C', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+            Desafios activos
+          </div>
+          {activeChallenges.map(c => {
+            const prog = getChallengeProgress(c, history);
+            return (
+              <div key={c.id} style={{ marginBottom: activeChallenges[activeChallenges.length - 1].id === c.id ? 0 : 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#263238' }}>{c.name}</span>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
+                    background: prog.needsClosing ? '#E8F5E9' : prog.isOnTrack ? '#E8F5E9' : '#FFEBEE',
+                    color: prog.needsClosing ? '#1B5E20' : prog.isOnTrack ? '#2E7D32' : '#C62828',
+                  }}>
+                    {prog.needsClosing ? '¡Cerrar!' : prog.isOnTrack ? 'Vas bien' : 'Atrasado'}
+                  </span>
+                </div>
+                <div className="progress-bar" style={{ height: 5 }}>
+                  <div className="progress-fill" style={{ width: `${prog.pct}%` }} />
+                </div>
+                <div style={{ fontSize: 11, color: '#B0BEC5', marginTop: 3 }}>
+                  {prog.completedSessions}/{c.targetSessions} sesiones · {prog.pct}%
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Próximo entrenamiento */}
       <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

@@ -2,6 +2,44 @@ import { useState, useEffect, useCallback } from 'react';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { INITIAL_CATALOG, INITIAL_ROUTINES } from '../data/initialData';
+import { todayStr } from '../utils/dates';
+
+// ─── Challenge progress (pure computation, exported for use in pages) ─────────
+
+export function getChallengeProgress(challenge, history) {
+  const { routineIds, startDate, endDate, targetSessions } = challenge;
+  const today = todayStr();
+  const MS_DAY = 86400000;
+
+  let completedSessions = 0;
+  for (const [dateStr, day] of Object.entries(history)) {
+    if (!day.done) continue;
+    if (dateStr < startDate || dateStr > endDate) continue;
+    if (routineIds.length === 0 || routineIds.includes(day.routineId)) completedSessions++;
+  }
+
+  const pct          = Math.min(100, Math.round((completedSessions / Math.max(1, targetSessions)) * 100));
+  const isComplete   = completedSessions >= targetSessions;
+  const isExpired    = today > endDate;
+  const needsClosing = (isComplete || isExpired) && challenge.status === 'active';
+
+  const startMs       = new Date(startDate + 'T12:00:00').getTime();
+  const endMs         = new Date(endDate   + 'T12:00:00').getTime();
+  const nowMs         = new Date(today     + 'T12:00:00').getTime();
+  const totalDays     = Math.max(1, Math.round((endMs - startMs) / MS_DAY));
+  const elapsedDays   = Math.max(0, Math.round((Math.min(nowMs, endMs) - startMs) / MS_DAY));
+  const remainingDays = Math.max(0, Math.round((endMs - nowMs) / MS_DAY));
+
+  const expectedNow    = (elapsedDays / totalDays) * targetSessions;
+  const isOnTrack      = completedSessions >= expectedNow;
+  const weeksRemaining = remainingDays / 7;
+  const sessionsLeft   = Math.max(0, targetSessions - completedSessions);
+  const neededPerWeek  = weeksRemaining > 0.5
+    ? Math.round((sessionsLeft / weeksRemaining) * 10) / 10
+    : sessionsLeft;
+
+  return { completedSessions, pct, isComplete, isExpired, needsClosing, remainingDays, isOnTrack, neededPerWeek };
+}
 
 // Migrate old phase names to current names (covers all previous versions in one pass)
 const PHASE_MIGRATION = {
@@ -42,12 +80,13 @@ function buildExerciseMap(catalog) {
 let listeners = [];
 
 let state = {
-  catalog:  INITIAL_CATALOG,
-  routines: INITIAL_ROUTINES,
-  schedule: {},
-  history:  {},
-  matches:  [],
-  isReady:  false,
+  catalog:    INITIAL_CATALOG,
+  routines:   INITIAL_ROUTINES,
+  schedule:   {},
+  history:    {},
+  matches:    [],
+  challenges: [],
+  isReady:    false,
 };
 
 export function getState() { return state; }
@@ -67,7 +106,7 @@ function writeDoc(docName, data) {
 
 // Track which docs have had their first snapshot (Set prevents double-counting)
 const docLoadedSet = new Set();
-const TOTAL_DOCS = 5;
+const TOTAL_DOCS = 6;
 
 function onDocFirstLoad(docName) {
   if (!docLoadedSet.has(docName)) {
@@ -86,7 +125,7 @@ function initFirestore() {
   if (initialized) return;
   initialized = true;
 
-  const DOCS = ['catalog', 'routines', 'schedule', 'history', 'matches'];
+  const DOCS = ['catalog', 'routines', 'schedule', 'history', 'matches', 'challenges'];
 
   DOCS.forEach(docName => {
     const ref = doc(db, 'app', docName);
@@ -95,9 +134,9 @@ function initFirestore() {
       if (!snap.exists()) {
         // Primera vez: crear el documento con los datos iniciales
         let initialData;
-        if (docName === 'catalog')  initialData = INITIAL_CATALOG;
-        else if (docName === 'routines') initialData = INITIAL_ROUTINES;
-        else if (docName === 'matches')  initialData = [];
+        if (docName === 'catalog')   initialData = INITIAL_CATALOG;
+        else if (docName === 'routines')   initialData = INITIAL_ROUTINES;
+        else if (docName === 'matches' || docName === 'challenges') initialData = [];
         else initialData = {};
 
         writeDoc(docName, initialData);
@@ -282,6 +321,34 @@ export function useStore() {
     writeDoc('matches', newMatches);
   }, []);
 
+  // ── Challenges ────────────────────────────────────────────────────────────
+  const createChallenge = useCallback((data) => {
+    const challenge = {
+      id: `c-${Date.now()}`,
+      ...data,
+      status: 'active',
+      completedAt: null,
+      finalRating: null,
+    };
+    const next = [...state.challenges, challenge];
+    setState({ challenges: next });
+    writeDoc('challenges', next);
+  }, []);
+
+  const completeChallenge = useCallback((id, finalRating) => {
+    const next = state.challenges.map(c =>
+      c.id === id ? { ...c, status: 'completed', finalRating, completedAt: todayStr() } : c
+    );
+    setState({ challenges: next });
+    writeDoc('challenges', next);
+  }, []);
+
+  const abandonChallenge = useCallback((id) => {
+    const next = state.challenges.filter(c => c.id !== id);
+    setState({ challenges: next });
+    writeDoc('challenges', next);
+  }, []);
+
   // ── Import (reemplaza todos los datos) ────────────────────────────────────
   const importData = useCallback(async ({ catalog: cat, routines: rts, schedule: sch, history: hist }) => {
     const migratedRts = migrateRoutines(rts);
@@ -294,12 +361,15 @@ export function useStore() {
     ]);
   }, []);
 
+  const { challenges } = state;
+
   return {
     catalog,
     routines,
     schedule,
     history,
     matches,
+    challenges,
     isReady,
     exerciseMap,
     assignRoutine,
@@ -320,6 +390,9 @@ export function useStore() {
     deleteCategory,
     isExerciseUsed,
     setMatches,
+    createChallenge,
+    completeChallenge,
+    abandonChallenge,
     importData,
   };
 }

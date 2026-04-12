@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useStore } from './store/useStore';
 import Hoy from './pages/Hoy';
+import Desafios from './pages/Desafios';
 import Semana from './pages/Semana';
 import Calendario from './pages/Calendario';
 import Rutinas from './pages/Rutinas';
@@ -10,7 +11,7 @@ import Partidos from './pages/Partidos';
 import Historial from './pages/Historial';
 import {
   HomeIcon, BallIcon, TrophyIcon, MoreHorizIcon,
-  ChevronRight, EditIcon, BodyIcon, FireIcon,
+  ChevronRight, EditIcon, BodyIcon, FireIcon, StarIcon,
 } from './components/Icons';
 
 const BOTTOM_TABS = [
@@ -44,6 +45,12 @@ const MAS_ITEMS = [
     icon: <FireIcon size={22} />,
     title: 'Historial',
     sub: 'Tu progreso y respaldo de datos',
+  },
+  {
+    id: 'desafios',
+    icon: <StarIcon size={22} />,
+    title: 'Desafios',
+    sub: 'Objetivos y metas personales',
   },
 ];
 
@@ -159,7 +166,9 @@ export default function App() {
     <div className="app-container">
 
       {/* Pages */}
-      {mainTab === 'inicio' && <Hoy />}
+      {mainTab === 'inicio' && (
+        <Hoy onGoToDesafios={() => { setMainTab('mas'); setMasView('desafios'); }} />
+      )}
 
       {mainTab === 'entreno' && (
         <div>
@@ -197,6 +206,7 @@ export default function App() {
       )}
       {mainTab === 'mas' && masView === 'catalogo'  && <Catalogo onBack={() => setMasView(null)} />}
       {mainTab === 'mas' && masView === 'historial'  && <Historial onBack={() => setMasView(null)} />}
+      {mainTab === 'mas' && masView === 'desafios'   && <Desafios  onBack={() => setMasView(null)} />}
 
       {/* Bottom navigation */}
       <nav className="bottom-nav">
