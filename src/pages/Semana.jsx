@@ -17,11 +17,11 @@ function getDayStatus(dateStr, schedule, history) {
 }
 
 const STATUS_CONFIG = {
-  done:    { label: 'Completado',  badgeClass: 'badge-green', barColor: '#43A047' },
-  missed:  { label: 'No hecho',   badgeClass: 'badge-red',   barColor: '#EF5350' },
-  pending: { label: 'Pendiente',  badgeClass: 'badge-yellow', barColor: '#F9A825' },
-  planned: { label: 'Planificado', badgeClass: 'badge-blue', barColor: '#1976D2' },
-  rest:    { label: 'Descanso',   badgeClass: 'badge-gray',  barColor: '#CBD5E1' },
+  done:    { label: 'Completado',  badgeClass: 'badge-green',  barColor: '#059669' },
+  missed:  { label: 'No hecho',   badgeClass: 'badge-red',    barColor: '#DC2626' },
+  pending: { label: 'Pendiente',  badgeClass: 'badge-yellow', barColor: '#D97706' },
+  planned: { label: 'Planificado', badgeClass: 'badge-navy',  barColor: '#1D3461' },
+  rest:    { label: 'Descanso',   badgeClass: 'badge-gray',   barColor: '#CBD5E1' },
 };
 
 const DAY_NAMES_SHORT = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
@@ -80,7 +80,7 @@ export default function Semana() {
               {isToday && (
                 <span style={{
                   fontSize: 10, color: 'white', fontWeight: 700,
-                  background: '#1B5E20', borderRadius: 6,
+                  background: '#0A1628', borderRadius: 6,
                   padding: '2px 6px', marginLeft: 8,
                 }}>
                   HOY
@@ -118,7 +118,7 @@ export default function Semana() {
           {weekOffset !== 0 && (
             <button
               className="btn btn-ghost"
-              style={{ fontSize: 11, padding: '2px 6px', color: '#1B5E20', marginTop: 2 }}
+              style={{ fontSize: 11, padding: '2px 6px', color: '#0A1628', marginTop: 2 }}
               onClick={() => setWeekOffset(0)}
             >
               Volver a hoy
@@ -141,7 +141,7 @@ export default function Semana() {
           <div className="metric-label">Completados</div>
         </div>
         <div className="metric-card">
-          <div className="metric-value" style={{ color: streak > 0 ? '#2E7D32' : undefined }}>
+          <div className="metric-value" style={{ color: streak > 0 ? '#D97706' : undefined }}>
             {streak > 0 ? `${streak}🔥` : streak}
           </div>
           <div className="metric-label">Racha</div>
@@ -176,7 +176,7 @@ export default function Semana() {
               </div>
               <div style={{
                 fontSize: 22, fontWeight: 800,
-                color: isToday ? '#1B5E20' : '#1A2332',
+                color: isToday ? '#1D3461' : '#1A2332',
                 lineHeight: 1.1, letterSpacing: '-0.02em',
               }}>
                 {d.getDate()}
@@ -190,7 +190,7 @@ export default function Semana() {
                 {isToday && (
                   <span style={{
                     fontSize: 9, color: 'white', fontWeight: 700,
-                    background: '#1B5E20', borderRadius: 5, padding: '1px 5px',
+                    background: '#0A1628', borderRadius: 5, padding: '1px 5px',
                     letterSpacing: '0.06em',
                   }}>
                     HOY

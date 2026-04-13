@@ -25,8 +25,8 @@ function RatingPicker({ value, onChange, label }) {
             style={{
               flex: 1, padding: '8px 2px', borderRadius: 8, border: 'none',
               cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 13,
-              background: n <= value ? '#1B5E20' : '#F1F5F4',
-              color: n <= value ? 'white' : '#78909C',
+              background: n <= value ? '#0A1628' : '#F1F5F9',
+              color: n <= value ? '#FCD34D' : '#94A3B8',
               transition: 'all 0.1s',
             }}
           >
@@ -167,8 +167,8 @@ export default function Desafios({ onBack }) {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 10,
                         padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
-                        background: checked ? '#E8F5E9' : '#F5F7F5',
-                        border: `1.5px solid ${checked ? '#4CAF50' : 'transparent'}`,
+                        background: checked ? '#E8EDF5' : '#F8FAFC',
+                        border: `1.5px solid ${checked ? '#1D3461' : 'transparent'}`,
                         transition: 'all 0.1s',
                       }}
                     >
@@ -262,10 +262,10 @@ export default function Desafios({ onBack }) {
 
         if (isReadyToClose) {
           return (
-            <div key={challenge.id} className="card" style={{ border: '2px solid #1B5E20' }}>
+            <div key={challenge.id} className="card" style={{ border: '2px solid #059669' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <CheckCircleIcon size={20} />
-                <div style={{ fontWeight: 800, fontSize: 15, color: '#1B5E20' }}>
+                <div style={{ fontWeight: 800, fontSize: 15, color: '#059669' }}>
                   {progress.isComplete ? '¡Desafio completado!' : 'Plazo vencido'}
                 </div>
               </div>
@@ -294,7 +294,7 @@ export default function Desafios({ onBack }) {
                     {finalRating !== challenge.initialRating && (
                       <span style={{
                         fontWeight: 700, marginLeft: 6,
-                        color: finalRating > challenge.initialRating ? '#2E7D32' : '#EF5350',
+                        color: finalRating > challenge.initialRating ? '#059669' : '#DC2626',
                       }}>
                         ({finalRating > challenge.initialRating ? '+' : ''}{finalRating - challenge.initialRating})
                       </span>
@@ -364,8 +364,8 @@ export default function Desafios({ onBack }) {
               </span>
               <span style={{
                 fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20,
-                background: progress.isOnTrack ? '#E8F5E9' : '#FFEBEE',
-                color: progress.isOnTrack ? '#2E7D32' : '#C62828',
+                background: progress.isOnTrack ? '#D1FAE5' : '#FEE2E2',
+                color: progress.isOnTrack ? '#065F46' : '#991B1B',
               }}>
                 {progress.isOnTrack ? '✓ Vas bien' : `Atrasado · ${progress.neededPerWeek}/sem`}
               </span>
@@ -397,8 +397,8 @@ export default function Desafios({ onBack }) {
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#263238' }}>{c.name}</div>
                   <span style={{
                     fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 20, flexShrink: 0,
-                    background: goalMet ? '#E8F5E9' : '#FFF8E1',
-                    color: goalMet ? '#2E7D32' : '#F57F17',
+                    background: goalMet ? '#D1FAE5' : '#FEF3C7',
+                    color: goalMet ? '#065F46' : '#92400E',
                   }}>
                     {goalMet ? '✓ Meta' : 'Parcial'}
                   </span>
@@ -415,7 +415,7 @@ export default function Desafios({ onBack }) {
                     <span style={{ color: '#B0BEC5' }}>→</span>
                     <span>Después: <strong>{c.finalRating}/10</strong></span>
                     {diff !== 0 && (
-                      <span style={{ fontWeight: 700, color: diff > 0 ? '#2E7D32' : '#EF5350' }}>
+                      <span style={{ fontWeight: 700, color: diff > 0 ? '#059669' : '#DC2626' }}>
                         ({diff > 0 ? '+' : ''}{diff})
                       </span>
                     )}

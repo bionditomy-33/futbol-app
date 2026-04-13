@@ -5,10 +5,17 @@ import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, XIcon, GripIcon } from '
 import { useDragSort } from '../hooks/useDragSort';
 
 function getPhaseColor(displayIdx) {
-  if (displayIdx === 0) return '#2E7D32';
-  if (displayIdx === 1) return '#F57F17';
-  if (displayIdx === 2) return '#1565C0';
-  return '#607D8B';
+  if (displayIdx === 0) return '#1D3461'; // navy
+  if (displayIdx === 1) return '#059669'; // emerald
+  if (displayIdx === 2) return '#D97706'; // amber
+  return '#475569'; // slate
+}
+
+function getPhaseBg(displayIdx) {
+  if (displayIdx === 0) return '#EDF1F9';
+  if (displayIdx === 1) return '#ECFDF5';
+  if (displayIdx === 2) return '#FFFBEB';
+  return '#F8FAFC';
 }
 
 const TIMER_PRESETS = [20, 30, 45, 60, 90];
@@ -55,7 +62,7 @@ function RestTimer({ onClose }) {
   return (
     <div style={{
       position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-      width: '100%', maxWidth: 480, background: '#1B5E20',
+      width: '100%', maxWidth: 480, background: '#0A1628',
       borderRadius: '16px 16px 0 0', padding: '16px 20px 32px',
       zIndex: 300, boxShadow: '0 -4px 24px rgba(0,0,0,0.25)',
     }}>
@@ -70,8 +77,8 @@ function RestTimer({ onClose }) {
           <button key={s} onClick={() => startTimer(s)} style={{
             flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
             fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
-            background: selected === s ? '#A5D6A7' : 'rgba(255,255,255,0.15)',
-            color: selected === s ? '#1B5E20' : 'white', transition: 'background 0.15s',
+            background: selected === s ? '#FCD34D' : 'rgba(255,255,255,0.15)',
+            color: selected === s ? '#0A1628' : 'white', transition: 'background 0.15s',
           }}>
             {s}s
           </button>
@@ -80,7 +87,7 @@ function RestTimer({ onClose }) {
       {seconds !== null && (
         <div style={{ textAlign: 'center' }}>
           {finished ? (
-            <div style={{ fontSize: 40, fontWeight: 800, color: '#A5D6A7', letterSpacing: '-0.02em' }}>¡Tiempo!</div>
+            <div style={{ fontSize: 40, fontWeight: 800, color: '#FCD34D', letterSpacing: '-0.02em' }}>¡Tiempo!</div>
           ) : (
             <div style={{ fontSize: 56, fontWeight: 800, color: 'white', letterSpacing: '-0.02em', lineHeight: 1 }}>
               {mins > 0 ? `${mins}:${String(secs).padStart(2,'0')}` : `${secs}s`}
@@ -365,10 +372,10 @@ export default function DayEditor({ dateStr }) {
     return (
       <div>
         <div className="completed-banner">
-          <div style={{ color: '#2E7D32', marginBottom: 8 }}>
+          <div style={{ color: '#059669', marginBottom: 8 }}>
             <CheckCircleIcon size={36} />
           </div>
-          <div style={{ fontWeight: 800, fontSize: 18, color: '#1B5E20', marginBottom: 4 }}>
+          <div style={{ fontWeight: 800, fontSize: 18, color: '#064E3B', marginBottom: 4 }}>
             Entrenamiento completado
           </div>
           {r && <div style={{ fontSize: 14, color: '#37474F', marginBottom: 6 }}>{r.name}</div>}
@@ -456,9 +463,9 @@ export default function DayEditor({ dateStr }) {
                 <div key={phase.phase} style={getPhaseItemStyle(displayIdx)}>
                   {/* Tarjeta del bloque */}
                   <div style={{
-                    background: 'white',
+                    background: getPhaseBg(displayIdx),
                     borderRadius: 10,
-                    border: '1px solid #E8ECEB',
+                    border: '1px solid #DDE3EE',
                     borderLeft: `4px solid ${color}`,
                     overflow: 'hidden',
                   }}>
@@ -583,10 +590,10 @@ export default function DayEditor({ dateStr }) {
             onClick={() => setShowTimer(t => !t)}
             style={{
               position: 'fixed', bottom: 24, right: 'calc(50% - 228px)', zIndex: 250,
-              background: showTimer ? '#2E7D32' : '#1B5E20', color: 'white',
+              background: showTimer ? '#1D3461' : '#0A1628', color: 'white',
               border: 'none', borderRadius: 99, padding: '12px 20px',
               fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(27,94,32,0.4)', display: 'flex', alignItems: 'center', gap: 8,
+              boxShadow: '0 4px 16px rgba(10,22,40,0.4)', display: 'flex', alignItems: 'center', gap: 8,
             }}
           >
             ⏱ Timer

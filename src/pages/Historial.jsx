@@ -194,7 +194,7 @@ export default function Historial({ onBack } = {}) {
             <div key={name} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ fontSize: 13, color: '#1A2332', fontWeight: 500 }}>{name}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#1B5E20' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#0A1628' }}>
                   {count} {count === 1 ? 'vez' : 'veces'}
                 </span>
               </div>
@@ -218,7 +218,7 @@ export default function Historial({ onBack } = {}) {
               borderBottom: i < streaksByType.length - 1 ? '1px solid #F1F5F4' : 'none',
             }}>
               <span style={{ fontSize: 13, color: '#1A2332', flex: 1, marginRight: 10 }}>{name}</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: streak > 0 ? '#1B5E20' : '#94A3B8' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: streak > 0 ? '#0A1628' : '#94A3B8' }}>
                 {streak > 0
                   ? `${streak} sem. ${streak !== 1 ? 'consecutivas' : 'consecutiva'}`
                   : lastWeeksAgo
@@ -257,7 +257,7 @@ export default function Historial({ onBack } = {}) {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
                   <div style={{
                     width: 10, height: 10, borderRadius: '50',
-                    background: isTraining ? '#43A047' : '#1976D2',
+                    background: isTraining ? '#059669' : '#2563EB',
                     marginTop: 4, borderRadius: '50%',
                   }} />
                   {!isLast && (

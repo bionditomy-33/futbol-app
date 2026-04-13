@@ -5,9 +5,9 @@ import { PlusIcon, EditIcon, TrashIcon } from '../components/Icons';
 
 const COMPETITIONS = ['Arsenal Liga', 'Premier', 'Otro'];
 const RESULTS = [
-  { value: 'ganamos', label: 'Victoria', short: 'V', color: '#2E7D32', bg: '#E8F5E9', badgeClass: 'result-win' },
-  { value: 'perdimos', label: 'Derrota', short: 'D', color: '#C62828', bg: '#FFEBEE', badgeClass: 'result-loss' },
-  { value: 'empate',   label: 'Empate',  short: 'E', color: '#E65100', bg: '#FFF8E1', badgeClass: 'result-draw' },
+  { value: 'ganamos', label: 'Victoria', short: 'V', color: '#065F46', bg: '#D1FAE5', badgeClass: 'result-win' },
+  { value: 'perdimos', label: 'Derrota', short: 'D', color: '#991B1B', bg: '#FEE2E2', badgeClass: 'result-loss' },
+  { value: 'empate',   label: 'Empate',  short: 'E', color: '#92400E', bg: '#FEF3C7', badgeClass: 'result-draw' },
 ];
 
 function emptyForm() {

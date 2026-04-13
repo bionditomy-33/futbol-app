@@ -9,7 +9,7 @@ const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAY_HEADERS = ['L','M','X','J','V','S','D'];
 const DAY_NAMES_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-const RESULT_COLORS  = { ganamos: '#2E7D32', perdimos: '#C62828', empate: '#E65100' };
+const RESULT_COLORS  = { ganamos: '#059669', perdimos: '#DC2626', empate: '#D97706' };
 const RESULT_LABELS  = { ganamos: 'Ganamos', perdimos: 'Perdimos', empate: 'Empate' };
 
 function getDayIndicators(dateStr, history, schedule, routines, matches) {
@@ -18,20 +18,20 @@ function getDayIndicators(dateStr, history, schedule, routines, matches) {
 
   if (day?.done) {
     const r = routines.find(r => r.id === day.routineId);
-    inds.push({ bg: '#C8E6C9', color: '#1B5E20', label: r ? r.name[0].toUpperCase() : '✓' });
+    inds.push({ bg: '#A7F3D0', color: '#065F46', label: r ? r.name[0].toUpperCase() : '✓' });
   } else if (schedule[dateStr]) {
     const r = routines.find(r => r.id === schedule[dateStr]);
     const missed = dateStr < TODAY;
     inds.push({
-      bg: missed ? '#FFCDD2' : '#DCEDC8',
-      color: missed ? '#B71C1C' : '#33691E',
+      bg: missed ? '#FECACA' : '#BFDBFE',
+      color: missed ? '#991B1B' : '#1E40AF',
       label: r ? r.name[0].toUpperCase() : '?',
     });
   }
 
-  if (day?.gym) inds.push({ bg: '#BBDEFB', color: '#0D47A1', label: 'G' });
+  if (day?.gym) inds.push({ bg: '#E8EDF5', color: '#1D3461', label: 'G' });
   if (matches.some(m => m.date === dateStr))
-    inds.push({ bg: '#FFE0B2', color: '#BF360C', label: 'P' });
+    inds.push({ bg: '#FEF3C7', color: '#92400E', label: 'P' });
 
   return inds;
 }
@@ -88,7 +88,7 @@ export default function Calendario() {
               {editingDay === TODAY && (
                 <span style={{
                   fontSize: 10, color: 'white', fontWeight: 700,
-                  background: '#1B5E20', borderRadius: 6, padding: '2px 6px', marginLeft: 8,
+                  background: '#0A1628', borderRadius: 6, padding: '2px 6px', marginLeft: 8,
                 }}>
                   HOY
                 </span>
@@ -151,8 +151,8 @@ export default function Calendario() {
                   padding: '5px 2px',
                   borderRadius: 10,
                   cursor: 'pointer',
-                  background: isToday ? '#1B5E20' : isSelected ? '#F0FAF0' : '#FAFAFA',
-                  border: isToday ? 'none' : isSelected ? '2px solid #43A047' : '1px solid #F1F5F1',
+                  background: isToday ? '#0A1628' : isSelected ? '#EEF2F7' : '#FAFAFA',
+                  border: isToday ? 'none' : isSelected ? '2px solid #1D3461' : '1px solid #EEF2F7',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
                   opacity: inMonth ? 1 : 0.28,
                   transition: 'all 0.1s',
@@ -197,11 +197,11 @@ export default function Calendario() {
       {/* Leyenda */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', padding: '10px 14px 6px', background: 'white' }}>
         {[
-          { bg: '#C8E6C9', color: '#1B5E20', label: 'Completado' },
-          { bg: '#DCEDC8', color: '#33691E', label: 'Planificado' },
-          { bg: '#FFCDD2', color: '#B71C1C', label: 'No hecho' },
-          { bg: '#BBDEFB', color: '#0D47A1', label: 'Gym' },
-          { bg: '#FFE0B2', color: '#BF360C', label: 'Partido' },
+          { bg: '#A7F3D0', color: '#065F46', label: 'Completado' },
+          { bg: '#BFDBFE', color: '#1E40AF', label: 'Planificado' },
+          { bg: '#FECACA', color: '#991B1B', label: 'No hecho' },
+          { bg: '#E8EDF5', color: '#1D3461', label: 'Gym' },
+          { bg: '#FEF3C7', color: '#92400E', label: 'Partido' },
         ].map(({ bg, color, label }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: bg }} />
@@ -233,7 +233,7 @@ export default function Calendario() {
                     {isToday && (
                       <span style={{
                         fontSize: 10, color: 'white', fontWeight: 700,
-                        background: '#1B5E20', borderRadius: 6, padding: '2px 6px', marginLeft: 8,
+                        background: '#0A1628', borderRadius: 6, padding: '2px 6px', marginLeft: 8,
                       }}>
                         HOY
                       </span>

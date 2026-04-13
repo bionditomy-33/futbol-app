@@ -144,7 +144,7 @@ export default function App() {
             >
               <div style={{
                 width: 44, height: 44, borderRadius: 12,
-                background: '#E8F5E9', color: '#1B5E20',
+                background: '#E8EDF5', color: '#0A1628',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}>

@@ -55,10 +55,10 @@ export default function Hoy({ onGoToDesafios }) {
       const hasRoutine = !!schedule[ds];
       const isPast = ds < TODAY;
       let color, bg;
-      if (isDone)                    { color = '#43A047'; bg = '#E8F5E9'; }
-      else if (isPast && hasRoutine) { color = '#EF5350'; bg = '#FFEBEE'; }
-      else if (hasRoutine)           { color = '#F9A825'; bg = '#FFF8E1'; }
-      else                           { color = '#CBD5E1'; bg = '#F8FAFC'; }
+      if (isDone)                    { color = '#059669'; bg = '#D1FAE5'; }
+      else if (isPast && hasRoutine) { color = '#DC2626'; bg = '#FEE2E2'; }
+      else if (hasRoutine)           { color = '#D97706'; bg = '#FEF3C7'; }
+      else                           { color = '#CBD5E1'; bg = '#F1F5F9'; }
       return { d, ds, isToday, color, bg, num: d.getDate() };
     });
   }, [history, schedule]);
@@ -96,19 +96,20 @@ export default function Hoy({ onGoToDesafios }) {
           </div>
           {streak > 0 && (
             <div style={{
-              background: 'rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.1)',
+              border: '1px solid rgba(255,255,255,0.15)',
               borderRadius: 12,
               padding: '6px 12px',
               display: 'flex',
               alignItems: 'center',
-              gap: 5,
+              gap: 6,
               position: 'relative',
               zIndex: 1,
             }}>
-              <span style={{ fontSize: 18 }}>🔥</span>
+              <span style={{ fontSize: 20 }}>🔥</span>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'white', lineHeight: 1, letterSpacing: '-0.02em' }}>{streak}</div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Racha</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#FCD34D', lineHeight: 1, letterSpacing: '-0.02em' }}>{streak}</div>
+                <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Racha</div>
               </div>
             </div>
           )}
@@ -118,7 +119,7 @@ export default function Hoy({ onGoToDesafios }) {
       {/* ── Stats ── */}
       <div className="metrics-row" style={{ marginTop: 16 }}>
         <div className="metric-card">
-          <div className="metric-value" style={{ color: streak > 0 ? '#2E7D32' : undefined }}>
+          <div className="metric-value" style={{ color: streak > 0 ? '#D97706' : undefined }}>
             {streak > 0 ? streak : '—'}
           </div>
           <div className="metric-label">Racha</div>
@@ -143,7 +144,7 @@ export default function Hoy({ onGoToDesafios }) {
             <div
               key={ds}
               className="mini-cal-day"
-              style={{ background: isToday ? '#1B5E20' : bg }}
+              style={{ background: isToday ? '#0A1628' : bg }}
             >
               <div style={{
                 fontSize: 9, fontWeight: 700,
@@ -185,8 +186,8 @@ export default function Hoy({ onGoToDesafios }) {
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#1A2332' }}>{c.name}</span>
                   <span style={{
                     fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99,
-                    background: prog.needsClosing ? '#E8F5E9' : prog.isOnTrack ? '#E8F5E9' : '#FFEBEE',
-                    color: prog.needsClosing ? '#1B5E20' : prog.isOnTrack ? '#2E7D32' : '#C62828',
+                    background: prog.needsClosing ? '#D1FAE5' : prog.isOnTrack ? '#D1FAE5' : '#FEE2E2',
+                    color: prog.needsClosing ? '#065F46' : prog.isOnTrack ? '#059669' : '#991B1B',
                   }}>
                     {prog.needsClosing ? '¡Cerrar!' : prog.isOnTrack ? 'Vas bien' : 'Atrasado'}
                   </span>

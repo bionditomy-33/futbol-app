@@ -35,17 +35,17 @@ function getPhaseIcon(pi) {
 }
 
 function getPhaseAccentColor(pi) {
-  if (pi === 0) return '#2E7D32';
-  if (pi === 1) return '#E65100';
-  if (pi === 2) return '#1565C0';
-  return '#64748B';
+  if (pi === 0) return '#1D3461'; // navy
+  if (pi === 1) return '#059669'; // emerald
+  if (pi === 2) return '#D97706'; // amber
+  return '#475569'; // slate
 }
 
 function getPhaseChipStyle(pi) {
-  if (pi === 0) return { background: '#E8F5E9', color: '#2E7D32' };
-  if (pi === 1) return { background: '#FFF8E1', color: '#E65100' };
-  if (pi === 2) return { background: '#E3F2FD', color: '#1565C0' };
-  return { background: '#F1F5F9', color: '#64748B' };
+  if (pi === 0) return { background: '#E8EDF5', color: '#1D3461' };
+  if (pi === 1) return { background: '#D1FAE5', color: '#065F46' };
+  if (pi === 2) return { background: '#FEF3C7', color: '#92400E' };
+  return { background: '#F1F5F9', color: '#475569' };
 }
 
 function RutinaDetail({ routine, exerciseMap, onClose }) {
