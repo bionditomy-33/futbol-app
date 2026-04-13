@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr } from '../utils/dates';
-import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, XIcon, GripIcon } from './Icons';
+import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, GripIcon } from './Icons';
 import { useDragSort } from '../hooks/useDragSort';
 
 function getPhaseColor(displayIdx) {
@@ -18,98 +18,8 @@ function getPhaseBg(displayIdx) {
   return '#F8FAFC';
 }
 
-const TIMER_PRESETS = [20, 30, 45, 60, 90];
-
 const RATING_COLORS = ['', '#EF5350', '#FF7043', '#FFC107', '#66BB6A', '#2E7D32'];
 const RATING_LABELS = ['', 'Muy mal', 'Mal', 'Regular', 'Bien', 'Excelente'];
-
-function RestTimer({ onClose }) {
-  const [seconds, setSeconds] = useState(null);
-  const [selected, setSelected] = useState(null);
-  const [finished, setFinished] = useState(false);
-  const intervalRef = useRef(null);
-
-  function startTimer(secs) {
-    clearInterval(intervalRef.current);
-    setSeconds(secs);
-    setSelected(secs);
-    setFinished(false);
-    intervalRef.current = setInterval(() => {
-      setSeconds(s => {
-        if (s <= 1) {
-          clearInterval(intervalRef.current);
-          setFinished(true);
-          try { navigator.vibrate([400, 150, 400, 150, 600]); } catch {}
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-  }
-
-  function cancelTimer() {
-    clearInterval(intervalRef.current);
-    setSeconds(null);
-    setSelected(null);
-    setFinished(false);
-  }
-
-  useEffect(() => () => clearInterval(intervalRef.current), []);
-
-  const mins = seconds !== null ? Math.floor(seconds / 60) : 0;
-  const secs = seconds !== null ? seconds % 60 : 0;
-
-  return (
-    <div style={{
-      position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-      width: '100%', maxWidth: 480, background: '#0A1628',
-      borderRadius: '16px 16px 0 0', padding: '16px 20px 32px',
-      zIndex: 300, boxShadow: '0 -4px 24px rgba(0,0,0,0.25)',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <span style={{ color: 'white', fontWeight: 700, fontSize: 15 }}>Timer de descanso</span>
-        <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, padding: '4px 8px', cursor: 'pointer', color: 'white' }}>
-          <XIcon size={15} />
-        </button>
-      </div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {TIMER_PRESETS.map(s => (
-          <button key={s} onClick={() => startTimer(s)} style={{
-            flex: 1, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
-            background: selected === s ? '#FCD34D' : 'rgba(255,255,255,0.15)',
-            color: selected === s ? '#0A1628' : 'white', transition: 'background 0.15s',
-          }}>
-            {s}s
-          </button>
-        ))}
-      </div>
-      {seconds !== null && (
-        <div style={{ textAlign: 'center' }}>
-          {finished ? (
-            <div style={{ fontSize: 40, fontWeight: 800, color: '#FCD34D', letterSpacing: '-0.02em' }}>¡Tiempo!</div>
-          ) : (
-            <div style={{ fontSize: 56, fontWeight: 800, color: 'white', letterSpacing: '-0.02em', lineHeight: 1 }}>
-              {mins > 0 ? `${mins}:${String(secs).padStart(2,'0')}` : `${secs}s`}
-            </div>
-          )}
-          <button onClick={cancelTimer} style={{
-            marginTop: 12, background: 'rgba(255,255,255,0.15)', border: 'none',
-            borderRadius: 8, padding: '8px 20px', color: 'white',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            Cancelar
-          </button>
-        </div>
-      )}
-      {seconds === null && (
-        <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
-          Elegí un tiempo para empezar
-        </div>
-      )}
-    </div>
-  );
-}
 
 function RatingModal({ onSave, onSkip }) {
   const [rating, setRating] = useState(null);
@@ -299,7 +209,6 @@ export default function DayEditor({ dateStr }) {
   const completed = day.completed || {};
 
   const [showSelector, setShowSelector] = useState(false);
-  const [showTimer, setShowTimer]       = useState(false);
   const [showRating, setShowRating]     = useState(false);
 
   // Objetivos locales por nombre de fase; se sincronizan cuando cambia la rutina
@@ -583,24 +492,6 @@ export default function DayEditor({ dateStr }) {
         </div>
       )}
 
-      {!showSelector && !day.done && (
-        <>
-          <div style={{ height: 72 }} />
-          <button
-            onClick={() => setShowTimer(t => !t)}
-            style={{
-              position: 'fixed', bottom: 24, right: 'calc(50% - 228px)', zIndex: 250,
-              background: showTimer ? '#1D3461' : '#0A1628', color: 'white',
-              border: 'none', borderRadius: 99, padding: '12px 20px',
-              fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(10,22,40,0.4)', display: 'flex', alignItems: 'center', gap: 8,
-            }}
-          >
-            ⏱ Timer
-          </button>
-          {showTimer && <RestTimer onClose={() => setShowTimer(false)} />}
-        </>
-      )}
 
       {showRating && (
         <RatingModal onSave={handleRatingSave} onSkip={handleRatingSkip} />
