@@ -9,8 +9,8 @@ const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DAY_HEADERS = ['L','M','X','J','V','S','D'];
 const DAY_NAMES_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-const RESULT_COLORS  = { ganamos: '#2E7D32', perdimos: '#C62828', empate: '#F57F17' };
-const RESULT_LABELS  = { ganamos: 'Ganamos',  perdimos: 'Perdimos',  empate: 'Empate'  };
+const RESULT_COLORS  = { ganamos: '#2E7D32', perdimos: '#C62828', empate: '#E65100' };
+const RESULT_LABELS  = { ganamos: 'Ganamos', perdimos: 'Perdimos', empate: 'Empate' };
 
 function getDayIndicators(dateStr, history, schedule, routines, matches) {
   const day = history[dateStr];
@@ -30,7 +30,6 @@ function getDayIndicators(dateStr, history, schedule, routines, matches) {
   }
 
   if (day?.gym) inds.push({ bg: '#BBDEFB', color: '#0D47A1', label: 'G' });
-
   if (matches.some(m => m.date === dateStr))
     inds.push({ bg: '#FFE0B2', color: '#BF360C', label: 'P' });
 
@@ -38,16 +37,13 @@ function getDayIndicators(dateStr, history, schedule, routines, matches) {
 }
 
 export default function Calendario() {
-  const { history, schedule, routines } = useStore();
+  const { history, schedule, routines, matches } = useStore();
   const [viewDate, setViewDate] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
   const [selectedDay, setSelectedDay] = useState(null);
   const [editingDay, setEditingDay]   = useState(null);
-  const [matches] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('matches') || '[]'); } catch { return []; }
-  });
 
   const year  = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -56,15 +52,15 @@ export default function Calendario() {
   function nextMonth() { setViewDate(new Date(year, month + 1, 1)); }
 
   const calDays = useMemo(() => {
-    const first   = new Date(year, month, 1);
+    const first    = new Date(year, month, 1);
     const firstDow = first.getDay();
     const leadDays = firstDow === 0 ? 6 : firstDow - 1;
     const last     = new Date(year, month + 1, 0);
     const lastDow  = last.getDay();
     const trailDays = lastDow === 0 ? 0 : 7 - lastDow;
-    const start = new Date(year, month, 1 - leadDays);
-    const total = leadDays + last.getDate() + trailDays;
-    const days = [];
+    const start    = new Date(year, month, 1 - leadDays);
+    const total    = leadDays + last.getDate() + trailDays;
+    const days     = [];
     for (let i = 0; i < total; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
@@ -78,18 +74,27 @@ export default function Calendario() {
     const d = new Date(editingDay + 'T12:00:00');
     return (
       <div className="page-content">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 0' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '14px 16px', background: 'white',
+          borderBottom: '1px solid #E2E8F0',
+        }}>
           <button className="btn btn-ghost" style={{ padding: '6px 8px' }} onClick={() => setEditingDay(null)}>
             <ChevronLeft size={18} />
           </button>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 17, color: '#263238' }}>
+            <div style={{ fontWeight: 800, fontSize: 17, color: '#1A2332', letterSpacing: '-0.02em' }}>
               {DAY_NAMES_FULL[d.getDay()]}
               {editingDay === TODAY && (
-                <span style={{ fontSize: 11, color: '#2E7D32', fontWeight: 700, marginLeft: 8 }}>HOY</span>
+                <span style={{
+                  fontSize: 10, color: 'white', fontWeight: 700,
+                  background: '#1B5E20', borderRadius: 6, padding: '2px 6px', marginLeft: 8,
+                }}>
+                  HOY
+                </span>
               )}
             </div>
-            <div style={{ fontSize: 12, color: '#78909C' }}>
+            <div style={{ fontSize: 12, color: '#64748B' }}>
               {d.getDate()} de {MONTHS_ES[d.getMonth()].toLowerCase()} {d.getFullYear()}
             </div>
           </div>
@@ -99,31 +104,39 @@ export default function Calendario() {
     );
   }
 
-  // ── Vista calendario ───────────────────────────────────────────────────
+  // ── Vista calendario ──────────────────────────────────────────────────
   return (
     <div className="page-content">
       {/* Navegación de mes */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 10px' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 16px 12px', background: 'white',
+        borderBottom: '1px solid #E2E8F0',
+      }}>
         <button className="btn btn-ghost btn-sm" onClick={prevMonth}>‹ Ant.</button>
-        <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', letterSpacing: '-0.01em' }}>
+        <div style={{ fontWeight: 800, fontSize: 18, color: '#1A2332', letterSpacing: '-0.02em' }}>
           {MONTHS_ES[month]} {year}
         </div>
         <button className="btn btn-ghost btn-sm" onClick={nextMonth}>Sig. ›</button>
       </div>
 
       {/* Grilla */}
-      <div style={{ padding: '0 10px' }}>
-        {/* Headers L M X J V S D */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 3 }}>
+      <div style={{ padding: '12px 12px 4px', background: 'white' }}>
+        {/* Headers */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginBottom: 4 }}>
           {DAY_HEADERS.map(h => (
-            <div key={h} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#78909C', padding: '3px 0' }}>
+            <div key={h} style={{
+              textAlign: 'center', fontSize: 10, fontWeight: 700,
+              color: '#94A3B8', padding: '3px 0',
+              textTransform: 'uppercase', letterSpacing: '0.08em',
+            }}>
               {h}
             </div>
           ))}
         </div>
 
         {/* Celdas */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
           {calDays.map(({ dateStr, inMonth, dayNum }) => {
             const isToday    = dateStr === TODAY;
             const isSelected = dateStr === selectedDay;
@@ -134,28 +147,29 @@ export default function Calendario() {
                 key={dateStr}
                 onClick={() => setSelectedDay(isSelected ? null : dateStr)}
                 style={{
-                  minHeight: 50,
-                  padding: '4px 2px',
-                  borderRadius: 8,
+                  minHeight: 52,
+                  padding: '5px 2px',
+                  borderRadius: 10,
                   cursor: 'pointer',
-                  background: isToday ? '#E8F5E9' : isSelected ? '#F1F8F1' : '#FAFAFA',
-                  border: isToday ? '2px solid #1B5E20' : isSelected ? '2px solid #A5D6A7' : '1px solid #F0F4F0',
+                  background: isToday ? '#1B5E20' : isSelected ? '#F0FAF0' : '#FAFAFA',
+                  border: isToday ? 'none' : isSelected ? '2px solid #43A047' : '1px solid #F1F5F1',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                  opacity: inMonth ? 1 : 0.3,
-                  transition: 'border-color 0.1s',
+                  opacity: inMonth ? 1 : 0.28,
+                  transition: 'all 0.1s',
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 <div style={{
-                  fontSize: 12, lineHeight: 1,
-                  fontWeight: isToday ? 800 : 400,
-                  color: isToday ? '#1B5E20' : '#263238',
+                  fontSize: 13, lineHeight: 1,
+                  fontWeight: isToday ? 800 : 500,
+                  color: isToday ? 'white' : '#1A2332',
                 }}>
                   {dayNum}
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
                   {indicators.slice(0, 3).map((ind, i) => (
                     <div key={i} style={{
-                      width: 14, height: 14, borderRadius: '50%',
+                      width: 13, height: 13, borderRadius: '50%',
                       background: ind.bg, color: ind.color,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 7, fontWeight: 800,
@@ -164,7 +178,12 @@ export default function Calendario() {
                     </div>
                   ))}
                   {indicators.length > 3 && (
-                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#E0E0E0', color: '#757575', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 800 }}>
+                    <div style={{
+                      width: 13, height: 13, borderRadius: '50%',
+                      background: '#E0E0E0', color: '#757575',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 7, fontWeight: 800,
+                    }}>
                       +{indicators.length - 3}
                     </div>
                   )}
@@ -176,7 +195,7 @@ export default function Calendario() {
       </div>
 
       {/* Leyenda */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', padding: '10px 10px 0' }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', padding: '10px 14px 6px', background: 'white' }}>
         {[
           { bg: '#C8E6C9', color: '#1B5E20', label: 'Completado' },
           { bg: '#DCEDC8', color: '#33691E', label: 'Planificado' },
@@ -185,8 +204,8 @@ export default function Calendario() {
           { bg: '#FFE0B2', color: '#BF360C', label: 'Partido' },
         ].map(({ bg, color, label }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: bg, border: `1px solid ${color}20` }} />
-            <span style={{ fontSize: 11, color: '#78909C' }}>{label}</span>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: bg }} />
+            <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 600 }}>{label}</span>
           </div>
         ))}
       </div>
@@ -205,67 +224,105 @@ export default function Calendario() {
         return (
           <div className="modal-overlay" onClick={() => setSelectedDay(null)}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '20px 20px 32px' }}>
-              {/* Encabezado */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+              <div className="modal-drag-handle" />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 17, color: '#263238' }}>
+                  <div style={{ fontWeight: 800, fontSize: 18, color: '#1A2332', letterSpacing: '-0.02em' }}>
                     {DAY_NAMES_FULL[d.getDay()]}
-                    {isToday && <span style={{ fontSize: 11, color: '#2E7D32', fontWeight: 700, marginLeft: 8 }}>HOY</span>}
+                    {isToday && (
+                      <span style={{
+                        fontSize: 10, color: 'white', fontWeight: 700,
+                        background: '#1B5E20', borderRadius: 6, padding: '2px 6px', marginLeft: 8,
+                      }}>
+                        HOY
+                      </span>
+                    )}
                   </div>
-                  <div style={{ fontSize: 13, color: '#78909C' }}>
+                  <div style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
                     {d.getDate()} de {MONTHS_ES[d.getMonth()].toLowerCase()} {d.getFullYear()}
                   </div>
                 </div>
-                <button className="btn btn-ghost" style={{ padding: '3px 7px', fontSize: 16 }} onClick={() => setSelectedDay(null)}>✕</button>
+                <button
+                  className="btn btn-ghost"
+                  style={{ padding: '5px 8px', color: '#94A3B8' }}
+                  onClick={() => setSelectedDay(null)}
+                >
+                  ✕
+                </button>
               </div>
 
               {/* Rutina */}
               {showRoutine ? (
-                <div style={{ background: '#F5F7F5', borderRadius: 10, padding: '10px 12px', marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#78909C', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rutina</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#263238' }}>{showRoutine.name}</div>
-                  <div style={{ fontSize: 12, color: '#78909C', marginTop: 2 }}>
+                <div style={{
+                  background: '#F8FAFC', borderRadius: 12,
+                  padding: '11px 14px', marginBottom: 10,
+                  border: '1px solid #E2E8F0',
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    Rutina
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1A2332' }}>{showRoutine.name}</div>
+                  <div style={{ fontSize: 12, color: '#64748B', marginTop: 3 }}>
                     {dayHistory?.done
                       ? `✓ Completado · ${Object.values(dayHistory.completed || {}).filter(Boolean).length} ejercicios`
                       : selectedDay < TODAY ? 'No realizado' : 'Planificado'}
                   </div>
                 </div>
               ) : (
-                <div style={{ fontSize: 13, color: '#B0BEC5', marginBottom: 10 }}>Sin rutina asignada</div>
+                <div style={{ fontSize: 13, color: '#94A3B8', marginBottom: 12 }}>Sin rutina asignada</div>
               )}
 
               {/* Gym */}
               {dayHistory?.gym && (
-                <div style={{ fontSize: 13, color: '#1565C0', fontWeight: 600, marginBottom: 10 }}>
-                  💪 Fue al gym
+                <div style={{
+                  fontSize: 13, color: '#1565C0', fontWeight: 700,
+                  marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  💪 Fue al gimnasio
                 </div>
               )}
 
               {/* Partidos */}
               {dayMatches.map(match => (
-                <div key={match.id} style={{ background: '#FFF8F0', borderRadius: 10, padding: '8px 12px', marginBottom: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#E65100', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Partido</div>
+                <div key={match.id} style={{
+                  background: '#FFF8F0', borderRadius: 10,
+                  padding: '10px 12px', marginBottom: 8,
+                  border: '1px solid #FFE0B2',
+                }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#E65100', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    Partido
+                  </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 13, color: '#263238' }}>{match.competition}</span>
+                    <span style={{ fontSize: 13, color: '#1A2332', fontWeight: 600 }}>{match.competition}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: RESULT_COLORS[match.result] }}>
                       {RESULT_LABELS[match.result]}
                     </span>
                   </div>
-                  {match.minutes && <div style={{ fontSize: 11, color: '#78909C', marginTop: 2 }}>{match.minutes} min jugados</div>}
-                  {match.notes && <div style={{ fontSize: 12, color: '#374151', marginTop: 4 }}>{match.notes}</div>}
+                  {match.minutes && (
+                    <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 3 }}>{match.minutes} min jugados</div>
+                  )}
+                  {match.notes && (
+                    <div style={{ fontSize: 12, color: '#475569', marginTop: 5 }}>{match.notes}</div>
+                  )}
                 </div>
               ))}
 
-              {/* Notas del día */}
+              {/* Notas */}
               {dayHistory?.notes && (
-                <div style={{ fontSize: 13, color: '#374151', background: '#f9fafb', borderRadius: 8, padding: '8px 10px', borderLeft: '2px solid #e5e7eb', marginBottom: 10 }}>
+                <div style={{
+                  fontSize: 13, color: '#475569',
+                  background: '#F8FAFC', borderRadius: 8,
+                  padding: '9px 12px', borderLeft: '3px solid #E2E8F0',
+                  marginBottom: 12, lineHeight: 1.5,
+                }}>
                   {dayHistory.notes}
                 </div>
               )}
 
               {/* Sin actividad */}
               {!showRoutine && !dayHistory?.gym && dayMatches.length === 0 && (
-                <div style={{ fontSize: 13, color: '#B0BEC5', textAlign: 'center', padding: '8px 0 12px' }}>
+                <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', padding: '10px 0 14px' }}>
                   Día sin actividad registrada
                 </div>
               )}

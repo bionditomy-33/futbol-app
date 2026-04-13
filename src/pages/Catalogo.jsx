@@ -6,20 +6,29 @@ function generateId(category) {
   return `custom-${category.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
 }
 
+const CAT_COLORS = [
+  { bg: '#E8F5E9', color: '#2E7D32', emoji: '🏃' },
+  { bg: '#E3F2FD', color: '#1565C0', emoji: '⚽' },
+  { bg: '#FFF8E1', color: '#E65100', emoji: '💪' },
+  { bg: '#FCE4EC', color: '#AD1457', emoji: '🎯' },
+  { bg: '#EDE7F6', color: '#4527A0', emoji: '🔄' },
+  { bg: '#E0F2F1', color: '#00695C', emoji: '🧘' },
+  { bg: '#FBE9E7', color: '#BF360C', emoji: '⚡' },
+  { bg: '#F3E5F5', color: '#6A1B9A', emoji: '🏋️' },
+];
+function getCatColor(idx) {
+  return CAT_COLORS[idx % CAT_COLORS.length];
+}
+
 export default function Catalogo({ onBack } = {}) {
   const { catalog, addExercise, editExercise, deleteExercise, addCategory, deleteCategory, isExerciseUsed } = useStore();
   const [open, setOpen] = useState({});
 
-  // Add exercise form
-  const [showAddEx, setShowAddEx] = useState(false);
-  const [newEx, setNewEx] = useState({ name: '', category: '', link: '', newCatName: '' });
-  const [isNewCat, setIsNewCat] = useState(false);
-
-  // Edit exercise
-  const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({});
-
-  // Delete confirm
+  const [showAddEx, setShowAddEx]     = useState(false);
+  const [newEx, setNewEx]             = useState({ name: '', category: '', link: '', newCatName: '' });
+  const [isNewCat, setIsNewCat]       = useState(false);
+  const [editingId, setEditingId]     = useState(null);
+  const [editForm, setEditForm]       = useState({});
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const toggle = (cat) => setOpen(o => ({ ...o, [cat]: !o[cat] }));
@@ -67,23 +76,8 @@ export default function Catalogo({ onBack } = {}) {
 
   function handleDeleteCategory(cat) {
     const exs = catalog[cat] || [];
-    if (exs.length > 0) return; // shouldn't happen - button disabled
+    if (exs.length > 0) return;
     deleteCategory(cat);
-  }
-
-  // Category color map (cycle through a few)
-  const CAT_COLORS = [
-    { bg: '#E8F5E9', color: '#2E7D32' },
-    { bg: '#E3F2FD', color: '#1565C0' },
-    { bg: '#FFF8E1', color: '#F57F17' },
-    { bg: '#FCE4EC', color: '#AD1457' },
-    { bg: '#EDE7F6', color: '#4527A0' },
-    { bg: '#E0F2F1', color: '#00695C' },
-    { bg: '#FBE9E7', color: '#BF360C' },
-    { bg: '#F3E5F5', color: '#6A1B9A' },
-  ];
-  function getCatColor(idx) {
-    return CAT_COLORS[idx % CAT_COLORS.length];
   }
 
   return (
@@ -105,9 +99,9 @@ export default function Catalogo({ onBack } = {}) {
 
       {/* Add exercise form */}
       {showAddEx && (
-        <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card" style={{ marginBottom: 4 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ fontWeight: 700, fontSize: 14, color: '#263238' }}>Nuevo ejercicio</span>
+            <span style={{ fontWeight: 800, fontSize: 15, color: '#1A2332', letterSpacing: '-0.01em' }}>Nuevo ejercicio</span>
             <button className="btn btn-ghost" style={{ padding: 4 }} onClick={() => { setShowAddEx(false); setIsNewCat(false); }}>
               <XIcon size={15} />
             </button>
@@ -124,7 +118,7 @@ export default function Catalogo({ onBack } = {}) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Categoria *</label>
+            <label className="form-label">Categoría *</label>
             {!isNewCat ? (
               <div style={{ display: 'flex', gap: 8 }}>
                 <select
@@ -133,7 +127,7 @@ export default function Catalogo({ onBack } = {}) {
                   onChange={e => setNewEx(n => ({ ...n, category: e.target.value }))}
                   style={{ flex: 1 }}
                 >
-                  <option value="">Seleccionar categoria...</option>
+                  <option value="">Seleccionar categoría...</option>
                   {categories.map(c => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -150,7 +144,7 @@ export default function Catalogo({ onBack } = {}) {
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   className="input"
-                  placeholder="Nombre de la nueva categoria"
+                  placeholder="Nombre de la nueva categoría"
                   value={newEx.newCatName}
                   onChange={e => setNewEx(n => ({ ...n, newCatName: e.target.value }))}
                   autoFocus
@@ -164,7 +158,7 @@ export default function Catalogo({ onBack } = {}) {
           </div>
 
           <div className="form-group" style={{ marginBottom: 14 }}>
-            <label className="form-label">Link de video (opcional)</label>
+            <label className="form-label">Link de video <span style={{ color: '#94A3B8', fontWeight: 500 }}>(opcional)</span></label>
             <input
               className="input"
               placeholder="https://..."
@@ -184,55 +178,54 @@ export default function Catalogo({ onBack } = {}) {
       )}
 
       {/* Category list */}
-      <div style={{ padding: '0 0 8px' }}>
+      <div style={{ padding: '4px 16px 0' }}>
         {categories.map((cat, catIdx) => {
           const exercises = catalog[cat];
-          const { bg, color } = getCatColor(catIdx);
+          const { bg, color, emoji } = getCatColor(catIdx);
           const isEmpty = exercises.length === 0;
+          const isOpen = open[cat];
 
           return (
-            <div key={cat} style={{ borderBottom: '1px solid #F1F5F4' }}>
-              <div className="category-header" onClick={() => toggle(cat)}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    background: bg,
-                    color,
-                    borderRadius: 8,
-                    padding: '4px 10px',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    letterSpacing: '0.01em',
-                  }}>
-                    {cat}
+            <div key={cat} className="catalog-category-card" style={{ marginBottom: 8 }}>
+              <div className="catalog-category-header" onClick={() => toggle(cat)}>
+                <div className="catalog-category-icon" style={{ background: bg }}>
+                  <span style={{ fontSize: 18 }}>{emoji}</span>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#1A2332' }}>{cat}</div>
+                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
+                    {exercises.length} ejercicio{exercises.length !== 1 ? 's' : ''}
                   </div>
-                  <span className="badge badge-gray" style={{ fontSize: 11 }}>{exercises.length}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {isEmpty && (
                     <button
                       className="btn btn-ghost btn-sm"
-                      style={{ color: '#EF5350', padding: '3px 6px', fontSize: 11 }}
+                      style={{ color: '#EF5350', padding: '3px 6px' }}
                       onClick={e => { e.stopPropagation(); handleDeleteCategory(cat); }}
                     >
                       <TrashIcon size={12} />
                     </button>
                   )}
-                  {open[cat] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  <div style={{ color: '#94A3B8' }}>
+                    {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </div>
                 </div>
               </div>
 
-              {open[cat] && (
-                <div style={{ paddingBottom: 8 }}>
+              {isOpen && (
+                <div>
                   {exercises.length === 0 && (
-                    <div style={{ padding: '10px 16px', fontSize: 13, color: '#B0BEC5' }}>
-                      Sin ejercicios. Podés eliminar esta categoria.
+                    <div className="catalog-exercise-row" style={{ justifyContent: 'center' }}>
+                      <span style={{ fontSize: 13, color: '#94A3B8' }}>
+                        Sin ejercicios. Podés eliminar esta categoría.
+                      </span>
                     </div>
                   )}
                   {exercises.map(ex => (
                     <div key={ex.id}>
                       {editingId === ex.id ? (
-                        // Edit form inline
-                        <div style={{ padding: '10px 16px', background: '#F8FAFA', borderBottom: '0.5px solid #F1F5F4' }}>
+                        <div style={{ padding: '11px 16px', background: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
                           <input
                             className="input"
                             value={editForm.name}
@@ -257,15 +250,9 @@ export default function Catalogo({ onBack } = {}) {
                           </div>
                         </div>
                       ) : (
-                        <div
-                          style={{
-                            display: 'flex', alignItems: 'center',
-                            padding: '9px 16px',
-                            borderBottom: '0.5px solid #F9FAFA',
-                          }}
-                        >
+                        <div className="catalog-exercise-row">
                           <div style={{ flex: 1 }}>
-                            <span style={{ fontSize: 14, color: '#37474F', fontWeight: 500 }}>{ex.name}</span>
+                            <span style={{ fontSize: 14, color: '#1A2332', fontWeight: 500 }}>{ex.name}</span>
                           </div>
                           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                             {ex.link && (
@@ -279,13 +266,17 @@ export default function Catalogo({ onBack } = {}) {
                                 <PlayIcon size={9} /> Video
                               </a>
                             )}
-                            <button className="btn btn-ghost btn-sm" style={{ padding: '4px 6px' }} onClick={() => startEdit(ex)}>
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              style={{ padding: '4px 6px', color: '#64748B' }}
+                              onClick={() => startEdit(ex)}
+                            >
                               <EditIcon size={13} />
                             </button>
                             {confirmDeleteId === ex.id ? (
                               <div style={{ display: 'flex', gap: 4 }}>
                                 {isExerciseUsed(ex.id) && (
-                                  <span style={{ fontSize: 10, color: '#F57F17', fontWeight: 600 }}>En uso</span>
+                                  <span style={{ fontSize: 10, color: '#E65100', fontWeight: 700 }}>En uso</span>
                                 )}
                                 <button
                                   className="btn btn-danger btn-sm"
@@ -294,7 +285,11 @@ export default function Catalogo({ onBack } = {}) {
                                 >
                                   Borrar
                                 </button>
-                                <button className="btn btn-ghost btn-sm" style={{ padding: '4px 6px' }} onClick={() => setConfirmDeleteId(null)}>
+                                <button
+                                  className="btn btn-ghost btn-sm"
+                                  style={{ padding: '4px 6px' }}
+                                  onClick={() => setConfirmDeleteId(null)}
+                                >
                                   <XIcon size={12} />
                                 </button>
                               </div>

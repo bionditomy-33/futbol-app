@@ -17,11 +17,11 @@ function getDayStatus(dateStr, schedule, history) {
 }
 
 const STATUS_CONFIG = {
-  done:    { label: 'Completado',  badgeClass: 'badge-green' },
-  missed:  { label: 'No hecho',    badgeClass: 'badge-red' },
-  pending: { label: 'Pendiente',   badgeClass: 'badge-yellow' },
-  planned: { label: 'Planificado', badgeClass: 'badge-blue' },
-  rest:    { label: 'Descanso',    badgeClass: 'badge-gray' },
+  done:    { label: 'Completado',  badgeClass: 'badge-green', barColor: '#43A047' },
+  missed:  { label: 'No hecho',   badgeClass: 'badge-red',   barColor: '#EF5350' },
+  pending: { label: 'Pendiente',  badgeClass: 'badge-yellow', barColor: '#F9A825' },
+  planned: { label: 'Planificado', badgeClass: 'badge-blue', barColor: '#1976D2' },
+  rest:    { label: 'Descanso',   badgeClass: 'badge-gray',  barColor: '#CBD5E1' },
 };
 
 const DAY_NAMES_SHORT = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
@@ -30,7 +30,7 @@ const DAY_NAMES_FULL  = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'V
 export default function Semana() {
   const { routines, schedule, history } = useStore();
   const [weekOffset, setWeekOffset] = useState(0);
-  const [selectedDay, setSelectedDay] = useState(null); // dateStr | null
+  const [selectedDay, setSelectedDay] = useState(null);
 
   const baseDate = new Date();
   baseDate.setDate(baseDate.getDate() + weekOffset * 7);
@@ -62,21 +62,34 @@ export default function Semana() {
 
     return (
       <div className="page-content">
-        {/* Header con volver */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px 0' }}>
-          <button className="btn btn-ghost" style={{ padding: '6px 8px' }} onClick={() => setSelectedDay(null)}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '14px 16px 0', background: 'white',
+          borderBottom: '1px solid #E2E8F0', marginBottom: 4,
+        }}>
+          <button
+            className="btn btn-ghost"
+            style={{ padding: '6px 8px' }}
+            onClick={() => setSelectedDay(null)}
+          >
             <ChevronLeft size={18} />
           </button>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: '#263238', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+            <div style={{ fontWeight: 800, fontSize: 18, color: '#1A2332', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               {dayName}
-              {isToday && <span style={{ fontSize: 12, color: '#2E7D32', fontWeight: 700, marginLeft: 8 }}>HOY</span>}
+              {isToday && (
+                <span style={{
+                  fontSize: 10, color: 'white', fontWeight: 700,
+                  background: '#1B5E20', borderRadius: 6,
+                  padding: '2px 6px', marginLeft: 8,
+                }}>
+                  HOY
+                </span>
+              )}
             </div>
-            <div style={{ fontSize: 13, color: '#78909C' }}>{dateLabel}</div>
+            <div style={{ fontSize: 12, color: '#64748B' }}>{dateLabel}</div>
           </div>
         </div>
-
-        {/* Editor completo del día */}
         <DayEditor dateStr={selectedDay} />
       </div>
     );
@@ -86,12 +99,16 @@ export default function Semana() {
   return (
     <div className="page-content">
       {/* Navegación de semana */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 8px' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 16px 10px', background: 'white',
+        borderBottom: '1px solid #E2E8F0',
+      }}>
         <button className="btn btn-ghost btn-sm" onClick={() => setWeekOffset(o => o - 1)}>
           ‹ Anterior
         </button>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: '#263238' }}>
+          <div style={{ fontWeight: 800, fontSize: 13, color: '#1A2332', letterSpacing: '-0.01em' }}>
             {weekOffset === 0 ? 'Esta semana'
               : weekOffset === -1 ? 'Semana pasada'
               : weekOffset < 0 ? `Hace ${Math.abs(weekOffset)} semanas`
@@ -99,7 +116,11 @@ export default function Semana() {
               : `En ${weekOffset} semanas`}
           </div>
           {weekOffset !== 0 && (
-            <button className="btn btn-ghost" style={{ fontSize: 11, padding: '2px 6px', color: '#1B5E20' }} onClick={() => setWeekOffset(0)}>
+            <button
+              className="btn btn-ghost"
+              style={{ fontSize: 11, padding: '2px 6px', color: '#1B5E20', marginTop: 2 }}
+              onClick={() => setWeekOffset(0)}
+            >
               Volver a hoy
             </button>
           )}
@@ -109,18 +130,20 @@ export default function Semana() {
         </button>
       </div>
 
-      {/* Métricas de la semana */}
-      <div className="metrics-row">
+      {/* Métricas */}
+      <div className="metrics-row" style={{ marginTop: 14 }}>
         <div className="metric-card">
           <div className="metric-value">{pct}%</div>
           <div className="metric-label">Cumplimiento</div>
         </div>
         <div className="metric-card">
-          <div className="metric-value">{done}/{planned || '—'}</div>
+          <div className="metric-value">{done}{planned > 0 ? `/${planned}` : ''}</div>
           <div className="metric-label">Completados</div>
         </div>
         <div className="metric-card">
-          <div className="metric-value" style={{ color: streak > 0 ? '#2E7D32' : undefined }}>{streak}</div>
+          <div className="metric-value" style={{ color: streak > 0 ? '#2E7D32' : undefined }}>
+            {streak > 0 ? `${streak}🔥` : streak}
+          </div>
           <div className="metric-label">Racha</div>
         </div>
       </div>
@@ -135,56 +158,75 @@ export default function Semana() {
         const routine = routines.find(r => r.id === assignedId);
         const dayHistory = history[dateStr];
         const gymDone = dayHistory?.gym;
+        const doneExCount = Object.values(dayHistory?.completed || {}).filter(Boolean).length;
 
         return (
           <div
             key={dateStr}
             className={`day-card${isToday ? ' today' : ''}`}
             onClick={() => setSelectedDay(dateStr)}
-            style={{ cursor: 'pointer', transition: 'box-shadow 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)'}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = ''}
           >
+            {/* Status bar */}
+            <div className="day-card-status-bar" style={{ background: statusCfg.barColor }} />
+
             {/* Día */}
-            <div style={{ width: 44, flexShrink: 0 }}>
-              <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>
+            <div style={{ width: 40, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 {DAY_NAMES_SHORT[d.getDay()]}
               </div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: isToday ? '#1B5E20' : '#111827', lineHeight: 1.1 }}>
+              <div style={{
+                fontSize: 22, fontWeight: 800,
+                color: isToday ? '#1B5E20' : '#1A2332',
+                lineHeight: 1.1, letterSpacing: '-0.02em',
+              }}>
                 {d.getDate()}
               </div>
             </div>
 
             {/* Contenido */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                 <span className={`badge ${statusCfg.badgeClass}`}>{statusCfg.label}</span>
-                {isToday && <span style={{ fontSize: 10, color: '#1B5E20', fontWeight: 700 }}>HOY</span>}
+                {isToday && (
+                  <span style={{
+                    fontSize: 9, color: 'white', fontWeight: 700,
+                    background: '#1B5E20', borderRadius: 5, padding: '1px 5px',
+                    letterSpacing: '0.06em',
+                  }}>
+                    HOY
+                  </span>
+                )}
                 {gymDone && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: '#1565C0', fontWeight: 600, background: '#E3F2FD', padding: '2px 7px', borderRadius: 99 }}>
-                    <GymIcon size={11} /> Gym
+                  <span style={{
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    fontSize: 10, color: '#1565C0', fontWeight: 700,
+                    background: '#E3F2FD', padding: '2px 7px', borderRadius: 99,
+                  }}>
+                    <GymIcon size={10} /> Gym
                   </span>
                 )}
               </div>
 
               {routine ? (
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{routine.name}</div>
-                  {status === 'done' && dayHistory && (
-                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>
-                      {Object.values(dayHistory.completed || {}).filter(Boolean).length} ejercicios
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1A2332', lineHeight: 1.3 }}>
+                    {routine.name}
+                  </div>
+                  {status === 'done' && doneExCount > 0 && (
+                    <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                      {doneExCount} ejercicios completados
                     </div>
                   )}
                 </div>
               ) : (
-                <div style={{ fontSize: 12, color: '#9ca3af' }}>
-                  {gymDone ? 'Solo gym' : 'Sin rutina'}
+                <div style={{ fontSize: 12, color: '#94A3B8' }}>
+                  {gymDone ? 'Solo gimnasio' : 'Descanso'}
                 </div>
               )}
             </div>
 
             {/* Flecha */}
-            <div style={{ color: '#CFD8DC', fontSize: 16, alignSelf: 'center' }}>›</div>
+            <div style={{ color: '#CBD5E1', fontSize: 18, alignSelf: 'center', fontWeight: 300 }}>›</div>
           </div>
         );
       })}

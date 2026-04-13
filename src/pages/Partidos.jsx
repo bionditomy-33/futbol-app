@@ -5,21 +5,28 @@ import { PlusIcon, EditIcon, TrashIcon } from '../components/Icons';
 
 const COMPETITIONS = ['Arsenal Liga', 'Premier', 'Otro'];
 const RESULTS = [
-  { value: 'ganamos', label: 'Ganamos',  color: '#2E7D32', bg: '#E8F5E9' },
-  { value: 'perdimos', label: 'Perdimos', color: '#C62828', bg: '#FFEBEE' },
-  { value: 'empate',   label: 'Empate',   color: '#F57F17', bg: '#FFF8E1' },
+  { value: 'ganamos', label: 'Victoria', short: 'V', color: '#2E7D32', bg: '#E8F5E9', badgeClass: 'result-win' },
+  { value: 'perdimos', label: 'Derrota', short: 'D', color: '#C62828', bg: '#FFEBEE', badgeClass: 'result-loss' },
+  { value: 'empate',   label: 'Empate',  short: 'E', color: '#E65100', bg: '#FFF8E1', badgeClass: 'result-draw' },
 ];
 
 function emptyForm() {
   return { date: todayStr(), competition: COMPETITIONS[0], result: 'ganamos', minutes: '', notes: '' };
 }
 
+function getResultStats(matches) {
+  const wins = matches.filter(m => m.result === 'ganamos').length;
+  const losses = matches.filter(m => m.result === 'perdimos').length;
+  const draws = matches.filter(m => m.result === 'empate').length;
+  return { wins, losses, draws, total: matches.length };
+}
+
 export default function Partidos() {
   const { matches, setMatches } = useStore();
-  const [showForm, setShowForm]         = useState(false);
-  const [editingId, setEditingId]       = useState(null); // null = new, string = editing existing
-  const [form, setForm]                 = useState(emptyForm);
-  const [errors, setErrors]             = useState({});
+  const [showForm, setShowForm]               = useState(false);
+  const [editingId, setEditingId]             = useState(null);
+  const [form, setForm]                       = useState(emptyForm);
+  const [errors, setErrors]                   = useState({});
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   function updateForm(field, value) {
@@ -93,6 +100,8 @@ export default function Partidos() {
     setDeleteConfirmId(null);
   }
 
+  const stats = getResultStats(matches);
+
   return (
     <div className="page-content">
       <div className="page-header">
@@ -104,14 +113,31 @@ export default function Partidos() {
         )}
       </div>
 
+      {/* Stats resumen */}
+      {matches.length > 0 && !showForm && (
+        <div className="metrics-row">
+          <div className="metric-card">
+            <div className="metric-value" style={{ color: '#2E7D32' }}>{stats.wins}</div>
+            <div className="metric-label">Victorias</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-value">{stats.draws}</div>
+            <div className="metric-label">Empates</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-value" style={{ color: '#C62828' }}>{stats.losses}</div>
+            <div className="metric-label">Derrotas</div>
+          </div>
+        </div>
+      )}
+
       {/* Formulario */}
       {showForm && (
         <div className="card">
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#263238', marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, fontSize: 16, color: '#1A2332', marginBottom: 16, letterSpacing: '-0.02em' }}>
             {editingId ? 'Editar partido' : 'Nuevo partido'}
           </div>
 
-          {/* Fecha */}
           <div className="form-group">
             <label className="form-label">Fecha *</label>
             <input
@@ -124,7 +150,6 @@ export default function Partidos() {
             {errors.date && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.date}</div>}
           </div>
 
-          {/* Competencia */}
           <div className="form-group">
             <label className="form-label">Competencia</label>
             <select
@@ -136,7 +161,6 @@ export default function Partidos() {
             </select>
           </div>
 
-          {/* Resultado */}
           <div className="form-group">
             <label className="form-label">Resultado</label>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -145,10 +169,10 @@ export default function Partidos() {
                   key={r.value}
                   onClick={() => updateForm('result', r.value)}
                   style={{
-                    flex: 1, padding: '10px 6px', borderRadius: 10, border: 'none',
+                    flex: 1, padding: '11px 6px', borderRadius: 10, border: 'none',
                     cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 13,
-                    background: form.result === r.value ? r.bg : '#F1F5F4',
-                    color: form.result === r.value ? r.color : '#78909C',
+                    background: form.result === r.value ? r.bg : '#F8FAFC',
+                    color: form.result === r.value ? r.color : '#94A3B8',
                     outline: form.result === r.value ? `2px solid ${r.color}` : '2px solid transparent',
                     transition: 'all 0.15s',
                   }}
@@ -159,9 +183,8 @@ export default function Partidos() {
             </div>
           </div>
 
-          {/* Minutos */}
           <div className="form-group">
-            <label className="form-label">Minutos jugados <span style={{ color: '#B0BEC5' }}>(opcional)</span></label>
+            <label className="form-label">Minutos jugados <span style={{ color: '#94A3B8', fontWeight: 500 }}>(opcional)</span></label>
             <input
               type="number"
               className="input"
@@ -173,9 +196,8 @@ export default function Partidos() {
             />
           </div>
 
-          {/* Nota */}
           <div className="form-group">
-            <label className="form-label">Nota personal <span style={{ color: '#B0BEC5' }}>(opcional)</span></label>
+            <label className="form-label">Nota personal <span style={{ color: '#94A3B8', fontWeight: 500 }}>(opcional)</span></label>
             <textarea
               className="input"
               placeholder="¿Cómo te fue? ¿Algo destacado?"
@@ -198,83 +220,87 @@ export default function Partidos() {
       {/* Lista vacía */}
       {matches.length === 0 && !showForm && (
         <div className="empty-state">
-          <p>No hay partidos registrados todavía.</p>
-          <button className="btn btn-primary" onClick={openNew}>
-            Cargar primer partido
-          </button>
+          <div className="empty-state-icon">🏆</div>
+          <div className="empty-state-title">Sin partidos</div>
+          <p>Registrá tus partidos para llevar el historial de resultados</p>
+          <button className="btn btn-primary" onClick={openNew}>Cargar primer partido</button>
         </div>
       )}
 
       {/* Lista de partidos */}
-      {matches.map(match => {
+      {!showForm && matches.map(match => {
         const resultInfo = RESULTS.find(r => r.value === match.result) || RESULTS[0];
         return (
-          <div key={match.id} className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+          <div key={match.id} className="match-card">
+            <div className="match-card-header">
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#263238' }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#1A2332' }}>
                   {match.competition}
                 </div>
-                <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
-                  {getDayName(match.date)} · {formatDate(match.date).split(',')[1]?.trim() || match.date}
+                <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
+                  {getDayName(match.date)} · {formatDate(match.date)}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{
-                  fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 20,
-                  background: resultInfo.bg, color: resultInfo.color,
-                }}>
+                <span className={`match-result-badge ${resultInfo.badgeClass}`}>
                   {resultInfo.label}
                 </span>
                 <button
                   className="btn btn-ghost"
-                  style={{ padding: '5px 6px', color: '#78909C' }}
+                  style={{ padding: '5px 7px', color: '#94A3B8' }}
                   onClick={() => openEdit(match)}
-                  title="Editar"
                 >
-                  <EditIcon size={14} />
+                  <EditIcon size={13} />
                 </button>
                 <button
                   className="btn btn-ghost"
-                  style={{ padding: '5px 6px', color: '#EF5350' }}
+                  style={{ padding: '5px 7px', color: '#94A3B8' }}
                   onClick={() => setDeleteConfirmId(match.id)}
-                  title="Eliminar"
                 >
-                  <TrashIcon size={14} />
+                  <TrashIcon size={13} />
                 </button>
               </div>
             </div>
 
-            {match.minutes != null && (
-              <div style={{ fontSize: 12, color: '#78909C', marginBottom: match.notes ? 6 : 0 }}>
-                {match.minutes} min jugados
-              </div>
-            )}
-
-            {match.notes && (
-              <div style={{
-                fontSize: 13, color: '#374151', background: '#f9fafb',
-                borderRadius: 6, padding: '8px 10px',
-                borderLeft: '2px solid #e5e7eb', marginTop: 4,
-              }}>
-                {match.notes}
+            {(match.minutes != null || match.notes) && (
+              <div style={{ padding: '10px 14px 12px' }}>
+                {match.minutes != null && (
+                  <div style={{
+                    fontSize: 12, color: '#64748B', fontWeight: 600,
+                    marginBottom: match.notes ? 8 : 0,
+                  }}>
+                    ⏱ {match.minutes} minutos jugados
+                  </div>
+                )}
+                {match.notes && (
+                  <div style={{
+                    fontSize: 13, color: '#475569',
+                    background: '#F8FAFC',
+                    borderRadius: 8, padding: '9px 12px',
+                    borderLeft: '3px solid #E2E8F0',
+                    lineHeight: 1.5,
+                  }}>
+                    {match.notes}
+                  </div>
+                )}
               </div>
             )}
           </div>
         );
       })}
 
-      {/* Confirmación de eliminación */}
+      {/* Modal eliminación */}
       {deleteConfirmId && (() => {
         const match = matches.find(m => m.id === deleteConfirmId);
         if (!match) return null;
         return (
           <div className="modal-overlay" onClick={() => setDeleteConfirmId(null)}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
-              <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
+              <div className="modal-drag-handle" />
+              <div style={{ fontWeight: 800, fontSize: 17, color: '#1A2332', marginBottom: 10 }}>
                 Eliminar partido
               </div>
-              <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 14, color: '#64748B', marginBottom: 24, lineHeight: 1.5 }}>
                 ¿Eliminar el partido de {match.competition} del {formatDate(match.date)}? Esta acción no se puede deshacer.
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
@@ -283,7 +309,7 @@ export default function Partidos() {
                 </button>
                 <button
                   className="btn btn-primary"
-                  style={{ flex: 1, background: '#C62828', borderColor: '#C62828' }}
+                  style={{ flex: 1, background: '#C62828', boxShadow: '0 2px 8px rgba(198,40,40,0.3)' }}
                   onClick={() => handleDelete(deleteConfirmId)}
                 >
                   Eliminar
