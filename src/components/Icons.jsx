@@ -230,3 +230,12 @@ export function ChevronRight({ size = 14 }) {
     </svg>
   );
 }
+
+export function SearchIcon({ size = 15 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="6.5" cy="6.5" r="5" />
+      <line x1="10.5" y1="10.5" x2="14" y2="14" />
+    </svg>
+  );
+}
