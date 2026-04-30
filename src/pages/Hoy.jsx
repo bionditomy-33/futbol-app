@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useStore, getChallengeProgress } from '../store/useStore';
+import { useStore, getPlanProgress } from '../store/useStore';
 import { todayStr, toDateStr, formatDate, getWeekDays } from '../utils/dates';
 import { CheckCircleIcon, GymIcon, CheckIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
@@ -10,7 +10,7 @@ const DAY_LABELS_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const DAY_NAMES_FULL = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
 
 export default function Hoy({ onGoToDesafios }) {
-  const { routines, schedule, history, challenges } = useStore();
+  const { routines, schedule, history, plans } = useStore();
 
   const streak = useMemo(() => {
     let s = 0;
@@ -76,9 +76,9 @@ export default function Hoy({ onGoToDesafios }) {
     return null;
   }, [schedule, routines]);
 
-  const activeChallenges = useMemo(
-    () => challenges.filter(c => c.status !== 'completed' && TODAY >= c.startDate),
-    [challenges]
+  const activePlans = useMemo(
+    () => plans.filter(p => p.status !== 'completed' && TODAY >= p.startDate),
+    [plans]
   );
 
   const todayDayName = DAY_NAMES_FULL[new Date(TODAY + 'T12:00:00').getDay()];
@@ -169,34 +169,37 @@ export default function Hoy({ onGoToDesafios }) {
       {/* ── Editor del día ── */}
       <DayEditor dateStr={TODAY} />
 
-      {/* ── Desafios activos ── */}
-      {activeChallenges.length > 0 && (
+      {/* ── Planes activos ── */}
+      {activePlans.length > 0 && (
         <div
           className="card"
           style={{ cursor: onGoToDesafios ? 'pointer' : 'default' }}
           onClick={onGoToDesafios}
         >
-          <div className="section-label">Desafios activos</div>
-          {activeChallenges.map((c, i) => {
-            const prog = getChallengeProgress(c, history);
-            const isLast = i === activeChallenges.length - 1;
+          <div className="section-label">Planes activos</div>
+          {activePlans.map((p, i) => {
+            const prog = getPlanProgress(p, history);
+            const isLast = i === activePlans.length - 1;
             return (
-              <div key={c.id} style={{ marginBottom: isLast ? 0 : 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#1A2332' }}>{c.name}</span>
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99,
-                    background: prog.needsClosing ? '#D1FAE5' : prog.isOnTrack ? '#D1FAE5' : '#FEE2E2',
-                    color: prog.needsClosing ? '#065F46' : prog.isOnTrack ? '#059669' : '#991B1B',
-                  }}>
-                    {prog.needsClosing ? '¡Cerrar!' : prog.isOnTrack ? 'Vas bien' : 'Atrasado'}
-                  </span>
+              <div key={p.id} style={{ marginBottom: isLast ? 0 : 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#1A2332' }}>{p.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 10, color: '#94A3B8' }}>Sem {prog.currentWeekNum}/{prog.totalWeeks}</span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
+                      background: prog.needsClosing ? '#D1FAE5' : prog.isOnTrack ? '#D1FAE5' : '#FEE2E2',
+                      color: prog.needsClosing ? '#065F46' : prog.isOnTrack ? '#059669' : '#991B1B',
+                    }}>
+                      {prog.needsClosing ? '¡Cerrar!' : prog.isOnTrack ? 'En ritmo' : 'Atrasado'}
+                    </span>
+                  </div>
                 </div>
                 <div className="progress-bar">
                   <div className="progress-fill" style={{ width: `${prog.pct}%` }} />
                 </div>
                 <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
-                  {prog.completedSessions}/{c.targetSessions} sesiones · {prog.pct}%
+                  {prog.completedSessions}/{prog.effTotal} sesiones · {prog.pct}%
                 </div>
               </div>
             );

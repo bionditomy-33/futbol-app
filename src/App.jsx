@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useStore } from './store/useStore';
 import Hoy from './pages/Hoy';
-import Desafios from './pages/Desafios';
+import Planes from './pages/Planes';
 import Semana from './pages/Semana';
 import Calendario from './pages/Calendario';
 import Rutinas from './pages/Rutinas';
@@ -47,9 +47,9 @@ const MAS_ITEMS = [
     sub: 'Tu progreso y respaldo de datos',
   },
   {
-    id: 'desafios',
+    id: 'planes',
     icon: <StarIcon size={22} />,
-    title: 'Desafios',
+    title: 'Planes',
     sub: 'Objetivos y metas personales',
   },
 ];
@@ -58,7 +58,7 @@ export default function App() {
   const { isReady } = useStore();
   const [mainTab, setMainTab]               = useState('inicio');
   const [entrenoTab, setEntrenoTab]         = useState('semana');
-  const [masView, setMasView]               = useState(null); // null | 'lab' | 'catalogo' | 'historial'
+  const [masView, setMasView]               = useState(null); // null | 'lab' | 'catalogo' | 'historial' | 'planes'
   const [labRoutine, setLabRoutine]         = useState(null);
   const [labReturnToRutinas, setLabReturnToRutinas] = useState(false);
   const [pendingNav, setPendingNav]         = useState(null);
@@ -132,7 +132,7 @@ export default function App() {
               key={item.id}
               onClick={() => {
                 if (item.id === 'lab') goToLab(null, false);
-                else setMasView(item.id);
+                else setMasView(item.id); // 'catalogo' | 'historial' | 'planes'
               }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 14,
@@ -167,7 +167,7 @@ export default function App() {
 
       {/* Pages */}
       {mainTab === 'inicio' && (
-        <Hoy onGoToDesafios={() => { setMainTab('mas'); setMasView('desafios'); }} />
+        <Hoy onGoToDesafios={() => { setMainTab('mas'); setMasView('planes'); }} />
       )}
 
       {mainTab === 'entreno' && (
@@ -206,7 +206,7 @@ export default function App() {
       )}
       {mainTab === 'mas' && masView === 'catalogo'  && <Catalogo onBack={() => setMasView(null)} />}
       {mainTab === 'mas' && masView === 'historial'  && <Historial onBack={() => setMasView(null)} />}
-      {mainTab === 'mas' && masView === 'desafios'   && <Desafios  onBack={() => setMasView(null)} />}
+      {mainTab === 'mas' && masView === 'planes'      && <Planes    onBack={() => setMasView(null)} />}
 
       {/* Bottom navigation */}
       <nav className="bottom-nav">

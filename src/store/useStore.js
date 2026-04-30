@@ -1,75 +1,197 @@
 import { useState, useEffect, useCallback } from 'react';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { INITIAL_CATALOG, INITIAL_ROUTINES } from '../data/initialData';
 import { todayStr } from '../utils/dates';
 
-// ─── Challenge progress (pure computation, exported for use in pages) ─────────
+// ─── Date helpers (store-local) ───────────────────────────────────────────────
 
-export function getChallengeProgress(challenge, history) {
-  const { routineIds = [], startDate, endDate, targetSessions, activityType = 'individual', weeklyFrequency } = challenge;
-  const today = todayStr();
-  const MS_DAY = 86400000;
+function storeDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
-  const startMs       = new Date(startDate + 'T12:00:00').getTime();
-  const endMs         = new Date(endDate   + 'T12:00:00').getTime();
-  const nowMs         = new Date(today     + 'T12:00:00').getTime();
-  const isPending     = today < startDate;
+function addDaysStore(dateStr, days) {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  return storeDateStr(d);
+}
+
+function getWeekStart(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const day = date.getDay(); // 0 = Sun
+  const diff = day === 0 ? -6 : 1 - day; // Monday
+  date.setDate(date.getDate() + diff);
+  return storeDateStr(date);
+}
+
+// ─── Plan progress (pure computation, exported for use in pages) ──────────────
+
+export function getPlanProgress(plan, history) {
+  const {
+    routineIds = [], startDate, endDate, targetSessions,
+    activityType = 'individual',
+    gymWeeklyFrequency, individualWeeklyFrequency,
+    targetGymSessions, targetIndividualSessions,
+  } = plan;
+
+  const today    = todayStr();
+  const MS_DAY   = 86400000;
+  const startMs  = new Date(startDate + 'T12:00:00').getTime();
+  const endMs    = new Date(endDate   + 'T12:00:00').getTime();
+  const nowMs    = new Date(today     + 'T12:00:00').getTime();
+
+  // Total weeks of plan
+  const totalDays  = Math.max(1, Math.round((endMs - startMs) / MS_DAY));
+  const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
+
+  const isPending      = today < startDate;
   const daysUntilStart = isPending ? Math.round((startMs - nowMs) / MS_DAY) : 0;
 
   if (isPending) {
     return {
-      completedSessions: 0, pct: 0, isComplete: false, isExpired: false,
-      needsClosing: false, remainingDays: 0, isOnTrack: true, neededPerWeek: 0,
+      completedSessions: 0, gymSessions: 0, individualSessions: 0,
+      pct: 0, gymPct: null, individualPct: null,
+      isComplete: false, isExpired: false, needsClosing: false,
+      remainingDays: 0, isOnTrack: true, neededPerWeek: 0,
+      neededGymPerWeek: 0, neededIndividualPerWeek: 0,
+      gymOnTrack: true, individualOnTrack: true,
       isPending: true, daysUntilStart,
+      currentWeekNum: 0, totalWeeks,
     };
   }
 
-  let completedSessions = 0;
+  let gymSessions = 0;
+  let individualSessions = 0;
   for (const [dateStr, day] of Object.entries(history)) {
     if (dateStr < startDate || dateStr > endDate) continue;
+    if ((activityType === 'gym' || activityType === 'both') && day.gym) gymSessions++;
     if ((activityType === 'individual' || activityType === 'both') && day.done
-        && (routineIds.length === 0 || routineIds.includes(day.routineId))) {
-      completedSessions++;
-    }
-    if ((activityType === 'gym' || activityType === 'both') && day.gym) {
-      completedSessions++;
-    }
+        && (routineIds.length === 0 || routineIds.includes(day.routineId))) individualSessions++;
   }
 
-  const pct          = Math.min(100, Math.round((completedSessions / Math.max(1, targetSessions)) * 100));
-  const isComplete   = completedSessions >= targetSessions;
-  const isExpired    = today > endDate;
-  const needsClosing = (isComplete || isExpired) && challenge.status !== 'completed';
+  const completedSessions = gymSessions + individualSessions;
 
-  const totalDays     = Math.max(1, Math.round((endMs - startMs) / MS_DAY));
+  // Effective targets
+  const effGymTarget = targetGymSessions ?? (activityType === 'gym' ? targetSessions : null);
+  const effIndTarget = targetIndividualSessions ?? (activityType === 'individual' ? targetSessions : null);
+  const effTotal     = targetSessions || ((effGymTarget || 0) + (effIndTarget || 0));
+
+  const pct           = Math.min(100, Math.round((completedSessions / Math.max(1, effTotal)) * 100));
+  const gymPct        = effGymTarget != null ? Math.min(100, Math.round((gymSessions / Math.max(1, effGymTarget)) * 100)) : null;
+  const individualPct = effIndTarget != null ? Math.min(100, Math.round((individualSessions / Math.max(1, effIndTarget)) * 100)) : null;
+
+  const isComplete   = completedSessions >= effTotal;
+  const isExpired    = today > endDate;
+  const needsClosing = (isComplete || isExpired) && plan.status !== 'completed';
+
   const elapsedDays   = Math.max(0, Math.round((Math.min(nowMs, endMs) - startMs) / MS_DAY));
   const remainingDays = Math.max(0, Math.round((endMs - nowMs) / MS_DAY));
-
-  const expectedNow = weeklyFrequency
-    ? (elapsedDays / 7) * weeklyFrequency
-    : (elapsedDays / totalDays) * targetSessions;
-  const isOnTrack      = completedSessions >= expectedNow;
+  const elapsedWeeks  = elapsedDays / 7;
   const weeksRemaining = remainingDays / 7;
-  const sessionsLeft   = Math.max(0, targetSessions - completedSessions);
-  const neededPerWeek  = weeksRemaining > 0.5
-    ? Math.round((sessionsLeft / weeksRemaining) * 10) / 10
-    : sessionsLeft;
 
-  return { completedSessions, pct, isComplete, isExpired, needsClosing, remainingDays, isOnTrack, neededPerWeek, isPending: false, daysUntilStart: 0 };
+  // On-track per type
+  const gymOnTrack = gymWeeklyFrequency
+    ? gymSessions >= elapsedWeeks * gymWeeklyFrequency - 0.5
+    : true;
+  const individualOnTrack = individualWeeklyFrequency
+    ? individualSessions >= elapsedWeeks * individualWeeklyFrequency - 0.5
+    : true;
+  const isOnTrack = gymOnTrack && individualOnTrack;
+
+  // Sessions still needed
+  const gymLeft = Math.max(0, (effGymTarget || 0) - gymSessions);
+  const indLeft = Math.max(0, (effIndTarget || 0) - individualSessions);
+  const totalLeft = Math.max(0, effTotal - completedSessions);
+
+  const neededGymPerWeek = weeksRemaining > 0.5 && effGymTarget
+    ? Math.round((gymLeft / weeksRemaining) * 10) / 10 : gymLeft;
+  const neededIndividualPerWeek = weeksRemaining > 0.5 && effIndTarget
+    ? Math.round((indLeft / weeksRemaining) * 10) / 10 : indLeft;
+  const neededPerWeek = weeksRemaining > 0.5
+    ? Math.round((totalLeft / weeksRemaining) * 10) / 10 : totalLeft;
+
+  // Current week number within the plan
+  const planWeekStart    = getWeekStart(startDate);
+  const todayClamped     = today > endDate ? endDate : today;
+  const currentWeekStart = getWeekStart(todayClamped);
+  const weeksSinceStart  = Math.max(0, Math.round(
+    (new Date(currentWeekStart + 'T12:00:00').getTime() - new Date(planWeekStart + 'T12:00:00').getTime()) / (7 * MS_DAY)
+  ));
+  const currentWeekNum = Math.min(totalWeeks, weeksSinceStart + 1);
+
+  return {
+    completedSessions, gymSessions, individualSessions,
+    pct, gymPct, individualPct,
+    isComplete, isExpired, needsClosing,
+    remainingDays, isOnTrack, neededPerWeek,
+    neededGymPerWeek, neededIndividualPerWeek,
+    gymOnTrack, individualOnTrack,
+    isPending: false, daysUntilStart: 0,
+    currentWeekNum, totalWeeks,
+    effTotal, effGymTarget, effIndTarget,
+  };
 }
 
-// Migrate old phase names to current names (covers all previous versions in one pass)
+// ─── Plan weekly breakdown ────────────────────────────────────────────────────
+
+export function getPlanWeeks(plan, history) {
+  const {
+    startDate, endDate, activityType = 'individual', routineIds = [],
+    gymWeeklyFrequency = 0, individualWeeklyFrequency = 0,
+  } = plan;
+  const today = todayStr();
+  const weeks = [];
+  let weekStart = getWeekStart(startDate);
+
+  while (weekStart <= endDate) {
+    const weekEnd = addDaysStore(weekStart, 6);
+    let gym = 0, individual = 0;
+
+    for (const [dateStr, day] of Object.entries(history)) {
+      if (dateStr < startDate || dateStr > endDate) continue;
+      if (dateStr < weekStart || dateStr > weekEnd) continue;
+      if ((activityType === 'gym' || activityType === 'both') && day.gym) gym++;
+      if ((activityType === 'individual' || activityType === 'both') && day.done
+          && (routineIds.length === 0 || routineIds.includes(day.routineId))) individual++;
+    }
+
+    const effectiveEnd   = weekEnd < endDate ? weekEnd : endDate;
+    const isPast         = effectiveEnd < today;
+    const isCurrent      = weekStart <= today && today <= effectiveEnd;
+    const isFuture       = weekStart > today;
+    const gymTarget      = gymWeeklyFrequency || 0;
+    const individualTarget = individualWeeklyFrequency || 0;
+    const gymMet         = gymTarget === 0 || gym >= gymTarget;
+    const individualMet  = individualTarget === 0 || individual >= individualTarget;
+
+    weeks.push({
+      num: weeks.length + 1,
+      startDate: weekStart,
+      endDate: effectiveEnd,
+      gym, individual,
+      gymTarget, individualTarget,
+      gymMet, individualMet,
+      isCompliant: gymMet && individualMet,
+      isPast, isCurrent, isFuture,
+    });
+
+    weekStart = addDaysStore(weekStart, 7);
+  }
+  return weeks;
+}
+
+// Migrate old phase names to current names
 const PHASE_MIGRATION = {
-  // v1 names
   'Movilidad':             'Activacion - Bloque Agilidad',
   'Calentamiento':         'Bloque Entrenamiento Principal',
   'Entrenamiento':         'Vuelta a la calma',
-  // v2 names
   'Calentamiento corporal':  'Activacion - Bloque Agilidad',
   'Calentamiento con balon': 'Bloque Entrenamiento Principal',
   'Sesion principal':        'Calentamiento con pelota',
-  // v3 names
   'Vuelta a la calma':       'Calentamiento con pelota',
 };
 
@@ -86,9 +208,7 @@ function migrateRoutines(routines) {
 function buildExerciseMap(catalog) {
   const map = {};
   for (const [, exercises] of Object.entries(catalog)) {
-    for (const ex of exercises) {
-      map[ex.id] = ex;
-    }
+    for (const ex of exercises) map[ex.id] = ex;
   }
   return map;
 }
@@ -98,13 +218,13 @@ function buildExerciseMap(catalog) {
 let listeners = [];
 
 let state = {
-  catalog:    INITIAL_CATALOG,
-  routines:   INITIAL_ROUTINES,
-  schedule:   {},
-  history:    {},
-  matches:    [],
-  challenges: [],
-  isReady:    false,
+  catalog:  INITIAL_CATALOG,
+  routines: INITIAL_ROUTINES,
+  schedule: {},
+  history:  {},
+  matches:  [],
+  plans:    [],
+  isReady:  false,
 };
 
 export function getState() { return state; }
@@ -122,20 +242,17 @@ function writeDoc(docName, data) {
   });
 }
 
-// Track which docs have had their first snapshot (Set prevents double-counting)
 const docLoadedSet = new Set();
 const TOTAL_DOCS = 6;
 
 function onDocFirstLoad(docName) {
   if (!docLoadedSet.has(docName)) {
     docLoadedSet.add(docName);
-    if (docLoadedSet.size >= TOTAL_DOCS) {
-      setState({ isReady: true });
-    }
+    if (docLoadedSet.size >= TOTAL_DOCS) setState({ isReady: true });
   }
 }
 
-// ─── Firestore initialization (runs once at module load) ──────────────────────
+// ─── Firestore initialization ─────────────────────────────────────────────────
 
 let initialized = false;
 
@@ -143,22 +260,37 @@ function initFirestore() {
   if (initialized) return;
   initialized = true;
 
-  const DOCS = ['catalog', 'routines', 'schedule', 'history', 'matches', 'challenges'];
+  // 'challenges' replaced by 'plans'; migration runs on first snapshot
+  const DOCS = ['catalog', 'routines', 'schedule', 'history', 'matches', 'plans'];
 
   DOCS.forEach(docName => {
     const ref = doc(db, 'app', docName);
 
-    onSnapshot(ref, (snap) => {
+    onSnapshot(ref, async (snap) => {
       if (!snap.exists()) {
-        // Primera vez: crear el documento con los datos iniciales
+        if (docName === 'plans') {
+          // Migrate from legacy 'challenges' doc if it exists
+          try {
+            const legacySnap = await getDoc(doc(db, 'app', 'challenges'));
+            const data = legacySnap.exists() ? (legacySnap.data().data || []) : [];
+            await setDoc(doc(db, 'app', 'plans'), { data });
+            if (legacySnap.exists()) deleteDoc(doc(db, 'app', 'challenges'));
+            // onSnapshot fires again once the write lands; don't mark ready yet
+          } catch (err) {
+            console.error('[store] Plans migration failed:', err);
+            setState({ plans: [] });
+            onDocFirstLoad('plans');
+          }
+          return;
+        }
+
         let initialData;
-        if (docName === 'catalog')   initialData = INITIAL_CATALOG;
-        else if (docName === 'routines')   initialData = INITIAL_ROUTINES;
-        else if (docName === 'matches' || docName === 'challenges') initialData = [];
+        if (docName === 'catalog')  initialData = INITIAL_CATALOG;
+        else if (docName === 'routines') initialData = INITIAL_ROUTINES;
+        else if (docName === 'matches')  initialData = [];
         else initialData = {};
 
         writeDoc(docName, initialData);
-        // El estado en memoria ya tiene los valores iniciales; solo marcar como listo
         onDocFirstLoad(docName);
       } else {
         let data = snap.data().data;
@@ -168,7 +300,7 @@ function initFirestore() {
       }
     }, (err) => {
       console.error(`[store] onSnapshot error for ${docName}:`, err);
-      onDocFirstLoad(docName); // No bloquear la app si un doc falla
+      onDocFirstLoad(docName);
     });
   });
 }
@@ -307,7 +439,7 @@ export function useStore() {
   const deleteExercise = useCallback((id) => {
     const next = {};
     for (const [cat, exercises] of Object.entries(state.catalog)) {
-      next[cat] = exercises.filter(ex => ex.id !== id); // keep category even if empty
+      next[cat] = exercises.filter(ex => ex.id !== id);
     }
     setState({ catalog: next });
     writeDoc('catalog', next);
@@ -339,41 +471,42 @@ export function useStore() {
     writeDoc('matches', newMatches);
   }, []);
 
-  // ── Challenges ────────────────────────────────────────────────────────────
-  const createChallenge = useCallback((data) => {
-    const challenge = {
-      id: `c-${Date.now()}`,
+  // ── Plans ─────────────────────────────────────────────────────────────────
+  const createPlan = useCallback((data) => {
+    const plan = {
+      id: `p-${Date.now()}`,
       ...data,
       status: 'active',
       completedAt: null,
       finalRating: null,
+      closingNotes: null,
     };
-    const next = [...state.challenges, challenge];
-    setState({ challenges: next });
-    writeDoc('challenges', next);
+    const next = [...state.plans, plan];
+    setState({ plans: next });
+    writeDoc('plans', next);
   }, []);
 
-  const completeChallenge = useCallback((id, finalRating) => {
-    const next = state.challenges.map(c =>
-      c.id === id ? { ...c, status: 'completed', finalRating, completedAt: todayStr() } : c
+  const completePlan = useCallback((id, finalRating, closingNotes = null) => {
+    const next = state.plans.map(p =>
+      p.id === id ? { ...p, status: 'completed', finalRating, closingNotes, completedAt: todayStr() } : p
     );
-    setState({ challenges: next });
-    writeDoc('challenges', next);
+    setState({ plans: next });
+    writeDoc('plans', next);
   }, []);
 
-  const abandonChallenge = useCallback((id) => {
-    const next = state.challenges.filter(c => c.id !== id);
-    setState({ challenges: next });
-    writeDoc('challenges', next);
+  const deletePlan = useCallback((id) => {
+    const next = state.plans.filter(p => p.id !== id);
+    setState({ plans: next });
+    writeDoc('plans', next);
   }, []);
 
-  const updateChallenge = useCallback((id, data) => {
-    const next = state.challenges.map(c => c.id === id ? { ...c, ...data } : c);
-    setState({ challenges: next });
-    writeDoc('challenges', next);
+  const updatePlan = useCallback((id, data) => {
+    const next = state.plans.map(p => p.id === id ? { ...p, ...data } : p);
+    setState({ plans: next });
+    writeDoc('plans', next);
   }, []);
 
-  // ── Import (reemplaza todos los datos) ────────────────────────────────────
+  // ── Import ────────────────────────────────────────────────────────────────
   const importData = useCallback(async ({ catalog: cat, routines: rts, schedule: sch, history: hist }) => {
     const migratedRts = migrateRoutines(rts);
     setState({ catalog: cat, routines: migratedRts, schedule: sch, history: hist });
@@ -385,7 +518,7 @@ export function useStore() {
     ]);
   }, []);
 
-  const { challenges } = state;
+  const { plans } = state;
 
   return {
     catalog,
@@ -393,7 +526,7 @@ export function useStore() {
     schedule,
     history,
     matches,
-    challenges,
+    plans,
     isReady,
     exerciseMap,
     assignRoutine,
@@ -414,10 +547,10 @@ export function useStore() {
     deleteCategory,
     isExerciseUsed,
     setMatches,
-    createChallenge,
-    completeChallenge,
-    abandonChallenge,
-    updateChallenge,
+    createPlan,
+    completePlan,
+    deletePlan,
+    updatePlan,
     importData,
   };
 }
