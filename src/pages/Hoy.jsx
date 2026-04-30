@@ -77,7 +77,7 @@ export default function Hoy({ onGoToDesafios }) {
   }, [schedule, routines]);
 
   const activeChallenges = useMemo(
-    () => challenges.filter(c => c.status === 'active'),
+    () => challenges.filter(c => c.status !== 'completed' && TODAY >= c.startDate),
     [challenges]
   );
 

@@ -7,30 +7,48 @@ import { todayStr } from '../utils/dates';
 // ─── Challenge progress (pure computation, exported for use in pages) ─────────
 
 export function getChallengeProgress(challenge, history) {
-  const { routineIds, startDate, endDate, targetSessions } = challenge;
+  const { routineIds = [], startDate, endDate, targetSessions, activityType = 'individual', weeklyFrequency } = challenge;
   const today = todayStr();
   const MS_DAY = 86400000;
 
+  const startMs       = new Date(startDate + 'T12:00:00').getTime();
+  const endMs         = new Date(endDate   + 'T12:00:00').getTime();
+  const nowMs         = new Date(today     + 'T12:00:00').getTime();
+  const isPending     = today < startDate;
+  const daysUntilStart = isPending ? Math.round((startMs - nowMs) / MS_DAY) : 0;
+
+  if (isPending) {
+    return {
+      completedSessions: 0, pct: 0, isComplete: false, isExpired: false,
+      needsClosing: false, remainingDays: 0, isOnTrack: true, neededPerWeek: 0,
+      isPending: true, daysUntilStart,
+    };
+  }
+
   let completedSessions = 0;
   for (const [dateStr, day] of Object.entries(history)) {
-    if (!day.done) continue;
     if (dateStr < startDate || dateStr > endDate) continue;
-    if (routineIds.length === 0 || routineIds.includes(day.routineId)) completedSessions++;
+    if ((activityType === 'individual' || activityType === 'both') && day.done
+        && (routineIds.length === 0 || routineIds.includes(day.routineId))) {
+      completedSessions++;
+    }
+    if ((activityType === 'gym' || activityType === 'both') && day.gym) {
+      completedSessions++;
+    }
   }
 
   const pct          = Math.min(100, Math.round((completedSessions / Math.max(1, targetSessions)) * 100));
   const isComplete   = completedSessions >= targetSessions;
   const isExpired    = today > endDate;
-  const needsClosing = (isComplete || isExpired) && challenge.status === 'active';
+  const needsClosing = (isComplete || isExpired) && challenge.status !== 'completed';
 
-  const startMs       = new Date(startDate + 'T12:00:00').getTime();
-  const endMs         = new Date(endDate   + 'T12:00:00').getTime();
-  const nowMs         = new Date(today     + 'T12:00:00').getTime();
   const totalDays     = Math.max(1, Math.round((endMs - startMs) / MS_DAY));
   const elapsedDays   = Math.max(0, Math.round((Math.min(nowMs, endMs) - startMs) / MS_DAY));
   const remainingDays = Math.max(0, Math.round((endMs - nowMs) / MS_DAY));
 
-  const expectedNow    = (elapsedDays / totalDays) * targetSessions;
+  const expectedNow = weeklyFrequency
+    ? (elapsedDays / 7) * weeklyFrequency
+    : (elapsedDays / totalDays) * targetSessions;
   const isOnTrack      = completedSessions >= expectedNow;
   const weeksRemaining = remainingDays / 7;
   const sessionsLeft   = Math.max(0, targetSessions - completedSessions);
@@ -38,7 +56,7 @@ export function getChallengeProgress(challenge, history) {
     ? Math.round((sessionsLeft / weeksRemaining) * 10) / 10
     : sessionsLeft;
 
-  return { completedSessions, pct, isComplete, isExpired, needsClosing, remainingDays, isOnTrack, neededPerWeek };
+  return { completedSessions, pct, isComplete, isExpired, needsClosing, remainingDays, isOnTrack, neededPerWeek, isPending: false, daysUntilStart: 0 };
 }
 
 // Migrate old phase names to current names (covers all previous versions in one pass)
@@ -349,6 +367,12 @@ export function useStore() {
     writeDoc('challenges', next);
   }, []);
 
+  const updateChallenge = useCallback((id, data) => {
+    const next = state.challenges.map(c => c.id === id ? { ...c, ...data } : c);
+    setState({ challenges: next });
+    writeDoc('challenges', next);
+  }, []);
+
   // ── Import (reemplaza todos los datos) ────────────────────────────────────
   const importData = useCallback(async ({ catalog: cat, routines: rts, schedule: sch, history: hist }) => {
     const migratedRts = migrateRoutines(rts);
@@ -393,6 +417,7 @@ export function useStore() {
     createChallenge,
     completeChallenge,
     abandonChallenge,
+    updateChallenge,
     importData,
   };
 }

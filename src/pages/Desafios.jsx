@@ -9,8 +9,25 @@ function addDays(dateStr, days) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function daysUntil(dateStr) {
+  const nowMs = new Date(todayStr() + 'T12:00:00').getTime();
+  const targetMs = new Date(dateStr + 'T12:00:00').getTime();
+  return Math.round((targetMs - nowMs) / 86400000);
+}
+
 function emptyForm() {
-  return { name: '', description: '', routineIds: [], targetSessions: '', weeksDeadline: '', initialRating: 5 };
+  return {
+    name: '',
+    description: '',
+    startDate: todayStr(),
+    routineIds: [],
+    targetSessions: '',
+    weeksDeadline: '',
+    weeklyFrequency: '',
+    activityType: 'individual',
+    initialRating: 5,
+    targetSessionsManual: false,
+  };
 }
 
 function RatingPicker({ value, onChange, label }) {
@@ -38,9 +55,16 @@ function RatingPicker({ value, onChange, label }) {
   );
 }
 
+const ACTIVITY_OPTIONS = [
+  { value: 'individual', label: 'Individual' },
+  { value: 'gym', label: 'Gimnasio' },
+  { value: 'both', label: 'Ambos' },
+];
+
 export default function Desafios({ onBack }) {
-  const { routines, history, challenges, createChallenge, completeChallenge, abandonChallenge } = useStore();
+  const { routines, history, challenges, createChallenge, completeChallenge, abandonChallenge, updateChallenge } = useStore();
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
   const [closingId, setClosingId] = useState(null);
@@ -50,8 +74,21 @@ export default function Desafios({ onBack }) {
   const today = todayStr();
 
   function updateForm(field, value) {
-    setForm(f => ({ ...f, [field]: value }));
+    setForm(f => {
+      const next = { ...f, [field]: value };
+      if ((field === 'weeklyFrequency' || field === 'weeksDeadline') && !f.targetSessionsManual) {
+        const freq = field === 'weeklyFrequency' ? parseInt(value) : parseInt(f.weeklyFrequency);
+        const weeks = field === 'weeksDeadline' ? parseInt(value) : parseInt(f.weeksDeadline);
+        if (freq > 0 && weeks > 0) next.targetSessions = String(freq * weeks);
+      }
+      return next;
+    });
     if (errors[field]) setErrors(e => ({ ...e, [field]: null }));
+  }
+
+  function updateTargetSessions(value) {
+    setForm(f => ({ ...f, targetSessions: value, targetSessionsManual: value !== '' }));
+    if (errors.targetSessions) setErrors(e => ({ ...e, targetSessions: null }));
   }
 
   function toggleRoutine(id) {
@@ -63,28 +100,68 @@ export default function Desafios({ onBack }) {
     }));
   }
 
-  function handleCreate() {
-    const errs = {};
-    if (!form.name.trim()) errs.name = 'El nombre es obligatorio';
-    if (!form.targetSessions || parseInt(form.targetSessions) < 1) errs.targetSessions = 'Ingresá una meta válida';
-    if (!form.weeksDeadline || parseInt(form.weeksDeadline) < 1) errs.weeksDeadline = 'Ingresá un plazo válido';
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+  function closeForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(emptyForm());
+    setErrors({});
+  }
 
-    const startDate = today;
-    const endDate = addDays(today, parseInt(form.weeksDeadline) * 7);
-    createChallenge({
+  function buildChallengeData() {
+    const startDate = form.startDate || today;
+    const endDate = addDays(startDate, parseInt(form.weeksDeadline) * 7);
+    return {
       name: form.name.trim(),
       description: form.description.trim() || null,
-      routineIds: form.routineIds,
+      routineIds: form.activityType === 'gym' ? [] : form.routineIds,
       targetSessions: parseInt(form.targetSessions),
       weeksDeadline: parseInt(form.weeksDeadline),
       startDate,
       endDate,
       initialRating: form.initialRating,
+      activityType: form.activityType,
+      weeklyFrequency: form.weeklyFrequency ? parseInt(form.weeklyFrequency) : null,
+    };
+  }
+
+  function validate() {
+    const errs = {};
+    if (!form.name.trim()) errs.name = 'El nombre es obligatorio';
+    if (!form.targetSessions || parseInt(form.targetSessions) < 1) errs.targetSessions = 'Ingresá una meta válida';
+    if (!form.weeksDeadline || parseInt(form.weeksDeadline) < 1) errs.weeksDeadline = 'Ingresá un plazo válido';
+    return errs;
+  }
+
+  function handleCreate() {
+    const errs = validate();
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    createChallenge(buildChallengeData());
+    closeForm();
+  }
+
+  function handleSaveEdit() {
+    const errs = validate();
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    updateChallenge(editingId, buildChallengeData());
+    closeForm();
+  }
+
+  function startEditing(challenge) {
+    setForm({
+      name: challenge.name,
+      description: challenge.description || '',
+      startDate: challenge.startDate,
+      routineIds: challenge.routineIds || [],
+      targetSessions: String(challenge.targetSessions),
+      weeksDeadline: String(challenge.weeksDeadline),
+      weeklyFrequency: challenge.weeklyFrequency ? String(challenge.weeklyFrequency) : '',
+      activityType: challenge.activityType || 'individual',
+      initialRating: challenge.initialRating,
+      targetSessionsManual: true,
     });
-    setForm(emptyForm());
+    setEditingId(challenge.id);
+    setShowForm(true);
     setErrors({});
-    setShowForm(false);
   }
 
   function handleClose(id) {
@@ -93,18 +170,35 @@ export default function Desafios({ onBack }) {
     setFinalRating(7);
   }
 
-  const active = challenges.filter(c => c.status === 'active');
-  const completed = challenges.filter(c => c.status === 'completed');
+  const pending = useMemo(
+    () => challenges.filter(c => c.status !== 'completed' && today < c.startDate),
+    [challenges, today]
+  );
+  const active = useMemo(
+    () => challenges.filter(c => c.status !== 'completed' && today >= c.startDate),
+    [challenges, today]
+  );
+  const completed = useMemo(
+    () => challenges.filter(c => c.status === 'completed'),
+    [challenges]
+  );
 
   const needsClosingIds = useMemo(
     () => active.filter(c => getChallengeProgress(c, history).needsClosing).map(c => c.id),
     [active, history]
   );
 
-  function routineLabel(routineIds) {
-    if (!routineIds || routineIds.length === 0) return 'Todas las rutinas';
-    return routineIds.map(id => routines.find(r => r.id === id)?.name).filter(Boolean).join(', ') || 'Rutinas eliminadas';
+  function activityLabel(challenge) {
+    const type = challenge.activityType || 'individual';
+    if (type === 'gym') return 'Gimnasio';
+    if (type === 'both') return 'Individual + Gimnasio';
+    if (!challenge.routineIds || challenge.routineIds.length === 0) return 'Todas las rutinas';
+    return challenge.routineIds.map(id => routines.find(r => r.id === id)?.name).filter(Boolean).join(', ') || 'Rutinas eliminadas';
   }
+
+  const endDatePreview = form.startDate && form.weeksDeadline && parseInt(form.weeksDeadline) > 0
+    ? addDays(form.startDate, parseInt(form.weeksDeadline) * 7)
+    : null;
 
   return (
     <div className="page-content">
@@ -122,11 +216,14 @@ export default function Desafios({ onBack }) {
         )}
       </div>
 
-      {/* ── Formulario de creación ── */}
+      {/* ── Formulario de creación / edición ── */}
       {showForm && (
         <div className="card">
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#263238', marginBottom: 16 }}>Nuevo desafio</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#263238', marginBottom: 16 }}>
+            {editingId ? 'Editar desafio' : 'Nuevo desafio'}
+          </div>
 
+          {/* 1. Nombre */}
           <div className="form-group">
             <label className="form-label">Nombre *</label>
             <input
@@ -139,6 +236,7 @@ export default function Desafios({ onBack }) {
             {errors.name && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.name}</div>}
           </div>
 
+          {/* 2. Descripcion */}
           <div className="form-group">
             <label className="form-label">Descripcion <span style={{ color: '#B0BEC5' }}>(opcional)</span></label>
             <textarea
@@ -149,78 +247,143 @@ export default function Desafios({ onBack }) {
             />
           </div>
 
+          {/* 3. Fecha de inicio */}
           <div className="form-group">
-            <label className="form-label">
-              Rutinas que cuentan{' '}
-              <span style={{ color: '#B0BEC5' }}>(todas si no elegis ninguna)</span>
-            </label>
-            {routines.length === 0 ? (
-              <div style={{ fontSize: 13, color: '#B0BEC5' }}>No hay rutinas creadas.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {routines.map(r => {
-                  const checked = form.routineIds.includes(r.id);
-                  return (
-                    <div
-                      key={r.id}
-                      onClick={() => toggleRoutine(r.id)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
-                        background: checked ? '#E8EDF5' : '#F8FAFC',
-                        border: `1.5px solid ${checked ? '#1D3461' : 'transparent'}`,
-                        transition: 'all 0.1s',
-                      }}
-                    >
-                      <div className={`checkbox-custom${checked ? ' checked' : ''}`} style={{ flexShrink: 0 }}>
-                        {checked && <CheckIcon size={11} />}
-                      </div>
-                      <span style={{ fontSize: 14, fontWeight: checked ? 600 : 400, color: '#263238' }}>
-                        {r.name}
-                      </span>
-                    </div>
-                  );
-                })}
+            <label className="form-label">Fecha de inicio</label>
+            <input
+              className="input"
+              type="date"
+              value={form.startDate}
+              onChange={e => updateForm('startDate', e.target.value)}
+            />
+            {form.startDate > today && (
+              <div style={{ fontSize: 12, color: '#78909C', marginTop: 4 }}>
+                El desafio comenzará en {daysUntil(form.startDate)} día{daysUntil(form.startDate) !== 1 ? 's' : ''}
               </div>
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-              <label className="form-label">Meta (sesiones) *</label>
-              <input
-                className="input"
-                type="number"
-                min="1"
-                placeholder="ej: 12"
-                value={form.targetSessions}
-                onChange={e => updateForm('targetSessions', e.target.value)}
-                style={errors.targetSessions ? { borderColor: '#EF5350' } : {}}
-              />
-              {errors.targetSessions && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.targetSessions}</div>}
-            </div>
-            <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-              <label className="form-label">Plazo (semanas) *</label>
-              <input
-                className="input"
-                type="number"
-                min="1"
-                placeholder="ej: 6"
-                value={form.weeksDeadline}
-                onChange={e => updateForm('weeksDeadline', e.target.value)}
-                style={errors.weeksDeadline ? { borderColor: '#EF5350' } : {}}
-              />
-              {errors.weeksDeadline && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.weeksDeadline}</div>}
+          {/* 4. Duracion */}
+          <div className="form-group">
+            <label className="form-label">Duracion (semanas) *</label>
+            <input
+              className="input"
+              type="number"
+              min="1"
+              placeholder="ej: 6"
+              value={form.weeksDeadline}
+              onChange={e => updateForm('weeksDeadline', e.target.value)}
+              style={errors.weeksDeadline ? { borderColor: '#EF5350' } : {}}
+            />
+            {errors.weeksDeadline && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.weeksDeadline}</div>}
+            {endDatePreview && (
+              <div style={{ fontSize: 12, color: '#78909C', marginTop: 4 }}>
+                Fecha límite: {formatDate(endDatePreview)}
+              </div>
+            )}
+          </div>
+
+          {/* 5. Tipo de actividad */}
+          <div className="form-group">
+            <label className="form-label">¿Qué actividades cuentan?</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {ACTIVITY_OPTIONS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => updateForm('activityType', value)}
+                  style={{
+                    flex: 1, padding: '9px 4px', borderRadius: 8, fontFamily: 'inherit',
+                    border: `1.5px solid ${form.activityType === value ? '#1D3461' : 'transparent'}`,
+                    background: form.activityType === value ? '#E8EDF5' : '#F8FAFC',
+                    fontWeight: form.activityType === value ? 700 : 400,
+                    color: form.activityType === value ? '#1D3461' : '#78909C',
+                    cursor: 'pointer', fontSize: 12,
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {form.weeksDeadline && parseInt(form.weeksDeadline) > 0 && (
-            <div style={{ fontSize: 12, color: '#78909C', marginTop: 6, marginBottom: 4 }}>
-              Fecha límite: {formatDate(addDays(today, parseInt(form.weeksDeadline) * 7))}
+          {/* 6. Rutinas (si aplica) */}
+          {(form.activityType === 'individual' || form.activityType === 'both') && (
+            <div className="form-group">
+              <label className="form-label">
+                Rutinas que cuentan{' '}
+                <span style={{ color: '#B0BEC5' }}>(todas si no elegis ninguna)</span>
+              </label>
+              {routines.length === 0 ? (
+                <div style={{ fontSize: 13, color: '#B0BEC5' }}>No hay rutinas creadas.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {routines.map(r => {
+                    const checked = form.routineIds.includes(r.id);
+                    return (
+                      <div
+                        key={r.id}
+                        onClick={() => toggleRoutine(r.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+                          background: checked ? '#E8EDF5' : '#F8FAFC',
+                          border: `1.5px solid ${checked ? '#1D3461' : 'transparent'}`,
+                          transition: 'all 0.1s',
+                        }}
+                      >
+                        <div className={`checkbox-custom${checked ? ' checked' : ''}`} style={{ flexShrink: 0 }}>
+                          {checked && <CheckIcon size={11} />}
+                        </div>
+                        <span style={{ fontSize: 14, fontWeight: checked ? 600 : 400, color: '#263238' }}>
+                          {r.name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
-          <div className="form-group" style={{ marginTop: 12 }}>
+          {/* 7. Frecuencia semanal */}
+          <div className="form-group">
+            <label className="form-label">
+              Frecuencia semanal <span style={{ color: '#B0BEC5' }}>(veces/semana, opcional)</span>
+            </label>
+            <input
+              className="input"
+              type="number"
+              min="1"
+              placeholder="ej: 4"
+              value={form.weeklyFrequency}
+              onChange={e => updateForm('weeklyFrequency', e.target.value)}
+            />
+          </div>
+
+          {/* 8. Meta total */}
+          <div className="form-group">
+            <label className="form-label">Meta total (sesiones) *</label>
+            <input
+              className="input"
+              type="number"
+              min="1"
+              placeholder="ej: 24"
+              value={form.targetSessions}
+              onChange={e => updateTargetSessions(e.target.value)}
+              style={errors.targetSessions ? { borderColor: '#EF5350' } : {}}
+            />
+            {errors.targetSessions && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.targetSessions}</div>}
+            {!form.targetSessionsManual && form.weeklyFrequency && form.weeksDeadline
+              && parseInt(form.weeklyFrequency) > 0 && parseInt(form.weeksDeadline) > 0 && (
+              <div style={{ fontSize: 12, color: '#78909C', marginTop: 4 }}>
+                Auto-calculado: {parseInt(form.weeklyFrequency)} × {parseInt(form.weeksDeadline)} semanas
+              </div>
+            )}
+          </div>
+
+          {/* 9. Autoevaluacion inicial */}
+          <div className="form-group" style={{ marginTop: 4 }}>
             <RatingPicker
               value={form.initialRating}
               onChange={v => updateForm('initialRating', v)}
@@ -229,22 +392,18 @@ export default function Desafios({ onBack }) {
           </div>
 
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <button
-              className="btn btn-secondary"
-              style={{ flex: 1 }}
-              onClick={() => { setShowForm(false); setForm(emptyForm()); setErrors({}); }}
-            >
+            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={closeForm}>
               Cancelar
             </button>
-            <button className="btn btn-primary" style={{ flex: 2 }} onClick={handleCreate}>
-              Crear desafio
+            <button className="btn btn-primary" style={{ flex: 2 }} onClick={editingId ? handleSaveEdit : handleCreate}>
+              {editingId ? 'Guardar cambios' : 'Crear desafio'}
             </button>
           </div>
         </div>
       )}
 
       {/* ── Estado vacío ── */}
-      {active.length === 0 && completed.length === 0 && !showForm && (
+      {pending.length === 0 && active.length === 0 && completed.length === 0 && !showForm && (
         <div className="empty-state">
           <p>No hay desafios todavía.</p>
           <button className="btn btn-primary" onClick={() => setShowForm(true)}>
@@ -253,12 +412,77 @@ export default function Desafios({ onBack }) {
         </div>
       )}
 
+      {/* ── Desafios próximos (pendientes) ── */}
+      {pending.length > 0 && (
+        <>
+          <div style={{
+            padding: '16px 16px 8px', fontWeight: 700, fontSize: 12,
+            color: '#78909C', textTransform: 'uppercase', letterSpacing: '0.06em',
+          }}>
+            Próximos
+          </div>
+          {pending.map(challenge => {
+            const dias = daysUntil(challenge.startDate);
+            return (
+              <div key={challenge.id} className="card" style={{ background: '#F8FAFC', border: '1.5px solid #E2E8F0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#263238' }}>{challenge.name}</div>
+                    {challenge.description && (
+                      <div style={{ fontSize: 12, color: '#78909C', marginTop: 2 }}>{challenge.description}</div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: '4px 8px', fontSize: 12, color: '#1D3461' }}
+                      onClick={() => startEditing(challenge)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: '4px 6px', color: '#EF5350' }}
+                      onClick={() => setAbandonConfirmId(challenge.id)}
+                    >
+                      <TrashIcon size={14} />
+                    </button>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: '#78909C' }}>
+                    Inicio: {formatDate(challenge.startDate)}
+                  </span>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20,
+                    background: '#F1F5F9', color: '#64748B',
+                  }}>
+                    Comienza en {dias} día{dias !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 6 }}>
+                  {activityLabel(challenge)} · Meta: {challenge.targetSessions} sesiones · {challenge.weeksDeadline} semanas
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
+
       {/* ── Desafios activos ── */}
+      {active.length > 0 && (pending.length > 0 || completed.length > 0) && (
+        <div style={{
+          padding: '16px 16px 8px', fontWeight: 700, fontSize: 12,
+          color: '#78909C', textTransform: 'uppercase', letterSpacing: '0.06em',
+        }}>
+          Activos
+        </div>
+      )}
       {active.map(challenge => {
         const progress = getChallengeProgress(challenge, history);
         const isReadyToClose = needsClosingIds.includes(challenge.id);
         const isCurrentlyClosing = closingId === challenge.id;
-        const rLabel = routineLabel(challenge.routineIds);
+        const rLabel = activityLabel(challenge);
 
         if (isReadyToClose) {
           return (
@@ -342,7 +566,6 @@ export default function Desafios({ onBack }) {
 
             <div style={{ fontSize: 12, color: '#78909C', marginBottom: 10 }}>{rLabel}</div>
 
-            {/* Barra de progreso */}
             <div style={{ marginBottom: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ fontSize: 12, color: '#78909C' }}>
@@ -355,7 +578,6 @@ export default function Desafios({ onBack }) {
               </div>
             </div>
 
-            {/* Tiempo + ritmo */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 12, color: '#78909C' }}>
                 {progress.remainingDays > 0
@@ -373,6 +595,9 @@ export default function Desafios({ onBack }) {
 
             <div style={{ fontSize: 11, color: '#B0BEC5', marginTop: 6 }}>
               Autoevaluación inicial: {challenge.initialRating}/10
+              {challenge.weeklyFrequency && (
+                <span style={{ marginLeft: 8 }}>· {challenge.weeklyFrequency}x/sem</span>
+              )}
             </div>
           </div>
         );
@@ -435,11 +660,12 @@ export default function Desafios({ onBack }) {
           <div className="modal-overlay" onClick={() => setAbandonConfirmId(null)}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
               <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
-                Abandonar desafio
+                {today < c.startDate ? 'Eliminar desafio' : 'Abandonar desafio'}
               </div>
               <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
-                ¿Abandonar <strong style={{ color: '#263238' }}>"{c.name}"</strong>?
-                Se perderá el progreso registrado.
+                ¿{today < c.startDate ? 'Eliminar' : 'Abandonar'}{' '}
+                <strong style={{ color: '#263238' }}>"{c.name}"</strong>?
+                {today >= c.startDate && ' Se perderá el progreso registrado.'}
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setAbandonConfirmId(null)}>
@@ -450,7 +676,7 @@ export default function Desafios({ onBack }) {
                   style={{ flex: 1, background: '#C62828', borderColor: '#C62828' }}
                   onClick={() => { abandonChallenge(abandonConfirmId); setAbandonConfirmId(null); }}
                 >
-                  Abandonar
+                  {today < c.startDate ? 'Eliminar' : 'Abandonar'}
                 </button>
               </div>
             </div>
