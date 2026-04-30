@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useStore, getChallengeProgress } from '../store/useStore';
 import { todayStr, formatDate } from '../utils/dates';
-import { PlusIcon, TrashIcon, ChevronLeft, CheckCircleIcon, CheckIcon, StarIcon } from '../components/Icons';
+import { PlusIcon, TrashIcon, EditIcon, ChevronLeft, CheckCircleIcon, CheckIcon } from '../components/Icons';
 
 function addDays(dateStr, days) {
   const d = new Date(dateStr + 'T12:00:00');
@@ -65,11 +65,13 @@ export default function Desafios({ onBack }) {
   const { routines, history, challenges, createChallenge, completeChallenge, abandonChallenge, updateChallenge } = useStore();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [reopenOnSave, setReopenOnSave] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
   const [closingId, setClosingId] = useState(null);
   const [finalRating, setFinalRating] = useState(7);
-  const [abandonConfirmId, setAbandonConfirmId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [reopenPromptId, setReopenPromptId] = useState(null);
 
   const today = todayStr();
 
@@ -103,6 +105,7 @@ export default function Desafios({ onBack }) {
   function closeForm() {
     setShowForm(false);
     setEditingId(null);
+    setReopenOnSave(false);
     setForm(emptyForm());
     setErrors({});
   }
@@ -142,11 +145,17 @@ export default function Desafios({ onBack }) {
   function handleSaveEdit() {
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    updateChallenge(editingId, buildChallengeData());
+    const data = buildChallengeData();
+    if (reopenOnSave) {
+      data.status = 'active';
+      data.completedAt = null;
+      data.finalRating = null;
+    }
+    updateChallenge(editingId, data);
     closeForm();
   }
 
-  function startEditing(challenge) {
+  function openEditForm(challenge, reopen) {
     setForm({
       name: challenge.name,
       description: challenge.description || '',
@@ -160,8 +169,23 @@ export default function Desafios({ onBack }) {
       targetSessionsManual: true,
     });
     setEditingId(challenge.id);
+    setReopenOnSave(reopen);
     setShowForm(true);
     setErrors({});
+  }
+
+  function startEditing(challenge) {
+    if (challenge.status === 'completed') {
+      setReopenPromptId(challenge.id);
+    } else {
+      openEditForm(challenge, false);
+    }
+  }
+
+  function confirmEditCompleted(reopen) {
+    const challenge = challenges.find(c => c.id === reopenPromptId);
+    setReopenPromptId(null);
+    if (challenge) openEditForm(challenge, reopen);
   }
 
   function handleClose(id) {
@@ -200,6 +224,30 @@ export default function Desafios({ onBack }) {
     ? addDays(form.startDate, parseInt(form.weeksDeadline) * 7)
     : null;
 
+  // Botones de acción reutilizables
+  function CardActions({ challenge }) {
+    return (
+      <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+        <button
+          className="btn btn-ghost"
+          style={{ padding: '4px 6px', color: '#78909C' }}
+          onClick={() => startEditing(challenge)}
+          title="Editar desafio"
+        >
+          <EditIcon size={14} />
+        </button>
+        <button
+          className="btn btn-ghost"
+          style={{ padding: '4px 6px', color: '#EF5350' }}
+          onClick={() => setDeleteConfirmId(challenge.id)}
+          title="Eliminar desafio"
+        >
+          <TrashIcon size={14} />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="page-content">
       <div className="page-header">
@@ -223,7 +271,6 @@ export default function Desafios({ onBack }) {
             {editingId ? 'Editar desafio' : 'Nuevo desafio'}
           </div>
 
-          {/* 1. Nombre */}
           <div className="form-group">
             <label className="form-label">Nombre *</label>
             <input
@@ -236,7 +283,6 @@ export default function Desafios({ onBack }) {
             {errors.name && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.name}</div>}
           </div>
 
-          {/* 2. Descripcion */}
           <div className="form-group">
             <label className="form-label">Descripcion <span style={{ color: '#B0BEC5' }}>(opcional)</span></label>
             <textarea
@@ -247,7 +293,6 @@ export default function Desafios({ onBack }) {
             />
           </div>
 
-          {/* 3. Fecha de inicio */}
           <div className="form-group">
             <label className="form-label">Fecha de inicio</label>
             <input
@@ -263,7 +308,6 @@ export default function Desafios({ onBack }) {
             )}
           </div>
 
-          {/* 4. Duracion */}
           <div className="form-group">
             <label className="form-label">Duracion (semanas) *</label>
             <input
@@ -283,7 +327,6 @@ export default function Desafios({ onBack }) {
             )}
           </div>
 
-          {/* 5. Tipo de actividad */}
           <div className="form-group">
             <label className="form-label">¿Qué actividades cuentan?</label>
             <div style={{ display: 'flex', gap: 6 }}>
@@ -307,7 +350,6 @@ export default function Desafios({ onBack }) {
             </div>
           </div>
 
-          {/* 6. Rutinas (si aplica) */}
           {(form.activityType === 'individual' || form.activityType === 'both') && (
             <div className="form-group">
               <label className="form-label">
@@ -346,7 +388,6 @@ export default function Desafios({ onBack }) {
             </div>
           )}
 
-          {/* 7. Frecuencia semanal */}
           <div className="form-group">
             <label className="form-label">
               Frecuencia semanal <span style={{ color: '#B0BEC5' }}>(veces/semana, opcional)</span>
@@ -361,7 +402,6 @@ export default function Desafios({ onBack }) {
             />
           </div>
 
-          {/* 8. Meta total */}
           <div className="form-group">
             <label className="form-label">Meta total (sesiones) *</label>
             <input
@@ -382,7 +422,6 @@ export default function Desafios({ onBack }) {
             )}
           </div>
 
-          {/* 9. Autoevaluacion inicial */}
           <div className="form-group" style={{ marginTop: 4 }}>
             <RatingPicker
               value={form.initialRating}
@@ -391,7 +430,16 @@ export default function Desafios({ onBack }) {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+          {reopenOnSave && (
+            <div style={{
+              padding: '10px 12px', borderRadius: 8, background: '#D1FAE5',
+              fontSize: 12, color: '#065F46', fontWeight: 600, marginTop: 4,
+            }}>
+              Al guardar, el desafio se reabrirá como activo.
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
             <button className="btn btn-secondary" style={{ flex: 1 }} onClick={closeForm}>
               Cancelar
             </button>
@@ -432,22 +480,7 @@ export default function Desafios({ onBack }) {
                       <div style={{ fontSize: 12, color: '#78909C', marginTop: 2 }}>{challenge.description}</div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                    <button
-                      className="btn btn-ghost"
-                      style={{ padding: '4px 8px', fontSize: 12, color: '#1D3461' }}
-                      onClick={() => startEditing(challenge)}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      className="btn btn-ghost"
-                      style={{ padding: '4px 6px', color: '#EF5350' }}
-                      onClick={() => setAbandonConfirmId(challenge.id)}
-                    >
-                      <TrashIcon size={14} />
-                    </button>
-                  </div>
+                  <CardActions challenge={challenge} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 12, color: '#78909C' }}>
@@ -487,11 +520,14 @@ export default function Desafios({ onBack }) {
         if (isReadyToClose) {
           return (
             <div key={challenge.id} className="card" style={{ border: '2px solid #059669' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <CheckCircleIcon size={20} />
-                <div style={{ fontWeight: 800, fontSize: 15, color: '#059669' }}>
-                  {progress.isComplete ? '¡Desafio completado!' : 'Plazo vencido'}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <CheckCircleIcon size={20} />
+                  <div style={{ fontWeight: 800, fontSize: 15, color: '#059669' }}>
+                    {progress.isComplete ? '¡Desafio completado!' : 'Plazo vencido'}
+                  </div>
                 </div>
+                <CardActions challenge={challenge} />
               </div>
               <div style={{ fontWeight: 700, fontSize: 15, color: '#263238', marginBottom: 2 }}>
                 {challenge.name}
@@ -554,14 +590,7 @@ export default function Desafios({ onBack }) {
                   <div style={{ fontSize: 12, color: '#78909C', marginTop: 2 }}>{challenge.description}</div>
                 )}
               </div>
-              <button
-                className="btn btn-ghost"
-                style={{ padding: '4px 6px', color: '#EF5350', flexShrink: 0 }}
-                onClick={() => setAbandonConfirmId(challenge.id)}
-                title="Abandonar desafio"
-              >
-                <TrashIcon size={14} />
-              </button>
+              <CardActions challenge={challenge} />
             </div>
 
             <div style={{ fontSize: 12, color: '#78909C', marginBottom: 10 }}>{rLabel}</div>
@@ -619,14 +648,19 @@ export default function Desafios({ onBack }) {
             return (
               <div key={c.id} className="card" style={{ opacity: 0.88 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#263238' }}>{c.name}</div>
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 20, flexShrink: 0,
-                    background: goalMet ? '#D1FAE5' : '#FEF3C7',
-                    color: goalMet ? '#065F46' : '#92400E',
-                  }}>
-                    {goalMet ? '✓ Meta' : 'Parcial'}
-                  </span>
+                  <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#263238' }}>{c.name}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
+                      background: goalMet ? '#D1FAE5' : '#FEF3C7',
+                      color: goalMet ? '#065F46' : '#92400E',
+                    }}>
+                      {goalMet ? '✓ Meta' : 'Parcial'}
+                    </span>
+                    <CardActions challenge={c} />
+                  </div>
                 </div>
 
                 <div style={{ fontSize: 12, color: '#78909C', marginBottom: 6 }}>
@@ -652,31 +686,66 @@ export default function Desafios({ onBack }) {
         </>
       )}
 
-      {/* ── Modal: confirmación de abandono ── */}
-      {abandonConfirmId && (() => {
-        const c = challenges.find(ch => ch.id === abandonConfirmId);
+      {/* ── Modal: confirmar eliminación ── */}
+      {deleteConfirmId && (() => {
+        const c = challenges.find(ch => ch.id === deleteConfirmId);
         if (!c) return null;
         return (
-          <div className="modal-overlay" onClick={() => setAbandonConfirmId(null)}>
+          <div className="modal-overlay" onClick={() => setDeleteConfirmId(null)}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
               <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
-                {today < c.startDate ? 'Eliminar desafio' : 'Abandonar desafio'}
+                Eliminar desafio
               </div>
               <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
-                ¿{today < c.startDate ? 'Eliminar' : 'Abandonar'}{' '}
+                ¿Estás seguro de eliminar{' '}
                 <strong style={{ color: '#263238' }}>"{c.name}"</strong>?
-                {today >= c.startDate && ' Se perderá el progreso registrado.'}
+                {c.status !== 'completed' && today >= c.startDate && ' Se perderá el progreso registrado.'}
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setAbandonConfirmId(null)}>
+                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setDeleteConfirmId(null)}>
                   Cancelar
                 </button>
                 <button
                   className="btn btn-primary"
                   style={{ flex: 1, background: '#C62828', borderColor: '#C62828' }}
-                  onClick={() => { abandonChallenge(abandonConfirmId); setAbandonConfirmId(null); }}
+                  onClick={() => { abandonChallenge(deleteConfirmId); setDeleteConfirmId(null); }}
                 >
-                  {today < c.startDate ? 'Eliminar' : 'Abandonar'}
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Modal: reabrir desafio completado ── */}
+      {reopenPromptId && (() => {
+        const c = challenges.find(ch => ch.id === reopenPromptId);
+        if (!c) return null;
+        return (
+          <div className="modal-overlay" onClick={() => setReopenPromptId(null)}>
+            <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
+              <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
+                Desafio cerrado
+              </div>
+              <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
+                <strong style={{ color: '#263238' }}>"{c.name}"</strong> ya está cerrado.
+                {' '}¿Querés reabrirlo como activo?
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={() => confirmEditCompleted(false)}
+                >
+                  No, solo editar
+                </button>
+                <button
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                  onClick={() => confirmEditCompleted(true)}
+                >
+                  Sí, reabrir
                 </button>
               </div>
             </div>
