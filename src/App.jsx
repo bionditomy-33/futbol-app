@@ -9,9 +9,10 @@ import Lab from './pages/Lab';
 import Catalogo from './pages/Catalogo';
 import Partidos from './pages/Partidos';
 import Historial from './pages/Historial';
+import SemanaTipo from './pages/SemanaTipo';
 import {
   HomeIcon, BallIcon, TrophyIcon, MoreHorizIcon,
-  ChevronRight, EditIcon, BodyIcon, FireIcon, StarIcon,
+  ChevronRight, EditIcon, BodyIcon, FireIcon, StarIcon, CalendarIcon,
 } from './components/Icons';
 
 const BOTTOM_TABS = [
@@ -52,13 +53,19 @@ const MAS_ITEMS = [
     title: 'Planes',
     sub: 'Objetivos y metas personales',
   },
+  {
+    id: 'semana-tipo',
+    icon: <CalendarIcon size={22} />,
+    title: 'Semana tipo',
+    sub: 'Planificación semanal habitual',
+  },
 ];
 
 export default function App() {
   const { isReady } = useStore();
   const [mainTab, setMainTab]               = useState('inicio');
   const [entrenoTab, setEntrenoTab]         = useState('semana');
-  const [masView, setMasView]               = useState(null); // null | 'lab' | 'catalogo' | 'historial' | 'planes'
+  const [masView, setMasView]               = useState(null); // null | 'lab' | 'catalogo' | 'historial' | 'planes' | 'semana-tipo'
   const [labRoutine, setLabRoutine]         = useState(null);
   const [labReturnToRutinas, setLabReturnToRutinas] = useState(false);
   const [pendingNav, setPendingNav]         = useState(null);
@@ -206,7 +213,8 @@ export default function App() {
       )}
       {mainTab === 'mas' && masView === 'catalogo'  && <Catalogo onBack={() => setMasView(null)} />}
       {mainTab === 'mas' && masView === 'historial'  && <Historial onBack={() => setMasView(null)} />}
-      {mainTab === 'mas' && masView === 'planes'      && <Planes    onBack={() => setMasView(null)} />}
+      {mainTab === 'mas' && masView === 'planes'        && <Planes      onBack={() => setMasView(null)} />}
+      {mainTab === 'mas' && masView === 'semana-tipo'  && <SemanaTipo  onBack={() => setMasView(null)} />}
 
       {/* Bottom navigation */}
       <nav className="bottom-nav">

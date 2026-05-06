@@ -218,13 +218,14 @@ function buildExerciseMap(catalog) {
 let listeners = [];
 
 let state = {
-  catalog:  INITIAL_CATALOG,
-  routines: INITIAL_ROUTINES,
-  schedule: {},
-  history:  {},
-  matches:  [],
-  plans:    [],
-  isReady:  false,
+  catalog:      INITIAL_CATALOG,
+  routines:     INITIAL_ROUTINES,
+  schedule:     {},
+  history:      {},
+  matches:      [],
+  plans:        [],
+  weekTemplate: {},
+  isReady:      false,
 };
 
 export function getState() { return state; }
@@ -243,7 +244,7 @@ function writeDoc(docName, data) {
 }
 
 const docLoadedSet = new Set();
-const TOTAL_DOCS = 6;
+const TOTAL_DOCS = 7;
 
 function onDocFirstLoad(docName) {
   if (!docLoadedSet.has(docName)) {
@@ -261,7 +262,7 @@ function initFirestore() {
   initialized = true;
 
   // 'challenges' replaced by 'plans'; migration runs on first snapshot
-  const DOCS = ['catalog', 'routines', 'schedule', 'history', 'matches', 'plans'];
+  const DOCS = ['catalog', 'routines', 'schedule', 'history', 'matches', 'plans', 'weekTemplate'];
 
   DOCS.forEach(docName => {
     const ref = doc(db, 'app', docName);
@@ -318,7 +319,7 @@ export function useStore() {
     return () => { listeners = listeners.filter(l => l !== listener); };
   }, []);
 
-  const { catalog, routines, schedule, history, matches, isReady } = state;
+  const { catalog, routines, schedule, history, matches, weekTemplate, isReady } = state;
   const exerciseMap = buildExerciseMap(catalog);
 
   // ── Schedule ──────────────────────────────────────────────────────────────
@@ -506,6 +507,29 @@ export function useStore() {
     writeDoc('plans', next);
   }, []);
 
+  // ── Week Template ─────────────────────────────────────────────────────────
+  const saveWeekTemplate = useCallback((template) => {
+    setState({ weekTemplate: template });
+    writeDoc('weekTemplate', template);
+  }, []);
+
+  const applyWeekTemplate = useCallback((weekDateStrs) => {
+    // weekDateStrs: array of dateStr for Mon–Sun
+    const tmpl = state.weekTemplate;
+    if (!tmpl || Object.keys(tmpl).length === 0) return;
+    const newSchedule = { ...state.schedule };
+    weekDateStrs.forEach(dateStr => {
+      const d = new Date(dateStr + 'T12:00:00');
+      const dow = d.getDay(); // 0=Sun
+      const dayTmpl = tmpl[dow];
+      if (dayTmpl?.routineId && !newSchedule[dateStr]) {
+        newSchedule[dateStr] = dayTmpl.routineId;
+      }
+    });
+    setState({ schedule: newSchedule });
+    writeDoc('schedule', newSchedule);
+  }, []);
+
   // ── Import ────────────────────────────────────────────────────────────────
   const importData = useCallback(async ({ catalog: cat, routines: rts, schedule: sch, history: hist }) => {
     const migratedRts = migrateRoutines(rts);
@@ -527,6 +551,7 @@ export function useStore() {
     history,
     matches,
     plans,
+    weekTemplate,
     isReady,
     exerciseMap,
     assignRoutine,
@@ -547,6 +572,8 @@ export function useStore() {
     deleteCategory,
     isExerciseUsed,
     setMatches,
+    saveWeekTemplate,
+    applyWeekTemplate,
     createPlan,
     completePlan,
     deletePlan,

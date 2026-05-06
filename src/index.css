@@ -853,6 +853,96 @@ select.input {
 }
 
 /* ──────────────────────────────────────────
+   SEMANA TIPO
+────────────────────────────────────────── */
+.wt-day-card {
+  background: white;
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.wt-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+.wt-day-label {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+.wt-clear-btn {
+  background: none;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.wt-clear-btn:hover { color: #EF4444; }
+.wt-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.wt-row:last-child { border-bottom: none; }
+.wt-checkbox-row { cursor: pointer; }
+.wt-row-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wt-row-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 4px;
+}
+.wt-select {
+  width: 100%;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: #F8FAFC;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-family: inherit;
+  outline: none;
+}
+.wt-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--navy-800);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.wt-time-input {
+  font-size: 13px;
+  color: var(--text-primary);
+  background: #F8FAFC;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-family: inherit;
+  outline: none;
+  width: 120px;
+}
+
+/* ──────────────────────────────────────────
    CATALOGO
 ────────────────────────────────────────── */
 .catalog-page {
