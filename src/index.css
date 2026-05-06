@@ -1508,19 +1508,138 @@ select.input {
 /* ──────────────────────────────────────────
    CALENDARIO
 ────────────────────────────────────────── */
-.cal-cell {
-  aspect-ratio: 1;
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px;
+  background: white;
+  border-bottom: 1px solid var(--border-color);
+}
+.cal-grid-wrap {
+  padding: 8px 8px 4px;
+  background: white;
+}
+.cal-grid-headers {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+.cal-grid-header {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #94A3B8;
+  padding: 3px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.cal-cell-new {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  border-radius: 9px;
+  gap: 2px;
+  padding: 5px 1px 5px;
+  border-radius: 8px;
   cursor: pointer;
-  position: relative;
+  border: 1.5px solid transparent;
+  min-height: 56px;
   transition: background 0.1s;
   -webkit-tap-highlight-color: transparent;
 }
-.cal-cell:active { transform: scale(0.9); }
+.cal-cell-new:hover { background: var(--bg-subtle); }
+.cal-cell-today {
+  border-color: var(--navy-800);
+  background: #F0F4FF;
+}
+.cal-cell-out { opacity: 0.22; pointer-events: none; }
+.cal-cell-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.cal-cell-today .cal-cell-num { color: var(--navy-800); font-weight: 800; }
+.cal-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+  width: 100%;
+  align-items: center;
+}
+.cal-bar {
+  width: calc(100% - 4px);
+  height: 8px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cal-bar-split {
+  width: calc(100% - 4px);
+  height: 8px;
+  border-radius: 2px;
+  display: flex;
+  overflow: hidden;
+}
+/* Month summary */
+.cal-summary {
+  padding: 14px 16px;
+  background: white;
+  margin-top: 8px;
+}
+.cal-summary-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+.cal-summary-week {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.cal-summary-week.current .cal-summary-week-label {
+  color: var(--navy-800);
+  font-weight: 800;
+}
+.cal-summary-week-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94A3B8;
+  width: 44px;
+  flex-shrink: 0;
+}
+.cal-summary-bar-wrap { flex: 1; }
+.cal-summary-bar-bg {
+  height: 6px;
+  background: #EEF2F7;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.cal-summary-bar-fill {
+  height: 100%;
+  background: var(--emerald-600);
+  border-radius: 999px;
+  transition: width 0.4s;
+}
+.cal-summary-week.current .cal-summary-bar-fill { background: var(--navy-800); }
+.cal-summary-pct {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  width: 30px;
+  text-align: right;
+  flex-shrink: 0;
+}
 
 /* ──────────────────────────────────────────
    UTILITY
