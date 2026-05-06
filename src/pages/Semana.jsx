@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
-import { ChevronLeft, GymIcon, BallIcon, TrophyIcon } from '../components/Icons';
+import { ChevronLeft, TrophyIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
 
 const TODAY = todayStr();
@@ -312,14 +312,6 @@ function TimelineCard({ act, isLast, routines, dayHistory, dateStr }) {
   );
 }
 
-function ShieldIcon({ size = 14 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7 1L2 3.5V7C2 10 4.5 12.5 7 13C9.5 12.5 12 10 12 7V3.5L7 1Z" />
-    </svg>
-  );
-}
-
 // ── Main Semana component ──────────────────────────────────────────────────
 export default function Semana() {
   const { routines, schedule, history, matches, weekTemplate, applyWeekTemplate } = useStore();
@@ -379,6 +371,19 @@ export default function Semana() {
         </div>
         <button className="wk-nav-btn" onClick={() => setWeekOffset(o => o + 1)}>›</button>
       </div>
+
+      {/* Apply template button */}
+      {weekTemplate && Object.keys(weekTemplate).length > 0 && (
+        <div style={{ padding: '8px 12px', background: '#F8FAFC', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 12, color: '#64748B' }}>Semana tipo disponible</span>
+          <button
+            style={{ fontSize: 12, fontWeight: 700, color: '#3E7A5C', background: 'none', border: '1.5px solid #3E7A5C', borderRadius: 7, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit' }}
+            onClick={() => applyWeekTemplate(weekDateStrs)}
+          >
+            Aplicar
+          </button>
+        </div>
+      )}
 
       {/* Week grid */}
       <div className="wk-grid-wrap">
