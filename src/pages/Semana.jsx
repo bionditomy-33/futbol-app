@@ -1,34 +1,328 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { todayStr, toDateStr, getWeekDays, formatDateShort } from '../utils/dates';
-import { ChevronLeft, GymIcon } from '../components/Icons';
+import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
+import { ChevronLeft, GymIcon, BallIcon, TrophyIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
 
 const TODAY = todayStr();
 
-function getDayStatus(dateStr, schedule, history) {
-  const day = history[dateStr];
-  if (day?.done) return 'done';
-  if (schedule[dateStr]) {
-    if (dateStr < TODAY) return 'missed';
-    return dateStr === TODAY ? 'pending' : 'planned';
-  }
-  return 'rest';
-}
+const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const MONTHS_FULL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DAY_SHORT = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const DAY_FULL  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
-const STATUS_CONFIG = {
-  done:    { label: 'Completado',  badgeClass: 'badge-green',  barColor: '#059669' },
-  missed:  { label: 'No hecho',   badgeClass: 'badge-red',    barColor: '#DC2626' },
-  pending: { label: 'Pendiente',  badgeClass: 'badge-yellow', barColor: '#D97706' },
-  planned: { label: 'Planificado', badgeClass: 'badge-navy',  barColor: '#1D3461' },
-  rest:    { label: 'Descanso',   badgeClass: 'badge-gray',   barColor: '#CBD5E1' },
+// Activity colors
+const C = {
+  gym:      { bar: '#2D3E50', text: '#fff' },
+  indiv:    { bar: '#3E7A5C', text: '#fff' },
+  arsenal:  { bar: '#8B4513', text: '#fff' },
+  match:    { bar: '#C17817', text: '#fff' },
+  missedIndiv: { bar: '#DC2626', text: '#fff' },
 };
 
-const DAY_NAMES_SHORT = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
-const DAY_NAMES_FULL  = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+function ShieldIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 1L2 3.5V7C2 10 4.5 12.5 7 13C9.5 12.5 12 10 12 7V3.5L7 1Z" />
+    </svg>
+  );
+}
 
+function WeightIcon({ size = 10 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <rect x="1" y="6" width="3" height="2" rx="0.5" />
+      <rect x="10" y="6" width="3" height="2" rx="0.5" />
+      <rect x="4" y="4.5" width="1.5" height="5" rx="0.5" />
+      <rect x="8.5" y="4.5" width="1.5" height="5" rx="0.5" />
+      <line x1="5.5" y1="7" x2="8.5" y2="7" />
+    </svg>
+  );
+}
+
+function SmallBall({ size = 9 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.4">
+      <circle cx="5" cy="5" r="4" />
+      <path d="M5,1 L5,9" />
+      <path d="M3,2 C3.5,4 3.5,6 3,8" />
+      <path d="M7,2 C6.5,4 6.5,6 7,8" />
+    </svg>
+  );
+}
+
+// Get activities for a given day from data sources
+function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
+  const acts = [];
+  const day = history[dateStr];
+  const dow = new Date(dateStr + 'T12:00:00').getDay();
+  const tmpl = weekTemplate?.[dow];
+
+  // Individual routine
+  const schedRoutineId = schedule[dateStr];
+  const histRoutineId  = day?.routineId;
+  if (day?.done) {
+    acts.push({ type: 'indiv', done: true, routineId: histRoutineId });
+  } else if (schedRoutineId) {
+    const missed = dateStr < TODAY;
+    acts.push({ type: 'indiv', done: false, missed, routineId: schedRoutineId });
+  } else if (tmpl?.routineId && dateStr >= TODAY) {
+    acts.push({ type: 'indiv', done: false, missed: false, routineId: tmpl.routineId, fromTemplate: true });
+  }
+
+  // Gym
+  if (day?.gym) {
+    acts.push({ type: 'gym', done: true });
+  } else if (tmpl?.gym && !day?.gym && dateStr >= TODAY) {
+    acts.push({ type: 'gym', done: false, fromTemplate: true });
+  }
+
+  // Arsenal
+  if (tmpl?.arsenal) {
+    acts.push({ type: 'arsenal', done: false, fromTemplate: dateStr >= TODAY });
+  }
+
+  // Match
+  const dayMatches = matches.filter(m => m.date === dateStr);
+  dayMatches.forEach(m => acts.push({ type: 'match', done: true, match: m }));
+  if (tmpl?.match && dayMatches.length === 0 && dateStr >= TODAY) {
+    acts.push({ type: 'match', done: false, fromTemplate: true });
+  }
+
+  return acts;
+}
+
+// ── Mini bars for the week grid cell ─────────────────────────────────────────
+function DayBars({ acts, isToday, isPast }) {
+  if (acts.length === 0) return null;
+
+  const gymAct   = acts.find(a => a.type === 'gym');
+  const indivAct = acts.find(a => a.type === 'indiv');
+  const arsenalAct = acts.find(a => a.type === 'arsenal');
+  const matchAct = acts.find(a => a.type === 'match');
+
+  const opacity = (act) => (act.fromTemplate && !act.done) ? 0.35 : 1;
+
+  const bars = [];
+
+  // Combined gym+individual row, or individual alone, or gym alone
+  if (gymAct && indivAct) {
+    bars.push(
+      <div key="session" className="wk-bar-split" style={{ opacity: Math.max(opacity(gymAct), opacity(indivAct)) }}>
+        <div className="wk-bar-half" style={{ background: C.gym.bar }}>
+          <WeightIcon size={8} />
+        </div>
+        <div className="wk-bar-half" style={{ background: indivAct.missed ? C.missedIndiv.bar : C.indiv.bar }}>
+          <SmallBall size={8} />
+        </div>
+      </div>
+    );
+  } else if (indivAct) {
+    bars.push(
+      <div key="indiv" className="wk-bar" style={{ background: indivAct.missed ? C.missedIndiv.bar : C.indiv.bar, opacity: opacity(indivAct) }}>
+        <SmallBall size={8} />
+      </div>
+    );
+  } else if (gymAct) {
+    bars.push(
+      <div key="gym" className="wk-bar" style={{ background: C.gym.bar, opacity: opacity(gymAct) }}>
+        <WeightIcon size={8} />
+      </div>
+    );
+  }
+
+  if (arsenalAct) {
+    bars.push(
+      <div key="arsenal" className="wk-bar" style={{ background: C.arsenal.bar, opacity: opacity(arsenalAct) }}>
+        <ShieldIcon size={8} />
+      </div>
+    );
+  }
+  if (matchAct) {
+    bars.push(
+      <div key="match" className="wk-bar" style={{ background: C.match.bar, opacity: opacity(matchAct) }}>
+        <TrophyIcon size={8} />
+      </div>
+    );
+  }
+
+  return <div className="wk-bars">{bars}</div>;
+}
+
+// ── Day detail (Estado 2) ──────────────────────────────────────────────────
+function DayDetail({ dateStr, onBack, schedule, history, routines, matches, weekTemplate }) {
+  const [editing, setEditing] = useState(false);
+  const d = new Date(dateStr + 'T12:00:00');
+  const isToday = dateStr === TODAY;
+  const acts = getDayActivities(dateStr, schedule, history, matches, weekTemplate);
+  const dayHistory = history[dateStr];
+
+  const dayLabel = DAY_FULL[d.getDay()];
+  const dateLabel = `${d.getDate()} de ${MONTHS_FULL[d.getMonth()]}`;
+
+  if (editing) {
+    return (
+      <div className="page-content">
+        <div className="wk-detail-header">
+          <button className="btn btn-ghost" style={{ padding: '6px 8px' }} onClick={() => setEditing(false)}>
+            <ChevronLeft size={18} />
+          </button>
+          <div>
+            <div className="wk-detail-title">{dayLabel}</div>
+            <div className="wk-detail-sub">{dateLabel}</div>
+          </div>
+        </div>
+        <DayEditor dateStr={dateStr} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-content">
+      <div className="wk-detail-header">
+        <button className="btn btn-ghost" style={{ padding: '6px 8px' }} onClick={onBack}>
+          <ChevronLeft size={18} />
+        </button>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="wk-detail-title">{dayLabel}</span>
+            {isToday && <span className="wk-today-badge">HOY</span>}
+            <span className="wk-act-count">{acts.length} actividad{acts.length !== 1 ? 'es' : ''}</span>
+          </div>
+          <div className="wk-detail-sub">{dateLabel}</div>
+        </div>
+      </div>
+
+      <div className="wk-timeline">
+        {acts.length === 0 && (
+          <div style={{ padding: '24px 0', textAlign: 'center', color: '#94A3B8', fontSize: 14 }}>
+            Día de descanso
+          </div>
+        )}
+        {acts.map((act, i) => {
+          const isLast = i === acts.length - 1;
+          return (
+            <TimelineCard
+              key={`${act.type}-${i}`}
+              act={act}
+              isLast={isLast}
+              routines={routines}
+              dayHistory={dayHistory}
+              dateStr={dateStr}
+            />
+          );
+        })}
+      </div>
+
+      <div style={{ padding: '0 16px 32px' }}>
+        <button className="btn btn-primary btn-full" onClick={() => setEditing(true)}>
+          Editar día
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TimelineCard({ act, isLast, routines, dayHistory, dateStr }) {
+  const isPast = dateStr < TODAY;
+  const isToday = dateStr === TODAY;
+
+  let icon, borderColor, title, subtitle, statusEl;
+
+  if (act.type === 'indiv') {
+    const routine = routines.find(r => r.id === act.routineId);
+    const totalEx = routine?.phases?.reduce((s, p) => s + p.exercises.length, 0) || 0;
+    const doneEx  = Object.values(dayHistory?.completed || {}).filter(Boolean).length;
+    icon = <SmallBall size={14} />;
+    borderColor = act.missed ? C.missedIndiv.bar : C.indiv.bar;
+    title = routine ? routine.name : 'Entrenamiento individual';
+    subtitle = routine?.subtitle || '';
+    if (act.done) {
+      statusEl = (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <span className="tl-badge tl-badge-done">✓ Hecho</span>
+          {totalEx > 0 && (
+            <div className="tl-progress-bar">
+              <div className="tl-progress-fill" style={{ width: `${Math.round((doneEx / totalEx) * 100)}%` }} />
+            </div>
+          )}
+        </div>
+      );
+    } else if (act.missed) {
+      statusEl = <span className="tl-badge tl-badge-missed">No hecho</span>;
+    } else if (isToday) {
+      statusEl = <span className="tl-badge tl-badge-now">AHORA</span>;
+    } else {
+      statusEl = <span className="tl-badge tl-badge-plan">Planificado</span>;
+    }
+  } else if (act.type === 'gym') {
+    icon = <WeightIcon size={14} />;
+    borderColor = C.gym.bar;
+    title = 'Gimnasio';
+    subtitle = '';
+    statusEl = act.done
+      ? <span className="tl-badge tl-badge-done">✓ Hecho</span>
+      : <span className="tl-badge tl-badge-plan">Planificado</span>;
+  } else if (act.type === 'arsenal') {
+    icon = <ShieldIcon size={14} />;
+    borderColor = C.arsenal.bar;
+    title = 'Arsenal';
+    subtitle = 'Entrenamiento con el equipo';
+    statusEl = <span className="tl-badge tl-badge-plan">Planificado</span>;
+  } else if (act.type === 'match') {
+    icon = <TrophyIcon size={14} />;
+    borderColor = C.match.bar;
+    title = act.match?.competition || 'Partido';
+    subtitle = act.match ? (
+      act.match.result === 'ganamos' ? 'Ganamos' :
+      act.match.result === 'perdimos' ? 'Perdimos' : 'Empate'
+    ) : 'Planificado';
+    statusEl = act.done
+      ? <span className="tl-badge tl-badge-done">✓ Jugado</span>
+      : <span className="tl-badge tl-badge-plan">Planificado</span>;
+  }
+
+  const iconBg = act.type === 'gym' ? '#E8EDF5'
+    : act.type === 'indiv' ? '#E8F5EE'
+    : act.type === 'arsenal' ? '#F5EDE8'
+    : '#FDF4E3';
+  const iconColor = act.type === 'gym' ? '#2D3E50'
+    : act.type === 'indiv' ? '#3E7A5C'
+    : act.type === 'arsenal' ? '#8B4513'
+    : '#C17817';
+
+  return (
+    <div className="tl-item">
+      <div className="tl-left">
+        <div className="tl-icon-wrap" style={{ background: iconBg, color: iconColor }}>
+          {icon}
+        </div>
+        {!isLast && <div className="tl-line" />}
+      </div>
+      <div className="tl-card" style={{ borderLeftColor: borderColor }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ minWidth: 0 }}>
+            <div className="tl-card-title">{title}</div>
+            {subtitle && <div className="tl-card-sub">{subtitle}</div>}
+          </div>
+          {statusEl}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShieldIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 1L2 3.5V7C2 10 4.5 12.5 7 13C9.5 12.5 12 10 12 7V3.5L7 1Z" />
+    </svg>
+  );
+}
+
+// ── Main Semana component ──────────────────────────────────────────────────
 export default function Semana() {
-  const { routines, schedule, history } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, applyWeekTemplate } = useStore();
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState(null);
 
@@ -37,199 +331,95 @@ export default function Semana() {
   const weekDays = getWeekDays(baseDate);
   const weekDateStrs = weekDays.map(d => toDateStr(d));
 
-  const planned = weekDateStrs.filter(d => !!schedule[d]).length;
-  const done    = weekDateStrs.filter(d => history[d]?.done).length;
-  const missed  = weekDateStrs.filter(d => getDayStatus(d, schedule, history) === 'missed').length;
-  const pct = planned > 0 ? Math.round((done / planned) * 100) : 0;
+  // Auto-apply template if this week has no schedule entries
+  useEffect(() => {
+    if (!weekTemplate || Object.keys(weekTemplate).length === 0) return;
+    const hasAny = weekDateStrs.some(ds => schedule[ds]);
+    if (!hasAny) {
+      applyWeekTemplate(weekDateStrs);
+    }
+  // only run when week changes, not on every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekOffset]);
 
-  let streak = 0;
-  const checkDate = new Date();
-  for (let i = 0; i < 60; i++) {
-    const ds = toDateStr(checkDate);
-    if (history[ds]?.done) streak++;
-    else if (ds <= TODAY) break;
-    checkDate.setDate(checkDate.getDate() - 1);
-  }
+  // Week label
+  const firstDay = weekDays[0];
+  const lastDay  = weekDays[6];
+  const sameMonth = firstDay.getMonth() === lastDay.getMonth();
+  const weekLabel = sameMonth
+    ? `${firstDay.getDate()} — ${lastDay.getDate()} de ${MONTHS_FULL[firstDay.getMonth()]}`
+    : `${firstDay.getDate()} ${MONTHS_ES[firstDay.getMonth()]} — ${lastDay.getDate()} ${MONTHS_ES[lastDay.getMonth()]}`;
 
-  // Vista de detalle de un día
   if (selectedDay) {
-    const d = new Date(selectedDay + 'T12:00:00');
-    const dayName = DAY_NAMES_FULL[d.getDay()];
-    const dayNum = d.getDate();
-    const monthNames = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    const dateLabel = `${dayNum} de ${monthNames[d.getMonth()]}`;
-    const isToday = selectedDay === TODAY;
-
     return (
-      <div className="page-content">
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '14px 16px 0', background: 'white',
-          borderBottom: '1px solid #E2E8F0', marginBottom: 4,
-        }}>
-          <button
-            className="btn btn-ghost"
-            style={{ padding: '6px 8px' }}
-            onClick={() => setSelectedDay(null)}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: '#1A2332', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              {dayName}
-              {isToday && (
-                <span style={{
-                  fontSize: 10, color: 'white', fontWeight: 700,
-                  background: '#0A1628', borderRadius: 6,
-                  padding: '2px 6px', marginLeft: 8,
-                }}>
-                  HOY
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 12, color: '#64748B' }}>{dateLabel}</div>
-          </div>
-        </div>
-        <DayEditor dateStr={selectedDay} />
-      </div>
+      <DayDetail
+        dateStr={selectedDay}
+        onBack={() => setSelectedDay(null)}
+        schedule={schedule}
+        history={history}
+        routines={routines}
+        matches={matches}
+        weekTemplate={weekTemplate}
+      />
     );
   }
 
-  // Vista semanal
   return (
     <div className="page-content">
-      {/* Navegación de semana */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 16px 10px', background: 'white',
-        borderBottom: '1px solid #E2E8F0',
-      }}>
-        <button className="btn btn-ghost btn-sm" onClick={() => setWeekOffset(o => o - 1)}>
-          ‹ Anterior
-        </button>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontWeight: 800, fontSize: 13, color: '#1A2332', letterSpacing: '-0.01em' }}>
-            {weekOffset === 0 ? 'Esta semana'
-              : weekOffset === -1 ? 'Semana pasada'
-              : weekOffset < 0 ? `Hace ${Math.abs(weekOffset)} semanas`
-              : weekOffset === 1 ? 'Semana que viene'
-              : `En ${weekOffset} semanas`}
-          </div>
+      {/* Week navigation */}
+      <div className="wk-nav">
+        <button className="wk-nav-btn" onClick={() => setWeekOffset(o => o - 1)}>‹</button>
+        <div className="wk-nav-center">
+          <div className="wk-nav-label">{weekLabel}</div>
           {weekOffset !== 0 && (
-            <button
-              className="btn btn-ghost"
-              style={{ fontSize: 11, padding: '2px 6px', color: '#0A1628', marginTop: 2 }}
-              onClick={() => setWeekOffset(0)}
-            >
-              Volver a hoy
+            <button className="wk-nav-today-btn" onClick={() => setWeekOffset(0)}>
+              Hoy
             </button>
           )}
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={() => setWeekOffset(o => o + 1)}>
-          Siguiente ›
-        </button>
+        <button className="wk-nav-btn" onClick={() => setWeekOffset(o => o + 1)}>›</button>
       </div>
 
-      {/* Métricas */}
-      <div className="metrics-row" style={{ marginTop: 14 }}>
-        <div className="metric-card">
-          <div className="metric-value">{pct}%</div>
-          <div className="metric-label">Cumplimiento</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-value">{done}{planned > 0 ? `/${planned}` : ''}</div>
-          <div className="metric-label">Completados</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-value" style={{ color: streak > 0 ? '#D97706' : undefined }}>
-            {streak > 0 ? `${streak}🔥` : streak}
-          </div>
-          <div className="metric-label">Racha</div>
+      {/* Week grid */}
+      <div className="wk-grid-wrap">
+        {/* Day headers */}
+        <div className="wk-grid">
+          {weekDays.map((d, i) => {
+            const dateStr = weekDateStrs[i];
+            const isToday = dateStr === TODAY;
+            const isPast  = dateStr < TODAY;
+            const acts    = getDayActivities(dateStr, schedule, history, matches, weekTemplate);
+            const hasActs = acts.length > 0;
+
+            return (
+              <div
+                key={dateStr}
+                className={`wk-cell${isToday ? ' wk-cell-today' : ''}${!hasActs && isPast ? ' wk-cell-empty-past' : ''}`}
+                onClick={() => setSelectedDay(dateStr)}
+              >
+                <div className="wk-cell-dayname">{DAY_SHORT[d.getDay()]}</div>
+                <div className="wk-cell-daynum">{d.getDate()}</div>
+                <DayBars acts={acts} isToday={isToday} isPast={isPast} />
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Tarjetas de días */}
-      {weekDateStrs.map((dateStr, idx) => {
-        const d = weekDays[idx];
-        const isToday = dateStr === TODAY;
-        const status = getDayStatus(dateStr, schedule, history);
-        const statusCfg = STATUS_CONFIG[status];
-        const assignedId = schedule[dateStr];
-        const routine = routines.find(r => r.id === assignedId);
-        const dayHistory = history[dateStr];
-        const gymDone = dayHistory?.gym;
-        const doneExCount = Object.values(dayHistory?.completed || {}).filter(Boolean).length;
-
-        return (
-          <div
-            key={dateStr}
-            className={`day-card${isToday ? ' today' : ''}`}
-            onClick={() => setSelectedDay(dateStr)}
-          >
-            {/* Status bar */}
-            <div className="day-card-status-bar" style={{ background: statusCfg.barColor }} />
-
-            {/* Día */}
-            <div style={{ width: 40, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                {DAY_NAMES_SHORT[d.getDay()]}
-              </div>
-              <div style={{
-                fontSize: 22, fontWeight: 800,
-                color: isToday ? '#1D3461' : '#1A2332',
-                lineHeight: 1.1, letterSpacing: '-0.02em',
-              }}>
-                {d.getDate()}
-              </div>
-            </div>
-
-            {/* Contenido */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
-                <span className={`badge ${statusCfg.badgeClass}`}>{statusCfg.label}</span>
-                {isToday && (
-                  <span style={{
-                    fontSize: 9, color: 'white', fontWeight: 700,
-                    background: '#0A1628', borderRadius: 5, padding: '1px 5px',
-                    letterSpacing: '0.06em',
-                  }}>
-                    HOY
-                  </span>
-                )}
-                {gymDone && (
-                  <span style={{
-                    display: 'flex', alignItems: 'center', gap: 3,
-                    fontSize: 10, color: '#1565C0', fontWeight: 700,
-                    background: '#E3F2FD', padding: '2px 7px', borderRadius: 99,
-                  }}>
-                    <GymIcon size={10} /> Gym
-                  </span>
-                )}
-              </div>
-
-              {routine ? (
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1A2332', lineHeight: 1.3 }}>
-                    {routine.name}
-                  </div>
-                  {status === 'done' && doneExCount > 0 && (
-                    <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
-                      {doneExCount} ejercicios completados
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div style={{ fontSize: 12, color: '#94A3B8' }}>
-                  {gymDone ? 'Solo gimnasio' : 'Descanso'}
-                </div>
-              )}
-            </div>
-
-            {/* Flecha */}
-            <div style={{ color: '#CBD5E1', fontSize: 18, alignSelf: 'center', fontWeight: 300 }}>›</div>
+      {/* Legend */}
+      <div className="wk-legend">
+        {[
+          { color: C.indiv.bar,   label: 'Individual' },
+          { color: C.gym.bar,     label: 'Gym' },
+          { color: C.arsenal.bar, label: 'Arsenal' },
+          { color: C.match.bar,   label: 'Partido' },
+        ].map(({ color, label }) => (
+          <div key={label} className="wk-legend-item">
+            <div className="wk-legend-dot" style={{ background: color }} />
+            <span>{label}</span>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
