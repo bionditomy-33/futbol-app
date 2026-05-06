@@ -1,430 +1,346 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
-import { ChevronLeft, TrophyIcon } from '../components/Icons';
+import { ChevronLeft } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
 
 const TODAY = todayStr();
 
-const MONTHS_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-const MONTHS_FULL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MONTHS_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const MONTHS_FULL  = ['enero','febrero','marzo','abril','mayo','junio',
+                      'julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DAY_SHORT = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const DAY_FULL  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
-// Activity colors
-const C = {
-  gym:      { bar: '#2D3E50', text: '#fff' },
-  indiv:    { bar: '#3E7A5C', text: '#fff' },
-  arsenal:  { bar: '#8B4513', text: '#fff' },
-  match:    { bar: '#C17817', text: '#fff' },
-  missedIndiv: { bar: '#DC2626', text: '#fff' },
+const ACT_COLORS = {
+  gym:     { bg: '#E6F1FB', title: '#0C447C', sub: '#185FA5' },
+  indiv:   { bg: '#E1F5EE', title: '#085041', sub: '#0F6E56' },
+  arsenal: { bg: '#FAEEDA', title: '#633806', sub: '#854F0B' },
+  match:   { bg: '#FAECE7', title: '#712B13', sub: '#993C1D' },
 };
+const ACT_SHORT = { gym: 'Gym', indiv: 'Indiv.', arsenal: 'Arsenal', match: 'Partido' };
 
-function ShieldIcon({ size = 14 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7 1L2 3.5V7C2 10 4.5 12.5 7 13C9.5 12.5 12 10 12 7V3.5L7 1Z" />
-    </svg>
-  );
+function getSlot(time) {
+  if (!time || time < '13:00') return 'morning';
+  if (time < '18:00') return 'afternoon';
+  return 'evening';
 }
 
-function WeightIcon({ size = 10 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-      <rect x="1" y="6" width="3" height="2" rx="0.5" />
-      <rect x="10" y="6" width="3" height="2" rx="0.5" />
-      <rect x="4" y="4.5" width="1.5" height="5" rx="0.5" />
-      <rect x="8.5" y="4.5" width="1.5" height="5" rx="0.5" />
-      <line x1="5.5" y1="7" x2="8.5" y2="7" />
-    </svg>
-  );
+function timeToMinutes(t) {
+  if (!t) return 0;
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + (m || 0);
 }
 
-function SmallBall({ size = 9 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.4">
-      <circle cx="5" cy="5" r="4" />
-      <path d="M5,1 L5,9" />
-      <path d="M3,2 C3.5,4 3.5,6 3,8" />
-      <path d="M7,2 C6.5,4 6.5,6 7,8" />
-    </svg>
-  );
-}
-
-// Get activities for a given day from data sources
 function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
+  const dow  = new Date(dateStr + 'T12:00:00').getDay();
+  const tmpl = weekTemplate?.[dow] || {};
+  const day  = history[dateStr];
   const acts = [];
-  const day = history[dateStr];
-  const dow = new Date(dateStr + 'T12:00:00').getDay();
-  const tmpl = weekTemplate?.[dow];
-
-  // Individual routine
-  const schedRoutineId = schedule[dateStr];
-  const histRoutineId  = day?.routineId;
-  if (day?.done) {
-    acts.push({ type: 'indiv', done: true, routineId: histRoutineId });
-  } else if (schedRoutineId) {
-    const missed = dateStr < TODAY;
-    acts.push({ type: 'indiv', done: false, missed, routineId: schedRoutineId });
-  } else if (tmpl?.routineId && dateStr >= TODAY) {
-    acts.push({ type: 'indiv', done: false, missed: false, routineId: tmpl.routineId, fromTemplate: true });
-  }
 
   // Gym
-  if (day?.gym) {
-    acts.push({ type: 'gym', done: true });
-  } else if (tmpl?.gym && !day?.gym && dateStr >= TODAY) {
-    acts.push({ type: 'gym', done: false, fromTemplate: true });
+  if (day?.gym || tmpl.gym) {
+    acts.push({
+      type: 'gym',
+      time: tmpl.gymTime || tmpl.time || '07:00',
+      done: !!day?.gym,
+      fromTemplate: !day?.gym && !!tmpl.gym,
+    });
+  }
+
+  // Individual routine
+  const schedId = schedule[dateStr];
+  const histId  = day?.done ? day.routineId : null;
+  const tmplId  = tmpl.routineId;
+  if (histId || schedId || tmplId) {
+    acts.push({
+      type: 'indiv',
+      time: tmpl.indivTime || '08:10',
+      done: !!day?.done,
+      missed: !day?.done && !!schedId && dateStr < TODAY,
+      routineId: histId || schedId || tmplId,
+      fromTemplate: !schedId && !day?.done && !!tmplId,
+    });
   }
 
   // Arsenal
-  if (tmpl?.arsenal) {
-    acts.push({ type: 'arsenal', done: false, fromTemplate: dateStr >= TODAY });
+  if (tmpl.arsenal) {
+    acts.push({
+      type: 'arsenal',
+      time: tmpl.arsenalTime || '19:30',
+      done: false,
+    });
   }
 
-  // Match
+  // Matches (real data)
+  const defaultMatchTime = dow === 6 ? '15:00' : dow === 0 ? '16:00' : '15:00';
   const dayMatches = matches.filter(m => m.date === dateStr);
-  dayMatches.forEach(m => acts.push({ type: 'match', done: true, match: m }));
-  if (tmpl?.match && dayMatches.length === 0 && dateStr >= TODAY) {
-    acts.push({ type: 'match', done: false, fromTemplate: true });
+  dayMatches.forEach(m => acts.push({
+    type: 'match',
+    time: tmpl.matchTime || defaultMatchTime,
+    done: true,
+    match: m,
+  }));
+
+  // Match from template only
+  if (tmpl.match && dayMatches.length === 0) {
+    acts.push({
+      type: 'match',
+      time: tmpl.matchTime || defaultMatchTime,
+      done: false,
+      fromTemplate: true,
+    });
   }
 
-  return acts;
+  return acts.sort((a, b) => a.time.localeCompare(b.time));
 }
 
-// ── Mini bars for the week grid cell ─────────────────────────────────────────
-function DayBars({ acts, isToday, isPast }) {
-  if (acts.length === 0) return null;
-
-  const gymAct   = acts.find(a => a.type === 'gym');
-  const indivAct = acts.find(a => a.type === 'indiv');
-  const arsenalAct = acts.find(a => a.type === 'arsenal');
-  const matchAct = acts.find(a => a.type === 'match');
-
-  const opacity = (act) => (act.fromTemplate && !act.done) ? 0.35 : 1;
-
-  const bars = [];
-
-  // Combined gym+individual row, or individual alone, or gym alone
-  if (gymAct && indivAct) {
-    bars.push(
-      <div key="session" className="wk-bar-split" style={{ opacity: Math.max(opacity(gymAct), opacity(indivAct)) }}>
-        <div className="wk-bar-half" style={{ background: C.gym.bar }}>
-          <WeightIcon size={8} />
-        </div>
-        <div className="wk-bar-half" style={{ background: indivAct.missed ? C.missedIndiv.bar : C.indiv.bar }}>
-          <SmallBall size={8} />
-        </div>
-      </div>
-    );
-  } else if (indivAct) {
-    bars.push(
-      <div key="indiv" className="wk-bar" style={{ background: indivAct.missed ? C.missedIndiv.bar : C.indiv.bar, opacity: opacity(indivAct) }}>
-        <SmallBall size={8} />
-      </div>
-    );
-  } else if (gymAct) {
-    bars.push(
-      <div key="gym" className="wk-bar" style={{ background: C.gym.bar, opacity: opacity(gymAct) }}>
-        <WeightIcon size={8} />
-      </div>
-    );
-  }
-
-  if (arsenalAct) {
-    bars.push(
-      <div key="arsenal" className="wk-bar" style={{ background: C.arsenal.bar, opacity: opacity(arsenalAct) }}>
-        <ShieldIcon size={8} />
-      </div>
-    );
-  }
-  if (matchAct) {
-    bars.push(
-      <div key="match" className="wk-bar" style={{ background: C.match.bar, opacity: opacity(matchAct) }}>
-        <TrophyIcon size={8} />
-      </div>
-    );
-  }
-
-  return <div className="wk-bars">{bars}</div>;
-}
-
-// ── Day detail (Estado 2) ──────────────────────────────────────────────────
-function DayDetail({ dateStr, onBack, schedule, history, routines, matches, weekTemplate }) {
-  const [editing, setEditing] = useState(false);
-  const d = new Date(dateStr + 'T12:00:00');
-  const isToday = dateStr === TODAY;
-  const acts = getDayActivities(dateStr, schedule, history, matches, weekTemplate);
-  const dayHistory = history[dateStr];
-
-  const dayLabel = DAY_FULL[d.getDay()];
-  const dateLabel = `${d.getDate()} de ${MONTHS_FULL[d.getMonth()]}`;
-
-  if (editing) {
-    return (
-      <div className="page-content">
-        <div className="wk-detail-header">
-          <button className="btn btn-ghost" style={{ padding: '6px 8px' }} onClick={() => setEditing(false)}>
-            <ChevronLeft size={18} />
-          </button>
-          <div>
-            <div className="wk-detail-title">{dayLabel}</div>
-            <div className="wk-detail-sub">{dateLabel}</div>
-          </div>
-        </div>
-        <DayEditor dateStr={dateStr} />
-      </div>
-    );
-  }
-
+// ── Grid activity block (tiny, inside the 7-col grid) ─────────────────────────
+function ActBlock({ act }) {
+  const c = ACT_COLORS[act.type];
   return (
-    <div className="page-content">
-      <div className="wk-detail-header">
-        <button className="btn btn-ghost" style={{ padding: '6px 8px' }} onClick={onBack}>
-          <ChevronLeft size={18} />
-        </button>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span className="wk-detail-title">{dayLabel}</span>
-            {isToday && <span className="wk-today-badge">HOY</span>}
-            <span className="wk-act-count">{acts.length} actividad{acts.length !== 1 ? 'es' : ''}</span>
-          </div>
-          <div className="wk-detail-sub">{dateLabel}</div>
-        </div>
-      </div>
-
-      <div className="wk-timeline">
-        {acts.length === 0 && (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: '#94A3B8', fontSize: 14 }}>
-            Día de descanso
-          </div>
-        )}
-        {acts.map((act, i) => {
-          const isLast = i === acts.length - 1;
-          return (
-            <TimelineCard
-              key={`${act.type}-${i}`}
-              act={act}
-              isLast={isLast}
-              routines={routines}
-              dayHistory={dayHistory}
-              dateStr={dateStr}
-            />
-          );
-        })}
-      </div>
-
-      <div style={{ padding: '0 16px 32px' }}>
-        <button className="btn btn-primary btn-full" onClick={() => setEditing(true)}>
-          Editar día
-        </button>
-      </div>
+    <div
+      className="wk2-block"
+      style={{ background: c.bg, opacity: act.fromTemplate && !act.done ? 0.55 : 1 }}
+    >
+      <span className="wk2-block-name" style={{ color: c.title }}>{ACT_SHORT[act.type]}</span>
+      <span className="wk2-block-time" style={{ color: c.sub }}>{act.time}</span>
     </div>
   );
 }
 
-function TimelineCard({ act, isLast, routines, dayHistory, dateStr }) {
-  const isPast = dateStr < TODAY;
-  const isToday = dateStr === TODAY;
+// ── Activity row in day detail ─────────────────────────────────────────────────
+function ActivityRow({ act, routines }) {
+  const c = ACT_COLORS[act.type];
+  let title = '', subtitle = '';
 
-  let icon, borderColor, title, subtitle, statusEl;
-
-  if (act.type === 'indiv') {
-    const routine = routines.find(r => r.id === act.routineId);
-    const totalEx = routine?.phases?.reduce((s, p) => s + p.exercises.length, 0) || 0;
-    const doneEx  = Object.values(dayHistory?.completed || {}).filter(Boolean).length;
-    icon = <SmallBall size={14} />;
-    borderColor = act.missed ? C.missedIndiv.bar : C.indiv.bar;
-    title = routine ? routine.name : 'Entrenamiento individual';
-    subtitle = routine?.subtitle || '';
-    if (act.done) {
-      statusEl = (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-          <span className="tl-badge tl-badge-done">✓ Hecho</span>
-          {totalEx > 0 && (
-            <div className="tl-progress-bar">
-              <div className="tl-progress-fill" style={{ width: `${Math.round((doneEx / totalEx) * 100)}%` }} />
-            </div>
-          )}
-        </div>
-      );
-    } else if (act.missed) {
-      statusEl = <span className="tl-badge tl-badge-missed">No hecho</span>;
-    } else if (isToday) {
-      statusEl = <span className="tl-badge tl-badge-now">AHORA</span>;
-    } else {
-      statusEl = <span className="tl-badge tl-badge-plan">Planificado</span>;
-    }
-  } else if (act.type === 'gym') {
-    icon = <WeightIcon size={14} />;
-    borderColor = C.gym.bar;
+  if (act.type === 'gym') {
     title = 'Gimnasio';
-    subtitle = '';
-    statusEl = act.done
-      ? <span className="tl-badge tl-badge-done">✓ Hecho</span>
-      : <span className="tl-badge tl-badge-plan">Planificado</span>;
+  } else if (act.type === 'indiv') {
+    const r = routines.find(r => r.id === act.routineId);
+    title = r ? r.name : 'Entrenamiento individual';
+    if (r) {
+      const phases = r.phases?.length || 0;
+      const dur    = r.duration || '';
+      subtitle = [phases > 0 ? `${phases} fases` : '', dur].filter(Boolean).join(' · ');
+    }
   } else if (act.type === 'arsenal') {
-    icon = <ShieldIcon size={14} />;
-    borderColor = C.arsenal.bar;
     title = 'Arsenal';
     subtitle = 'Entrenamiento con el equipo';
-    statusEl = <span className="tl-badge tl-badge-plan">Planificado</span>;
   } else if (act.type === 'match') {
-    icon = <TrophyIcon size={14} />;
-    borderColor = C.match.bar;
     title = act.match?.competition || 'Partido';
-    subtitle = act.match ? (
-      act.match.result === 'ganamos' ? 'Ganamos' :
-      act.match.result === 'perdimos' ? 'Perdimos' : 'Empate'
-    ) : 'Planificado';
-    statusEl = act.done
-      ? <span className="tl-badge tl-badge-done">✓ Jugado</span>
-      : <span className="tl-badge tl-badge-plan">Planificado</span>;
+    if (act.match?.result) {
+      const labels = { ganamos: 'Ganamos', perdimos: 'Perdimos', empate: 'Empate' };
+      subtitle = labels[act.match.result] || '';
+      if (act.match.minutes) subtitle += ` · ${act.match.minutes} min`;
+    }
   }
 
-  const iconBg = act.type === 'gym' ? '#E8EDF5'
-    : act.type === 'indiv' ? '#E8F5EE'
-    : act.type === 'arsenal' ? '#F5EDE8'
-    : '#FDF4E3';
-  const iconColor = act.type === 'gym' ? '#2D3E50'
-    : act.type === 'indiv' ? '#3E7A5C'
-    : act.type === 'arsenal' ? '#8B4513'
-    : '#C17817';
-
   return (
-    <div className="tl-item">
-      <div className="tl-left">
-        <div className="tl-icon-wrap" style={{ background: iconBg, color: iconColor }}>
-          {icon}
-        </div>
-        {!isLast && <div className="tl-line" />}
-      </div>
-      <div className="tl-card" style={{ borderLeftColor: borderColor }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-          <div style={{ minWidth: 0 }}>
-            <div className="tl-card-title">{title}</div>
-            {subtitle && <div className="tl-card-sub">{subtitle}</div>}
-          </div>
-          {statusEl}
-        </div>
+    <div className="wk2-act-row">
+      <div className="wk2-act-time">{act.time}</div>
+      <div className="wk2-act-pill" style={{ background: c.bg }}>
+        <div className="wk2-act-title" style={{ color: c.title }}>{title}</div>
+        {subtitle && <div className="wk2-act-sub" style={{ color: c.sub }}>{subtitle}</div>}
       </div>
     </div>
   );
 }
 
-// ── Main Semana component ──────────────────────────────────────────────────
+function GapIndicator({ gapMins }) {
+  const hrs = (gapMins / 60).toFixed(1).replace('.0', '');
+  return (
+    <div className="wk2-gap">
+      <div className="wk2-gap-line" />
+      <span className="wk2-gap-label">~{hrs} hs libre</span>
+    </div>
+  );
+}
+
+// ── Main Semana component ──────────────────────────────────────────────────────
 export default function Semana() {
   const { routines, schedule, history, matches, weekTemplate, applyWeekTemplate } = useStore();
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [selectedDay, setSelectedDay] = useState(null);
+
+  const [weekOffset,      setWeekOffset]      = useState(0);
+  const [selectedDateStr, setSelectedDateStr] = useState(TODAY);
+  const [editing,         setEditing]         = useState(false);
 
   const baseDate = new Date();
   baseDate.setDate(baseDate.getDate() + weekOffset * 7);
-  const weekDays = getWeekDays(baseDate);
+  const weekDays     = getWeekDays(baseDate);
   const weekDateStrs = weekDays.map(d => toDateStr(d));
 
-  // Auto-apply template if this week has no schedule entries
+  // When week changes: snap selection to today (if in current week) or Monday
   useEffect(() => {
-    if (!weekTemplate || Object.keys(weekTemplate).length === 0) return;
-    const hasAny = weekDateStrs.some(ds => schedule[ds]);
-    if (!hasAny) {
-      applyWeekTemplate(weekDateStrs);
+    setSelectedDateStr(weekOffset === 0 ? TODAY : weekDateStrs[0]);
+    // Auto-apply template when this week has no schedule entries
+    if (weekTemplate && Object.keys(weekTemplate).length > 0) {
+      const hasAny = weekDateStrs.some(ds => schedule[ds]);
+      if (!hasAny) applyWeekTemplate(weekDateStrs);
     }
-  // only run when week changes, not on every render
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekOffset]);
 
-  // Week label
-  const firstDay = weekDays[0];
-  const lastDay  = weekDays[6];
-  const sameMonth = firstDay.getMonth() === lastDay.getMonth();
-  const weekLabel = sameMonth
-    ? `${firstDay.getDate()} — ${lastDay.getDate()} de ${MONTHS_FULL[firstDay.getMonth()]}`
-    : `${firstDay.getDate()} ${MONTHS_ES[firstDay.getMonth()]} — ${lastDay.getDate()} ${MONTHS_ES[lastDay.getMonth()]}`;
+  // Pre-compute activities for each day in the week
+  const dayActs = useMemo(() => {
+    const map = {};
+    weekDateStrs.forEach(ds => {
+      map[ds] = getDayActivities(ds, schedule, history, matches, weekTemplate);
+    });
+    return map;
+  }, [schedule, history, matches, weekTemplate, weekOffset]);
 
-  if (selectedDay) {
+  // Week range label
+  const d0 = weekDays[0], d6 = weekDays[6];
+  const weekLabel = d0.getMonth() === d6.getMonth()
+    ? `${d0.getDate()} — ${d6.getDate()} de ${MONTHS_FULL[d0.getMonth()]}`
+    : `${d0.getDate()} ${MONTHS_SHORT[d0.getMonth()]} — ${d6.getDate()} ${MONTHS_SHORT[d6.getMonth()]}`;
+
+  // Selected day data
+  const selActs      = dayActs[selectedDateStr] || [];
+  const selDate      = new Date(selectedDateStr + 'T12:00:00');
+  const isSelToday   = selectedDateStr === TODAY;
+
+  // Edit mode: full-page DayEditor
+  if (editing) {
     return (
-      <DayDetail
-        dateStr={selectedDay}
-        onBack={() => setSelectedDay(null)}
-        schedule={schedule}
-        history={history}
-        routines={routines}
-        matches={matches}
-        weekTemplate={weekTemplate}
-      />
+      <div className="page-content">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px 12px', background: 'white', borderBottom: '1px solid var(--border-color)' }}>
+          <button className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={() => setEditing(false)}>
+            <ChevronLeft size={18} />
+          </button>
+          <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>
+            {DAY_FULL[selDate.getDay()]}, {selDate.getDate()} de {MONTHS_FULL[selDate.getMonth()]}
+          </span>
+        </div>
+        <DayEditor dateStr={selectedDateStr} />
+      </div>
     );
   }
 
+  const FRANJAS = [
+    { id: 'morning',   label: 'Mañana' },
+    { id: 'afternoon', label: 'Tarde' },
+    { id: 'evening',   label: 'Noche' },
+  ];
+
   return (
     <div className="page-content">
-      {/* Week navigation */}
-      <div className="wk-nav">
-        <button className="wk-nav-btn" onClick={() => setWeekOffset(o => o - 1)}>‹</button>
-        <div className="wk-nav-center">
-          <div className="wk-nav-label">{weekLabel}</div>
+
+      {/* ── Week navigation ── */}
+      <div className="wk2-nav">
+        <button className="wk2-nav-btn" onClick={() => setWeekOffset(o => o - 1)}>‹</button>
+        <div className="wk2-nav-center">
+          <div className="wk2-nav-label">{weekLabel}</div>
           {weekOffset !== 0 && (
-            <button className="wk-nav-today-btn" onClick={() => setWeekOffset(0)}>
-              Hoy
-            </button>
+            <button className="wk2-nav-today-btn" onClick={() => setWeekOffset(0)}>Hoy</button>
           )}
         </div>
-        <button className="wk-nav-btn" onClick={() => setWeekOffset(o => o + 1)}>›</button>
+        <button className="wk2-nav-btn" onClick={() => setWeekOffset(o => o + 1)}>›</button>
       </div>
 
-      {/* Apply template button */}
+      {/* ── Apply template banner ── */}
       {weekTemplate && Object.keys(weekTemplate).length > 0 && (
-        <div style={{ padding: '8px 12px', background: '#F8FAFC', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 12, color: '#64748B' }}>Semana tipo disponible</span>
-          <button
-            style={{ fontSize: 12, fontWeight: 700, color: '#3E7A5C', background: 'none', border: '1.5px solid #3E7A5C', borderRadius: 7, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit' }}
-            onClick={() => applyWeekTemplate(weekDateStrs)}
-          >
-            Aplicar
-          </button>
+        <div className="wk2-apply-bar">
+          <span>Semana tipo disponible</span>
+          <button onClick={() => applyWeekTemplate(weekDateStrs)}>Aplicar</button>
         </div>
       )}
 
-      {/* Week grid */}
-      <div className="wk-grid-wrap">
-        {/* Day headers */}
-        <div className="wk-grid">
-          {weekDays.map((d, i) => {
-            const dateStr = weekDateStrs[i];
-            const isToday = dateStr === TODAY;
-            const isPast  = dateStr < TODAY;
-            const acts    = getDayActivities(dateStr, schedule, history, matches, weekTemplate);
-            const hasActs = acts.length > 0;
+      {/* ── Weekly grid ── */}
+      <div className="wk2-grid-wrap">
+        <div className="wk2-grid">
 
+          {/* Day name + number circles */}
+          {weekDays.map((d, i) => {
+            const ds    = weekDateStrs[i];
+            const isSel = ds === selectedDateStr;
+            const isTod = ds === TODAY;
             return (
-              <div
-                key={dateStr}
-                className={`wk-cell${isToday ? ' wk-cell-today' : ''}${!hasActs && isPast ? ' wk-cell-empty-past' : ''}`}
-                onClick={() => setSelectedDay(dateStr)}
-              >
-                <div className="wk-cell-dayname">{DAY_SHORT[d.getDay()]}</div>
-                <div className="wk-cell-daynum">{d.getDate()}</div>
-                <DayBars acts={acts} isToday={isToday} isPast={isPast} />
+              <div key={`h-${ds}`} className="wk2-day-col" onClick={() => setSelectedDateStr(ds)}>
+                <div className="wk2-day-name">{DAY_SHORT[d.getDay()]}</div>
+                <div className={`wk2-day-circle${isSel ? ' wk2-day-sel' : isTod ? ' wk2-day-tod' : ''}`}>
+                  {d.getDate()}
+                </div>
               </div>
             );
           })}
+
+          {/* Three time franjas */}
+          {FRANJAS.map((franja, fi) => (
+            <div key={franja.id} style={{ display: 'contents' }}>
+              <div
+                className={`wk2-franja-label${fi > 0 ? ' wk2-franja-sep' : ''}`}
+                style={{ gridColumn: '1 / -1' }}
+              >
+                {franja.label}
+              </div>
+              {weekDateStrs.map(ds => {
+                const acts = (dayActs[ds] || []).filter(a => getSlot(a.time) === franja.id);
+                return (
+                  <div
+                    key={`${franja.id}-${ds}`}
+                    className={`wk2-franja-cell${ds === selectedDateStr ? ' wk2-franja-cell-sel' : ''}`}
+                    onClick={() => setSelectedDateStr(ds)}
+                  >
+                    {acts.length === 0
+                      ? <span className="wk2-empty">—</span>
+                      : acts.map((act, ai) => <ActBlock key={ai} act={act} />)
+                    }
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        {/* Legend */}
+        <div className="wk2-legend">
+          {Object.entries(ACT_COLORS).map(([type, c]) => (
+            <div key={type} className="wk2-legend-item">
+              <div className="wk2-legend-dot" style={{ background: c.bg, borderColor: c.sub }} />
+              <span style={{ color: c.title }}>{ACT_SHORT[type]}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="wk-legend">
-        {[
-          { color: C.indiv.bar,   label: 'Individual' },
-          { color: C.gym.bar,     label: 'Gym' },
-          { color: C.arsenal.bar, label: 'Arsenal' },
-          { color: C.match.bar,   label: 'Partido' },
-        ].map(({ color, label }) => (
-          <div key={label} className="wk-legend-item">
-            <div className="wk-legend-dot" style={{ background: color }} />
-            <span>{label}</span>
+      {/* ── Day detail panel ── */}
+      <div className="wk2-detail">
+        <div className="wk2-detail-hdr">
+          <div>
+            <span className="wk2-detail-day">
+              {DAY_FULL[selDate.getDay()]} {selDate.getDate()}
+            </span>
+            {isSelToday && <span className="wk2-detail-today"> · hoy</span>}
           </div>
-        ))}
+          <span className="wk2-detail-count">
+            {selActs.length === 0 ? 'Sin actividades' : `${selActs.length} actividad${selActs.length !== 1 ? 'es' : ''}`}
+          </span>
+        </div>
+
+        {selActs.length === 0 ? (
+          <div className="wk2-detail-empty">Descanso</div>
+        ) : (
+          selActs.map((act, i) => {
+            const prev    = selActs[i - 1];
+            const gapMins = prev ? timeToMinutes(act.time) - timeToMinutes(prev.time) : 0;
+            return (
+              <div key={i}>
+                {gapMins > 120 && <GapIndicator gapMins={gapMins} />}
+                <ActivityRow act={act} routines={routines} />
+              </div>
+            );
+          })
+        )}
+
+        <div style={{ marginTop: 14 }}>
+          <button className="btn btn-primary btn-full" onClick={() => setEditing(true)}>
+            Editar día
+          </button>
+        </div>
       </div>
+
     </div>
   );
 }

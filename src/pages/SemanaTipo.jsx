@@ -14,17 +14,22 @@ const WEEK_DAYS = [
 ];
 
 function emptyDay() {
-  return { routineId: null, gym: false, arsenal: false, match: false, time: '' };
+  return {
+    routineId: null,
+    gym: false, gymTime: '',
+    arsenal: false, arsenalTime: '',
+    match: false, matchTime: '',
+    indivTime: '',
+  };
 }
 
 export default function SemanaTipo({ onBack }) {
   const { weekTemplate, routines, saveWeekTemplate } = useStore();
 
-  // local copy while editing
   const [draft, setDraft] = useState(() => {
     const base = {};
     WEEK_DAYS.forEach(({ dow }) => {
-      base[dow] = weekTemplate[dow] ? { ...weekTemplate[dow] } : emptyDay();
+      base[dow] = weekTemplate[dow] ? { ...emptyDay(), ...weekTemplate[dow] } : emptyDay();
     });
     return base;
   });
@@ -97,67 +102,83 @@ export default function SemanaTipo({ onBack }) {
                     ))}
                   </select>
                 </div>
+                {day.routineId && (
+                  <TimeInput
+                    value={day.indivTime}
+                    onChange={v => setDay(dow, { indivTime: v })}
+                    placeholder="08:10"
+                  />
+                )}
               </div>
 
               {/* Gym */}
-              <label className="wt-row wt-checkbox-row">
+              <div className="wt-row">
                 <div className="wt-row-icon" style={{ background: '#E8EDF5', color: '#2D3E50' }}>
                   <GymIcon size={14} />
                 </div>
-                <span className="wt-row-label" style={{ flex: 1 }}>Gimnasio</span>
-                <input
-                  type="checkbox"
-                  className="wt-checkbox"
-                  checked={day.gym}
-                  onChange={e => setDay(dow, { gym: e.target.checked })}
-                />
-              </label>
+                <label style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 0, cursor: 'pointer' }}>
+                  <span className="wt-row-label" style={{ flex: 1 }}>Gimnasio</span>
+                  <input
+                    type="checkbox"
+                    className="wt-checkbox"
+                    checked={day.gym}
+                    onChange={e => setDay(dow, { gym: e.target.checked })}
+                  />
+                </label>
+                {day.gym && (
+                  <TimeInput
+                    value={day.gymTime}
+                    onChange={v => setDay(dow, { gymTime: v })}
+                    placeholder="07:00"
+                  />
+                )}
+              </div>
 
               {/* Arsenal */}
-              <label className="wt-row wt-checkbox-row">
+              <div className="wt-row">
                 <div className="wt-row-icon" style={{ background: '#F5EDE8', color: '#8B4513' }}>
                   <ShieldIcon size={14} />
                 </div>
-                <span className="wt-row-label" style={{ flex: 1 }}>Entrenamiento Arsenal</span>
-                <input
-                  type="checkbox"
-                  className="wt-checkbox"
-                  checked={day.arsenal}
-                  onChange={e => setDay(dow, { arsenal: e.target.checked })}
-                />
-              </label>
+                <label style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <span className="wt-row-label" style={{ flex: 1 }}>Entrenamiento Arsenal</span>
+                  <input
+                    type="checkbox"
+                    className="wt-checkbox"
+                    checked={day.arsenal}
+                    onChange={e => setDay(dow, { arsenal: e.target.checked })}
+                  />
+                </label>
+                {day.arsenal && (
+                  <TimeInput
+                    value={day.arsenalTime}
+                    onChange={v => setDay(dow, { arsenalTime: v })}
+                    placeholder="19:30"
+                  />
+                )}
+              </div>
 
               {/* Partido */}
-              <label className="wt-row wt-checkbox-row">
+              <div className="wt-row">
                 <div className="wt-row-icon" style={{ background: '#FDF4E3', color: '#C17817' }}>
                   <TrophyIcon size={14} />
                 </div>
-                <span className="wt-row-label" style={{ flex: 1 }}>Partido</span>
-                <input
-                  type="checkbox"
-                  className="wt-checkbox"
-                  checked={day.match}
-                  onChange={e => setDay(dow, { match: e.target.checked })}
-                />
-              </label>
-
-              {/* Horario */}
-              {active && (
-                <div className="wt-row">
-                  <div className="wt-row-icon" style={{ background: '#F1F5F9', color: '#64748B', fontSize: 11, fontWeight: 700 }}>
-                    ⏰
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <span className="wt-row-label">Horario aproximado (opcional)</span>
-                    <input
-                      type="time"
-                      className="wt-time-input"
-                      value={day.time || ''}
-                      onChange={e => setDay(dow, { time: e.target.value })}
-                    />
-                  </div>
-                </div>
-              )}
+                <label style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <span className="wt-row-label" style={{ flex: 1 }}>Partido</span>
+                  <input
+                    type="checkbox"
+                    className="wt-checkbox"
+                    checked={day.match}
+                    onChange={e => setDay(dow, { match: e.target.checked })}
+                  />
+                </label>
+                {day.match && (
+                  <TimeInput
+                    value={day.matchTime}
+                    onChange={v => setDay(dow, { matchTime: v })}
+                    placeholder="15:00"
+                  />
+                )}
+              </div>
             </div>
           );
         })}
@@ -173,6 +194,19 @@ export default function SemanaTipo({ onBack }) {
         </button>
       </div>
     </div>
+  );
+}
+
+function TimeInput({ value, onChange, placeholder }) {
+  return (
+    <input
+      type="time"
+      className="wt-time-input"
+      value={value || ''}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+      style={{ width: 80, flexShrink: 0 }}
+    />
   );
 }
 
