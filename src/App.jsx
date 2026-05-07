@@ -174,7 +174,10 @@ export default function App() {
 
       {/* Pages */}
       {mainTab === 'inicio' && (
-        <Hoy onGoToDesafios={() => { setMainTab('mas'); setMasView('planes'); }} />
+        <Hoy
+          onGoToDesafios={() => { setMainTab('mas'); setMasView('planes'); }}
+          onGoToEntreno={() => { setMainTab('entreno'); setEntrenoTab('semana'); }}
+        />
       )}
 
       {mainTab === 'entreno' && (
