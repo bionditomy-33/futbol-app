@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useStore, getPlanProgress } from '../store/useStore';
 import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
 import { CalendarIcon } from '../components/Icons';
@@ -150,7 +150,8 @@ const SECTION_LABEL_STYLE = {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
-  const { routines, schedule, history, matches, weekTemplate, plans } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate } = useStore();
+  const [templateSuggestionDismissed, setTemplateSuggestionDismissed] = useState(false);
 
   const weekDateStrs = useMemo(() => getWeekDays(new Date()).map(d => toDateStr(d)), []);
 
@@ -303,6 +304,41 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
           </div>
         </div>
       )}
+
+      {/* ── Sugerencia de semana tipo al inicio del plan ── */}
+      {(() => {
+        if (templateSuggestionDismissed) return null;
+        const plan = plans.find(p => p.status !== 'completed' && p.weekTemplateId && TODAY === p.startDate);
+        if (!plan) return null;
+        const tmpl = weekTemplates.find(t => t.id === plan.weekTemplateId);
+        if (!tmpl) return null;
+        function applyPlanTemplate() {
+          const d = new Date(plan.startDate + 'T12:00:00');
+          const end = new Date(plan.endDate + 'T12:00:00');
+          const dates = [];
+          while (d <= end) { dates.push(toDateStr(d)); d.setDate(d.getDate() + 1); }
+          applyWeekTemplate(dates, tmpl.days);
+          setTemplateSuggestionDismissed(true);
+        }
+        return (
+          <div style={{ margin: '12px 16px 0', padding: '12px 14px', background: '#EEF4FF', borderRadius: 10, border: '1px solid #C7D7F5' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1D3461', marginBottom: 6 }}>
+              "{plan.name}" comienza hoy
+            </div>
+            <div style={{ fontSize: 12, color: '#334155', marginBottom: 10 }}>
+              ¿Aplicar la semana tipo <strong>{tmpl.name}</strong> al período del plan?
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setTemplateSuggestionDismissed(true)} style={{ flex: 1, padding: '7px', borderRadius: 8, border: '1px solid #C7D7F5', background: 'white', fontSize: 12, color: '#64748B', cursor: 'pointer', fontFamily: 'inherit' }}>
+                Luego
+              </button>
+              <button onClick={applyPlanTemplate} style={{ flex: 2, padding: '7px', borderRadius: 8, border: 'none', background: '#1D3461', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Aplicar al plan
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── HOY ── */}
       <div style={{ padding: '14px 16px 0' }}>

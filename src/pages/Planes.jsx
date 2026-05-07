@@ -36,6 +36,7 @@ function emptyForm() {
     targetSessions: '',
     targetSessionsManual: false,
     initialRating: 5,
+    weekTemplateId: null,
   };
 }
 
@@ -64,7 +65,7 @@ const ACTIVITY_OPTIONS = [
 ];
 
 export default function Planes({ onBack }) {
-  const { routines, history, plans, createPlan, completePlan, deletePlan, updatePlan } = useStore();
+  const { routines, history, plans, weekTemplates, createPlan, completePlan, deletePlan, updatePlan } = useStore();
   const [showForm, setShowForm]           = useState(false);
   const [editingId, setEditingId]         = useState(null);
   const [reopenOnSave, setReopenOnSave]   = useState(false);
@@ -167,6 +168,7 @@ export default function Planes({ onBack }) {
       targetIndividualSessions: indFreq && (form.activityType === 'individual' || form.activityType === 'both')
         ? indFreq * weeks : null,
       initialRating: form.initialRating,
+      weekTemplateId: form.weekTemplateId || null,
     };
   }
 
@@ -204,6 +206,7 @@ export default function Planes({ onBack }) {
       targetSessions: String(plan.targetSessions),
       targetSessionsManual: true,
       initialRating: plan.initialRating ?? 5,
+      weekTemplateId: plan.weekTemplateId || null,
     });
     setEditingId(plan.id);
     setReopenOnSave(reopen);
@@ -404,6 +407,30 @@ export default function Planes({ onBack }) {
             <RatingPicker value={form.initialRating} onChange={v => updateForm('initialRating', v)}
               label="¿Cómo estás en esto hoy? (1-10)" />
           </div>
+
+          {/* Semana tipo asociada */}
+          {weekTemplates.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">
+                Semana tipo asociada <span style={{ color: '#B0BEC5' }}>(opcional)</span>
+              </label>
+              <select
+                className="input"
+                value={form.weekTemplateId || ''}
+                onChange={e => updateForm('weekTemplateId', e.target.value || null)}
+              >
+                <option value="">— Sin semana tipo —</option>
+                {weekTemplates.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}{t.isDefault ? ' (predeterminada)' : ''}</option>
+                ))}
+              </select>
+              {form.weekTemplateId && (
+                <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
+                  Al activarse el plan, se sugerirá aplicar esta semana tipo al período del plan.
+                </div>
+              )}
+            </div>
+          )}
 
           {reopenOnSave && (
             <div style={{ padding: '10px 12px', borderRadius: 8, background: '#D1FAE5', fontSize: 12, color: '#065F46', fontWeight: 600, marginTop: 4 }}>
