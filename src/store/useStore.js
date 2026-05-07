@@ -218,14 +218,14 @@ function buildExerciseMap(catalog) {
 let listeners = [];
 
 let state = {
-  catalog:      INITIAL_CATALOG,
-  routines:     INITIAL_ROUTINES,
-  schedule:     {},
-  history:      {},
-  matches:      [],
-  plans:        [],
-  weekTemplate: {},
-  isReady:      false,
+  catalog:       INITIAL_CATALOG,
+  routines:      INITIAL_ROUTINES,
+  schedule:      {},
+  history:       {},
+  matches:       [],
+  plans:         [],
+  weekTemplates: [], // array of { id, name, days, isDefault }
+  isReady:       false,
 };
 
 export function getState() { return state; }
@@ -261,8 +261,8 @@ function initFirestore() {
   if (initialized) return;
   initialized = true;
 
-  // 'challenges' replaced by 'plans'; migration runs on first snapshot
-  const DOCS = ['catalog', 'routines', 'schedule', 'history', 'matches', 'plans', 'weekTemplate'];
+  // 'challenges' → 'plans' migration, 'weekTemplate' → 'weekTemplates' migration
+  const DOCS = ['catalog', 'routines', 'schedule', 'history', 'matches', 'plans', 'weekTemplates'];
 
   DOCS.forEach(docName => {
     const ref = doc(db, 'app', docName);
@@ -276,7 +276,6 @@ function initFirestore() {
             const data = legacySnap.exists() ? (legacySnap.data().data || []) : [];
             await setDoc(doc(db, 'app', 'plans'), { data });
             if (legacySnap.exists()) deleteDoc(doc(db, 'app', 'challenges'));
-            // onSnapshot fires again once the write lands; don't mark ready yet
           } catch (err) {
             console.error('[store] Plans migration failed:', err);
             setState({ plans: [] });
@@ -285,8 +284,30 @@ function initFirestore() {
           return;
         }
 
+        if (docName === 'weekTemplates') {
+          // Migrate from legacy single 'weekTemplate' doc if it exists
+          try {
+            const oldSnap = await getDoc(doc(db, 'app', 'weekTemplate'));
+            const oldDays = oldSnap.exists() ? (oldSnap.data().data || {}) : {};
+            const hasData = Object.keys(oldDays).length > 0;
+            const templates = hasData ? [{
+              id: `wt-${Date.now()}`,
+              name: 'Mi semana tipo',
+              days: oldDays,
+              isDefault: true,
+            }] : [];
+            await setDoc(doc(db, 'app', 'weekTemplates'), { data: templates });
+            if (oldSnap.exists()) deleteDoc(doc(db, 'app', 'weekTemplate'));
+          } catch (err) {
+            console.error('[store] weekTemplates migration failed:', err);
+            setState({ weekTemplates: [] });
+            onDocFirstLoad('weekTemplates');
+          }
+          return;
+        }
+
         let initialData;
-        if (docName === 'catalog')  initialData = INITIAL_CATALOG;
+        if (docName === 'catalog')   initialData = INITIAL_CATALOG;
         else if (docName === 'routines') initialData = INITIAL_ROUTINES;
         else if (docName === 'matches')  initialData = [];
         else initialData = {};
@@ -295,7 +316,8 @@ function initFirestore() {
         onDocFirstLoad(docName);
       } else {
         let data = snap.data().data;
-        if (docName === 'routines') data = migrateRoutines(data);
+        if (docName === 'routines')      data = migrateRoutines(data);
+        if (docName === 'weekTemplates') data = Array.isArray(data) ? data : [];
         setState({ [docName]: data });
         onDocFirstLoad(docName);
       }
@@ -319,8 +341,10 @@ export function useStore() {
     return () => { listeners = listeners.filter(l => l !== listener); };
   }, []);
 
-  const { catalog, routines, schedule, history, matches, weekTemplate, isReady } = state;
+  const { catalog, routines, schedule, history, matches, weekTemplates, isReady } = state;
   const exerciseMap = buildExerciseMap(catalog);
+  // Backward-compat: expose default template's days as weekTemplate
+  const weekTemplate = weekTemplates.find(t => t.isDefault)?.days || {};
 
   // ── Schedule ──────────────────────────────────────────────────────────────
   const assignRoutine = useCallback((dateStr, routineId) => {
@@ -507,27 +531,91 @@ export function useStore() {
     writeDoc('plans', next);
   }, []);
 
-  // ── Week Template ─────────────────────────────────────────────────────────
-  const saveWeekTemplate = useCallback((template) => {
-    setState({ weekTemplate: template });
-    writeDoc('weekTemplate', template);
+  // ── Week Templates ────────────────────────────────────────────────────────
+
+  const createWeekTemplate = useCallback(({ name, days }) => {
+    const tmpl = {
+      id: `wt-${Date.now()}`,
+      name: name || 'Nueva semana tipo',
+      days: days || {},
+      isDefault: state.weekTemplates.length === 0,
+    };
+    const next = [...state.weekTemplates, tmpl];
+    setState({ weekTemplates: next });
+    writeDoc('weekTemplates', next);
+    return tmpl.id;
   }, []);
 
-  const applyWeekTemplate = useCallback((weekDateStrs) => {
-    // weekDateStrs: array of dateStr for Mon–Sun
-    const tmpl = state.weekTemplate;
+  const updateWeekTemplate = useCallback((id, patch) => {
+    const next = state.weekTemplates.map(t => t.id === id ? { ...t, ...patch } : t);
+    setState({ weekTemplates: next });
+    writeDoc('weekTemplates', next);
+  }, []);
+
+  const deleteWeekTemplate = useCallback((id) => {
+    let next = state.weekTemplates.filter(t => t.id !== id);
+    if (next.length > 0 && !next.some(t => t.isDefault)) {
+      next = next.map((t, i) => i === 0 ? { ...t, isDefault: true } : t);
+    }
+    setState({ weekTemplates: next });
+    writeDoc('weekTemplates', next);
+  }, []);
+
+  const duplicateWeekTemplate = useCallback((id) => {
+    const src = state.weekTemplates.find(t => t.id === id);
+    if (!src) return;
+    const copy = {
+      ...JSON.parse(JSON.stringify(src)),
+      id: `wt-${Date.now()}`,
+      name: `${src.name} (copia)`,
+      isDefault: false,
+    };
+    const next = [...state.weekTemplates, copy];
+    setState({ weekTemplates: next });
+    writeDoc('weekTemplates', next);
+  }, []);
+
+  const setDefaultTemplate = useCallback((id) => {
+    const next = state.weekTemplates.map(t => ({ ...t, isDefault: t.id === id }));
+    setState({ weekTemplates: next });
+    writeDoc('weekTemplates', next);
+  }, []);
+
+  // Backward-compat shim: updates the default template's days
+  const saveWeekTemplate = useCallback((days) => {
+    const defIdx = state.weekTemplates.findIndex(t => t.isDefault);
+    if (defIdx >= 0) {
+      const next = state.weekTemplates.map(t => t.isDefault ? { ...t, days } : t);
+      setState({ weekTemplates: next });
+      writeDoc('weekTemplates', next);
+    } else {
+      const tmpl = { id: `wt-${Date.now()}`, name: 'Mi semana tipo', days, isDefault: true };
+      const next = [...state.weekTemplates, tmpl];
+      setState({ weekTemplates: next });
+      writeDoc('weekTemplates', next);
+    }
+  }, []);
+
+  // Apply a template's days to a set of date strings (sets schedule routineIds)
+  const applyWeekTemplate = useCallback((dateStrs, days = null) => {
+    const tmpl = days || state.weekTemplates.find(t => t.isDefault)?.days;
     if (!tmpl || Object.keys(tmpl).length === 0) return;
     const newSchedule = { ...state.schedule };
-    weekDateStrs.forEach(dateStr => {
-      const d = new Date(dateStr + 'T12:00:00');
-      const dow = d.getDay(); // 0=Sun
+    dateStrs.forEach(dateStr => {
+      const dow = new Date(dateStr + 'T12:00:00').getDay();
       const dayTmpl = tmpl[dow];
-      if (dayTmpl?.routineId && !newSchedule[dateStr]) {
-        newSchedule[dateStr] = dayTmpl.routineId;
-      }
+      if (dayTmpl?.routineId) newSchedule[dateStr] = dayTmpl.routineId;
     });
     setState({ schedule: newSchedule });
     writeDoc('schedule', newSchedule);
+  }, []);
+
+  // Remove schedule assignments for a set of date strings
+  const clearWeekSchedule = useCallback((dateStrs) => {
+    const next = { ...state.schedule };
+    dateStrs.forEach(ds => delete next[ds]);
+    setState({ schedule: next });
+    writeDoc('schedule', next);
   }, []);
 
   // ── Import ────────────────────────────────────────────────────────────────
@@ -551,7 +639,8 @@ export function useStore() {
     history,
     matches,
     plans,
-    weekTemplate,
+    weekTemplate,    // computed: default template's days (backward compat)
+    weekTemplates,   // full array
     isReady,
     exerciseMap,
     assignRoutine,
@@ -572,8 +661,14 @@ export function useStore() {
     deleteCategory,
     isExerciseUsed,
     setMatches,
-    saveWeekTemplate,
+    saveWeekTemplate,     // backward compat shim
+    createWeekTemplate,
+    updateWeekTemplate,
+    deleteWeekTemplate,
+    duplicateWeekTemplate,
+    setDefaultTemplate,
     applyWeekTemplate,
+    clearWeekSchedule,
     createPlan,
     completePlan,
     deletePlan,
