@@ -158,12 +158,33 @@ function GapIndicator({ gapMins }) {
 }
 
 // ── Main Semana component ──────────────────────────────────────────────────────
+function getDatesBetween(startStr, endStr) {
+  const dates = [];
+  const d = new Date(startStr + 'T12:00:00');
+  const end = new Date(endStr + 'T12:00:00');
+  while (d <= end) {
+    dates.push(toDateStr(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
+}
+
 export default function Semana() {
-  const { routines, schedule, history, matches, weekTemplate, applyWeekTemplate } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, applyWeekTemplate, clearWeekSchedule } = useStore();
 
   const [weekOffset,      setWeekOffset]      = useState(0);
   const [selectedDateStr, setSelectedDateStr] = useState(TODAY);
   const [editing,         setEditing]         = useState(false);
+
+  // Apply modal state
+  const [showApplyModal,  setShowApplyModal]  = useState(false);
+  const [applyTmplId,     setApplyTmplId]     = useState(() => weekTemplates.find(t => t.isDefault)?.id || '');
+  const [applyRange,      setApplyRange]      = useState('week'); // 'week' | 'until' | 'all'
+  const [applyUntilDate,  setApplyUntilDate]  = useState('');
+  const [applyConfirm,    setApplyConfirm]    = useState(false);
+
+  // Clear modal state
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const baseDate = new Date();
   baseDate.setDate(baseDate.getDate() + weekOffset * 7);
@@ -173,11 +194,6 @@ export default function Semana() {
   // When week changes: snap selection to today (if in current week) or Monday
   useEffect(() => {
     setSelectedDateStr(weekOffset === 0 ? TODAY : weekDateStrs[0]);
-    // Auto-apply template when this week has no schedule entries
-    if (weekTemplate && Object.keys(weekTemplate).length > 0) {
-      const hasAny = weekDateStrs.some(ds => schedule[ds]);
-      if (!hasAny) applyWeekTemplate(weekDateStrs);
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekOffset]);
 
@@ -239,11 +255,21 @@ export default function Semana() {
         <button className="wk2-nav-btn" onClick={() => setWeekOffset(o => o + 1)}>›</button>
       </div>
 
-      {/* ── Apply template banner ── */}
-      {weekTemplate && Object.keys(weekTemplate).length > 0 && (
-        <div className="wk2-apply-bar">
-          <span>Semana tipo disponible</span>
-          <button onClick={() => applyWeekTemplate(weekDateStrs)}>Aplicar</button>
+      {/* ── Action buttons ── */}
+      {weekTemplates.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, padding: '6px 12px 2px' }}>
+          <button
+            onClick={() => { setApplyTmplId(weekTemplates.find(t => t.isDefault)?.id || weekTemplates[0]?.id || ''); setApplyRange('week'); setApplyUntilDate(''); setShowApplyModal(true); }}
+            style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: '1px solid #CBD5E1', background: 'white', fontSize: 12, fontWeight: 600, color: '#334155', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            Aplicar semana tipo
+          </button>
+          <button
+            onClick={() => setShowClearConfirm(true)}
+            style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: '1px solid #CBD5E1', background: 'white', fontSize: 12, fontWeight: 600, color: '#EF5350', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            Limpiar semana
+          </button>
         </div>
       )}
 
@@ -340,6 +366,123 @@ export default function Semana() {
           </button>
         </div>
       </div>
+
+      {/* ── Apply modal ── */}
+      {showApplyModal && (() => {
+        const selectedTmpl = weekTemplates.find(t => t.id === applyTmplId);
+
+        let affectedDates = [];
+        if (applyRange === 'week') {
+          affectedDates = weekDateStrs;
+        } else if (applyRange === 'until' && applyUntilDate) {
+          const fromMonday = weekDateStrs[0];
+          const untilWeekEnd = (() => {
+            const d = new Date(applyUntilDate + 'T12:00:00');
+            const dow = d.getDay();
+            d.setDate(d.getDate() + (dow === 0 ? 0 : 7 - dow));
+            return toDateStr(d);
+          })();
+          affectedDates = getDatesBetween(fromMonday, untilWeekEnd);
+        } else if (applyRange === 'all') {
+          const fromMonday = weekDateStrs[0];
+          const until = new Date(fromMonday + 'T12:00:00');
+          until.setDate(until.getDate() + 12 * 7 - 1);
+          affectedDates = getDatesBetween(fromMonday, toDateStr(until));
+        }
+        const affectedWeeks = Math.max(1, Math.ceil(affectedDates.length / 7));
+
+        function doApply() {
+          if (!selectedTmpl) return;
+          applyWeekTemplate(affectedDates, selectedTmpl.days);
+          setApplyConfirm(false);
+          setShowApplyModal(false);
+        }
+
+        return (
+          <div className="modal-overlay" onClick={() => { setShowApplyModal(false); setApplyConfirm(false); }}>
+            <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '20px 20px 28px' }}>
+              <div style={{ fontWeight: 800, fontSize: 16, color: '#263238', marginBottom: 14 }}>
+                Aplicar semana tipo
+              </div>
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                Semana tipo
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+                {weekTemplates.map(t => (
+                  <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: applyTmplId === t.id ? '#E8EDF5' : '#F8FAFC', border: `1.5px solid ${applyTmplId === t.id ? '#1D3461' : 'transparent'}`, cursor: 'pointer' }}>
+                    <input type="radio" name="tmpl" value={t.id} checked={applyTmplId === t.id} onChange={() => setApplyTmplId(t.id)} style={{ accentColor: '#1D3461' }} />
+                    <span style={{ fontSize: 13, fontWeight: applyTmplId === t.id ? 700 : 400, color: '#263238' }}>{t.name}</span>
+                    {t.isDefault && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 99, background: '#1D3461', color: 'white', marginLeft: 'auto' }}>DEFAULT</span>}
+                  </label>
+                ))}
+              </div>
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                Rango
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                {[
+                  { id: 'week', label: 'Solo esta semana' },
+                  { id: 'until', label: 'Desde esta semana hasta…' },
+                  { id: 'all', label: 'Las próximas 12 semanas' },
+                ].map(opt => (
+                  <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                    <input type="radio" name="range" value={opt.id} checked={applyRange === opt.id} onChange={() => setApplyRange(opt.id)} style={{ accentColor: '#1D3461' }} />
+                    <span style={{ fontSize: 13, color: '#263238' }}>{opt.label}</span>
+                  </label>
+                ))}
+                {applyRange === 'until' && (
+                  <input type="date" className="input" value={applyUntilDate} min={weekDateStrs[0]}
+                    onChange={e => setApplyUntilDate(e.target.value)} style={{ marginTop: 2 }} />
+                )}
+              </div>
+
+              {applyConfirm ? (
+                <div style={{ background: '#FEF3C7', borderRadius: 10, padding: '12px', marginBottom: 14 }}>
+                  <div style={{ fontSize: 13, color: '#92400E', fontWeight: 600, marginBottom: 10 }}>
+                    Esto va a reemplazar las rutinas de {affectedWeeks} semana{affectedWeeks !== 1 ? 's' : ''}. ¿Continuar?
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => setApplyConfirm(false)} className="btn btn-secondary" style={{ flex: 1 }}>Volver</button>
+                    <button onClick={doApply} className="btn btn-primary" style={{ flex: 1 }}>Confirmar</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setShowApplyModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancelar</button>
+                  <button
+                    onClick={() => { if (!selectedTmpl || (applyRange === 'until' && !applyUntilDate)) return; setApplyConfirm(true); }}
+                    className="btn btn-primary" style={{ flex: 2 }}
+                    disabled={!selectedTmpl || (applyRange === 'until' && !applyUntilDate)}
+                  >
+                    Aplicar{affectedWeeks > 1 ? ` (${affectedWeeks} sem)` : ''}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Clear confirm ── */}
+      {showClearConfirm && (
+        <div className="modal-overlay" onClick={() => setShowClearConfirm(false)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: '#263238', marginBottom: 10 }}>Limpiar semana</div>
+            <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
+              Se van a borrar todas las rutinas asignadas a esta semana. ¿Continuar?
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowClearConfirm(false)}>Cancelar</button>
+              <button className="btn btn-primary" style={{ flex: 1, background: '#EF5350', borderColor: '#EF5350' }}
+                onClick={() => { clearWeekSchedule(weekDateStrs); setShowClearConfirm(false); }}>
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
