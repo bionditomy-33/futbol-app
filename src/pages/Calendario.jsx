@@ -58,31 +58,34 @@ function getDayActs(dateStr, schedule, history, matches, weekTemplate) {
   const dow  = new Date(dateStr + 'T12:00:00').getDay();
   const tmpl = weekTemplate?.[dow];
 
+  // If explicitly cleared with no real training data, suppress template activities
+  const suppressTemplate = !!(day?.cleared && !day?.done && !day?.gym);
+
   // Individual routine
   if (day?.done) {
     acts.push({ type: 'indiv', done: true, missed: false });
   } else if (schedule[dateStr]) {
     acts.push({ type: 'indiv', done: false, missed: dateStr < TODAY });
-  } else if (tmpl?.routineId) {
+  } else if (!suppressTemplate && tmpl?.routineId) {
     acts.push({ type: 'indiv', done: false, missed: false, planned: true });
   }
 
   // Gym
   if (day?.gym) {
     acts.push({ type: 'gym', done: true });
-  } else if (tmpl?.gym) {
+  } else if (!suppressTemplate && tmpl?.gym) {
     acts.push({ type: 'gym', done: false, planned: true });
   }
 
   // Arsenal
-  if (tmpl?.arsenal) {
+  if (!suppressTemplate && tmpl?.arsenal) {
     acts.push({ type: 'arsenal', planned: true });
   }
 
   // Match
   const dayMatches = matches.filter(m => m.date === dateStr);
   dayMatches.forEach(m => acts.push({ type: 'match', done: true, match: m }));
-  if (tmpl?.match && dayMatches.length === 0) {
+  if (!suppressTemplate && tmpl?.match && dayMatches.length === 0) {
     acts.push({ type: 'match', done: false, planned: true });
   }
 
@@ -165,8 +168,10 @@ function MonthSummary({ year, month, schedule, history, weekTemplate }) {
         const ds  = toDateStr(date);
         const dow = date.getDay();
         const tmpl = weekTemplate?.[dow];
+        const day = history[ds];
+        const suppressTemplate = !!(day?.cleared && !day?.done && !day?.gym);
         const hasSchedule = !!schedule[ds];
-        const hasTmpl     = !!tmpl?.routineId;
+        const hasTmpl     = !suppressTemplate && !!tmpl?.routineId;
 
         if (hasSchedule || hasTmpl) planned++;
         if (history[ds]?.done) done++;
