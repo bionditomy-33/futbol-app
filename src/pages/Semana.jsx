@@ -38,8 +38,11 @@ function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
   const day  = history[dateStr];
   const acts = [];
 
+  // If day was explicitly cleared and has no real training data, suppress template activities
+  const suppressTemplate = !!(day?.cleared && !day?.done && !day?.gym);
+
   // Gym
-  if (day?.gym || tmpl.gym) {
+  if (day?.gym || (!suppressTemplate && tmpl.gym)) {
     acts.push({
       type: 'gym',
       time: tmpl.gymTime || tmpl.time || '07:00',
@@ -51,7 +54,7 @@ function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
   // Individual routine
   const schedId = schedule[dateStr];
   const histId  = day?.done ? day.routineId : null;
-  const tmplId  = tmpl.routineId;
+  const tmplId  = !suppressTemplate ? tmpl.routineId : null;
   if (histId || schedId || tmplId) {
     acts.push({
       type: 'indiv',
@@ -64,7 +67,7 @@ function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
   }
 
   // Arsenal
-  if (tmpl.arsenal) {
+  if (!suppressTemplate && tmpl.arsenal) {
     acts.push({
       type: 'arsenal',
       time: tmpl.arsenalTime || '19:30',
@@ -72,7 +75,7 @@ function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
     });
   }
 
-  // Matches (real data)
+  // Matches (real data — always show regardless of cleared flag)
   const defaultMatchTime = dow === 6 ? '15:00' : dow === 0 ? '16:00' : '15:00';
   const dayMatches = matches.filter(m => m.date === dateStr);
   dayMatches.forEach(m => acts.push({
@@ -83,7 +86,7 @@ function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
   }));
 
   // Match from template only
-  if (tmpl.match && dayMatches.length === 0) {
+  if (!suppressTemplate && tmpl.match && dayMatches.length === 0) {
     acts.push({
       type: 'match',
       time: tmpl.matchTime || defaultMatchTime,

@@ -33,13 +33,15 @@ function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
   const day  = history[dateStr];
   const acts = [];
 
-  if (day?.gym || tmpl.gym) {
+  const suppressTemplate = !!(day?.cleared && !day?.done && !day?.gym);
+
+  if (day?.gym || (!suppressTemplate && tmpl.gym)) {
     acts.push({ type: 'gym', time: tmpl.gymTime || '07:00', done: !!day?.gym });
   }
 
   const schedId = schedule[dateStr];
   const histId  = day?.done ? day.routineId : null;
-  const tmplId  = tmpl.routineId;
+  const tmplId  = !suppressTemplate ? tmpl.routineId : null;
   if (histId || schedId || tmplId) {
     acts.push({
       type: 'indiv',
@@ -49,7 +51,7 @@ function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
     });
   }
 
-  if (tmpl.arsenal) {
+  if (!suppressTemplate && tmpl.arsenal) {
     acts.push({ type: 'arsenal', time: tmpl.arsenalTime || '19:30' });
   }
 
@@ -58,7 +60,7 @@ function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
   dayMatches.forEach(m => acts.push({
     type: 'match', time: tmpl.matchTime || defaultMatchTime, match: m,
   }));
-  if (tmpl.match && dayMatches.length === 0) {
+  if (!suppressTemplate && tmpl.match && dayMatches.length === 0) {
     acts.push({ type: 'match', time: tmpl.matchTime || defaultMatchTime });
   }
 

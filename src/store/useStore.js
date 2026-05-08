@@ -600,6 +600,7 @@ export function useStore() {
   const applyWeekTemplate = useCallback((dateStrs, days = null) => {
     const tmpl = days || state.weekTemplates.find(t => t.isDefault)?.days;
     if (!tmpl || Object.keys(tmpl).length === 0) return;
+
     const newSchedule = { ...state.schedule };
     dateStrs.forEach(dateStr => {
       const dow = new Date(dateStr + 'T12:00:00').getDay();
@@ -608,14 +609,45 @@ export function useStore() {
     });
     setState({ schedule: newSchedule });
     writeDoc('schedule', newSchedule);
+
+    // Remove any 'cleared' flags so template activities show again
+    const needsUpdate = dateStrs.some(ds => state.history[ds]?.cleared);
+    if (needsUpdate) {
+      const nextHistory = { ...state.history };
+      dateStrs.forEach(ds => {
+        if (nextHistory[ds]?.cleared) {
+          const { cleared: _removed, ...rest } = nextHistory[ds];
+          nextHistory[ds] = rest;
+        }
+      });
+      setState({ history: nextHistory });
+      writeDoc('history', nextHistory);
+    }
   }, []);
 
-  // Remove schedule assignments for a set of date strings
+  // Clear schedule + suppress template activities for a set of date strings
   const clearWeekSchedule = useCallback((dateStrs) => {
-    const next = { ...state.schedule };
-    dateStrs.forEach(ds => delete next[ds]);
-    setState({ schedule: next });
-    writeDoc('schedule', next);
+    // 1. Remove schedule entries
+    const nextSchedule = { ...state.schedule };
+    dateStrs.forEach(ds => delete nextSchedule[ds]);
+    setState({ schedule: nextSchedule });
+    writeDoc('schedule', nextSchedule);
+
+    // 2. Mark days with no real training data so getDayActivities hides template activities
+    const nextHistory = { ...state.history };
+    let changed = false;
+    dateStrs.forEach(ds => {
+      const day = nextHistory[ds];
+      const hasRealData = day && (day.done || day.gym || day.notes?.trim());
+      if (!hasRealData) {
+        nextHistory[ds] = { done: false, routineId: null, completed: {}, gym: false, notes: '', cleared: true };
+        changed = true;
+      }
+    });
+    if (changed) {
+      setState({ history: nextHistory });
+      writeDoc('history', nextHistory);
+    }
   }, []);
 
   // ── Import ────────────────────────────────────────────────────────────────
