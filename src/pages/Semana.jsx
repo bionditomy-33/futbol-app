@@ -216,7 +216,7 @@ export default function Semana() {
     return map;
   }, [schedule, history, matches, weekTemplate, weekOffset]);
 
-  // Active plan info for current viewed week
+  // Active plan info + template info for the viewed week
   const weekPlanInfo = useMemo(() => {
     const mon = weekDateStrs[0];
     const sun = weekDateStrs[6];
@@ -234,9 +234,21 @@ export default function Semana() {
         (new Date(primary.endDate + 'T12:00:00') - new Date(primary.startDate + 'T12:00:00')) / (7 * 86400000)
       ));
     }
-    return { primary, conflict, weekNum, totalWeeks };
+    // Which week template drives this week?
+    let templateInfo = null;
+    if (primary?.weekTemplateId) {
+      const tmpl = weekTemplates.find(t => t.id === primary.weekTemplateId);
+      if (tmpl) templateInfo = { name: tmpl.name, fromPlan: primary.name };
+    }
+    if (!templateInfo) {
+      const defTmpl = weekTemplates.find(t => t.isDefault);
+      if (defTmpl && Object.values(defTmpl.days || {}).some(d => d?.routineId || d?.gym || d?.arsenal || d?.match)) {
+        templateInfo = { name: defTmpl.name, isDefault: true };
+      }
+    }
+    return { primary, conflict, weekNum, totalWeeks, templateInfo };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plans, weekOffset]);
+  }, [plans, weekTemplates, weekOffset]);
 
   // Week range label
   const d0 = weekDays[0], d6 = weekDays[6];
@@ -287,22 +299,30 @@ export default function Semana() {
         <button className="wk2-nav-btn" onClick={() => setWeekOffset(o => o + 1)}>›</button>
       </div>
 
-      {/* ── Plan badge ── */}
-      {weekPlanInfo.primary && (
-        <div style={{ padding: '2px 12px 4px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      {/* ── Template + plan banner ── */}
+      <div style={{ padding: '3px 12px 5px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {weekPlanInfo.templateInfo ? (
+          <span style={{ fontSize: 11, color: '#475569' }}>
+            Semana tipo:{' '}
+            <strong style={{ color: '#1D3461' }}>{weekPlanInfo.templateInfo.name}</strong>
+            {weekPlanInfo.templateInfo.isDefault && <span style={{ color: '#94A3B8' }}> (predeterminada)</span>}
+            {weekPlanInfo.templateInfo.fromPlan && <span style={{ color: '#64748B' }}> — {weekPlanInfo.templateInfo.fromPlan}</span>}
+          </span>
+        ) : (
+          <span style={{ fontSize: 11, color: '#94A3B8' }}>Sin semana tipo aplicada</span>
+        )}
+        {weekPlanInfo.primary && (
           <span style={{
-            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+            fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
             background: '#EEF2FF', color: '#3730A3',
           }}>
-            {weekPlanInfo.primary.name} · Sem {weekPlanInfo.weekNum}/{weekPlanInfo.totalWeeks}
+            Sem {weekPlanInfo.weekNum}/{weekPlanInfo.totalWeeks}
           </span>
-          {weekPlanInfo.conflict && (
-            <span style={{ fontSize: 10, fontWeight: 600, color: '#DC2626' }}>
-              ⚠ Conflicto de planes
-            </span>
-          )}
-        </div>
-      )}
+        )}
+        {weekPlanInfo.conflict && (
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#DC2626' }}>⚠ Conflicto</span>
+        )}
+      </div>
 
       {/* ── Action buttons ── */}
       {weekTemplates.length > 0 && (

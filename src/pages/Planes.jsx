@@ -562,6 +562,14 @@ export default function Planes({ onBack }) {
                 <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 6 }}>
                   {activityLabel(plan)} · Meta: {plan.targetSessions} ses. · {weeksBetween(plan.startDate, plan.endDate)} sem
                 </div>
+                {plan.weekTemplateId && (() => {
+                  const tmpl = weekTemplates.find(t => t.id === plan.weekTemplateId);
+                  return tmpl ? (
+                    <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                      Semana tipo: {tmpl.name}
+                    </div>
+                  ) : null;
+                })()}
               </div>
             );
           })}
@@ -590,7 +598,15 @@ export default function Planes({ onBack }) {
               </div>
             </div>
 
-            <div style={{ fontSize: 12, color: '#78909C', marginBottom: 8 }}>{activityLabel(plan)}</div>
+            <div style={{ fontSize: 12, color: '#78909C', marginBottom: plan.weekTemplateId ? 4 : 8 }}>{activityLabel(plan)}</div>
+            {plan.weekTemplateId && (() => {
+              const tmpl = weekTemplates.find(t => t.id === plan.weekTemplateId);
+              return tmpl ? (
+                <div style={{ fontSize: 11, color: '#64748B', marginBottom: 8 }}>
+                  Semana tipo: <strong>{tmpl.name}</strong>
+                </div>
+              ) : null;
+            })()}
 
             {/* Progreso */}
             <div style={{ marginBottom: 8 }}>

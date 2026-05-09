@@ -200,16 +200,18 @@ function MonthSummary({ year, month, schedule, history, weekTemplate, plans }) {
         const label = `Sem ${i + 1}`;
         return (
           <div key={i} className={`cal-summary-week${w.isCurrentWeek ? ' current' : ''}`}>
-            <span className="cal-summary-week-label">{label}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <span className="cal-summary-week-label">{label}</span>
+              {w.primaryPlan && (
+                <span style={{ fontSize: 9, fontWeight: 600, color: '#3730A3', lineHeight: 1.3 }}>
+                  {w.primaryPlan.name}
+                </span>
+              )}
+            </div>
             <div className="cal-summary-bar-wrap">
               <div className="cal-summary-bar-bg">
                 <div className="cal-summary-bar-fill" style={{ width: `${pct}%` }} />
               </div>
-              {w.primaryPlan && (
-                <span style={{ fontSize: 9, fontWeight: 700, color: '#3730A3', whiteSpace: 'nowrap', marginTop: 2, display: 'block' }}>
-                  {w.primaryPlan.name}
-                </span>
-              )}
             </div>
             <span className="cal-summary-pct">
               {w.planned > 0 ? `${w.done}/${w.planned}` : '—'}

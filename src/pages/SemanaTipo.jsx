@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
+import { todayStr, formatDate } from '../utils/dates';
 import { ChevronLeft, GymIcon, BallIcon, TrophyIcon, PlusIcon, EditIcon, TrashIcon } from '../components/Icons';
 
 const WEEK_DAYS = [
@@ -56,18 +57,29 @@ function MiniPreview({ days }) {
 }
 
 // ── Template card in list view ────────────────────────────────────────────────
-function TemplateCard({ tmpl, onEdit, onDuplicate, onDelete, onSetDefault }) {
+function TemplateCard({ tmpl, onEdit, onDuplicate, onDelete, onSetDefault, plans, today }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const activePlan = plans?.find(p =>
+    p.weekTemplateId === tmpl.id &&
+    p.status !== 'completed' &&
+    today >= p.startDate &&
+    today <= p.endDate
+  ) || null;
+  const linkedPlan = !activePlan
+    ? (plans?.find(p => p.weekTemplateId === tmpl.id && p.status !== 'completed') || null)
+    : null;
+
   return (
     <div style={{
       background: 'white',
-      border: `1.5px solid ${tmpl.isDefault ? '#1D3461' : '#E8ECEB'}`,
+      border: `1.5px solid ${activePlan ? '#059669' : tmpl.isDefault ? '#1D3461' : '#E8ECEB'}`,
       borderRadius: 12,
       padding: '14px 14px 12px',
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#1A2332' }}>{tmpl.name}</span>
             {tmpl.isDefault && (
               <span style={{
@@ -77,7 +89,25 @@ function TemplateCard({ tmpl, onEdit, onDuplicate, onDelete, onSetDefault }) {
                 Predeterminada
               </span>
             )}
+            {activePlan && (
+              <span style={{
+                fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 99,
+                background: '#D1FAE5', color: '#065F46', textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}>
+                ACTIVA
+              </span>
+            )}
           </div>
+          {activePlan && (
+            <div style={{ fontSize: 11, color: '#059669', marginTop: 3 }}>
+              {activePlan.name} · {formatDate(activePlan.startDate)} al {formatDate(activePlan.endDate)}
+            </div>
+          )}
+          {linkedPlan && (
+            <div style={{ fontSize: 11, color: '#64748B', marginTop: 3 }}>
+              Vinculada a: <strong>{linkedPlan.name}</strong>
+            </div>
+          )}
           <MiniPreview days={tmpl.days} />
         </div>
         <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
@@ -347,7 +377,8 @@ function TemplateEditor({ initial, routines, onSave, onCancel }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function SemanaTipo({ onBack }) {
-  const { weekTemplates, routines, createWeekTemplate, updateWeekTemplate, deleteWeekTemplate, duplicateWeekTemplate, setDefaultTemplate } = useStore();
+  const { weekTemplates, routines, plans, createWeekTemplate, updateWeekTemplate, deleteWeekTemplate, duplicateWeekTemplate, setDefaultTemplate } = useStore();
+  const today = todayStr();
 
   // editingId: null = list, 'new' = new template, '<id>' = editing existing
   const [editingId, setEditingId] = useState(null);
@@ -420,6 +451,8 @@ export default function SemanaTipo({ onBack }) {
             <TemplateCard
               key={tmpl.id}
               tmpl={tmpl}
+              plans={plans}
+              today={today}
               onEdit={openEdit}
               onDuplicate={duplicateWeekTemplate}
               onDelete={deleteWeekTemplate}
