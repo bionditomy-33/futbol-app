@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr, toDateStr } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
+import { ACT_DOT_COLORS as C } from '../utils/colors';
 import { TrophyIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
 
@@ -14,13 +15,6 @@ const MONTHS_LO  = ['enero','febrero','marzo','abril','mayo','junio',
 const DAY_HEADERS = ['L','M','X','J','V','S','D'];
 const DAY_FULL    = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
-const C = {
-  gym:     '#2D3E50',
-  indiv:   '#3E7A5C',
-  indivMissed: '#DC2626',
-  arsenal: '#8B4513',
-  match:   '#C17817',
-};
 
 function ShieldIcon({ size = 8 }) {
   return (

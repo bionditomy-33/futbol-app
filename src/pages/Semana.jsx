@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
+import { ACT_COLORS } from '../utils/colors';
 import { ChevronLeft } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
 
@@ -13,12 +14,6 @@ const MONTHS_FULL  = ['enero','febrero','marzo','abril','mayo','junio',
 const DAY_SHORT = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const DAY_FULL  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
-const ACT_COLORS = {
-  gym:     { bg: '#E6F1FB', title: '#0C447C', sub: '#185FA5' },
-  indiv:   { bg: '#E1F5EE', title: '#085041', sub: '#0F6E56' },
-  arsenal: { bg: '#FAEEDA', title: '#633806', sub: '#854F0B' },
-  match:   { bg: '#FAECE7', title: '#712B13', sub: '#993C1D' },
-};
 const ACT_SHORT = { gym: 'Gym', indiv: 'Indiv.', arsenal: 'Arsenal', match: 'Partido' };
 
 function getSlot(time) {
