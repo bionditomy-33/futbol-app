@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useStore, getPlanProgress } from '../store/useStore';
-import { todayStr, formatDate } from '../utils/dates';
+import { todayStr, formatDate, toDateStr } from '../utils/dates';
 import { PlusIcon, TrashIcon, EditIcon, ChevronLeft, CheckIcon, ChevronRight } from '../components/Icons';
 import PlanDetail from './PlanDetail';
 
@@ -20,6 +20,44 @@ function weeksBetween(startDate, endDate) {
   const startMs = new Date(startDate + 'T12:00:00').getTime();
   const endMs   = new Date(endDate   + 'T12:00:00').getTime();
   return Math.round((endMs - startMs) / (7 * 86400000));
+}
+
+function getDatesBetween(startStr, endStr) {
+  const dates = [];
+  const d = new Date(startStr + 'T12:00:00');
+  const end = new Date(endStr + 'T12:00:00');
+  while (d <= end) {
+    dates.push(toDateStr(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
+}
+
+function WeekTemplatePreview({ template }) {
+  const DOW_MAP = [1, 2, 3, 4, 5, 6, 0];
+  const LABELS  = ['L','M','X','J','V','S','D'];
+  return (
+    <div style={{ display: 'flex', gap: 4, padding: '6px 0 2px' }}>
+      {DOW_MAP.map((dow, i) => {
+        const d = template?.[dow] || {};
+        const acts = [
+          d.gym       && '#2D3E50',
+          d.routineId && '#3E7A5C',
+          d.arsenal   && '#8B4513',
+          d.match     && '#C17817',
+        ].filter(Boolean);
+        return (
+          <div key={dow} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: 9, color: '#94A3B8', fontWeight: 600, lineHeight: 1 }}>{LABELS[i]}</span>
+            {acts.length > 0
+              ? acts.map((bg, ai) => <div key={ai} style={{ width: '100%', height: 4, borderRadius: 2, background: bg }} />)
+              : <div style={{ width: '100%', height: 4, borderRadius: 2, background: '#F1F5F9' }} />
+            }
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function emptyForm() {
@@ -65,7 +103,9 @@ const ACTIVITY_OPTIONS = [
 ];
 
 export default function Planes({ onBack }) {
-  const { routines, history, plans, weekTemplates, createPlan, completePlan, deletePlan, updatePlan } = useStore();
+  const { routines, history, plans, weekTemplates, schedule,
+          createPlan, completePlan, deletePlan, updatePlan,
+          applyWeekTemplate, markPlanAutoApplied, clearWeekSchedule } = useStore();
   const [showForm, setShowForm]           = useState(false);
   const [editingId, setEditingId]         = useState(null);
   const [reopenOnSave, setReopenOnSave]   = useState(false);
@@ -74,8 +114,24 @@ export default function Planes({ onBack }) {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [reopenPromptId, setReopenPromptId]   = useState(null);
   const [selectedPlanId, setSelectedPlanId]   = useState(null);
+  const [applyPrompt, setApplyPrompt]         = useState(null);
+  const [cleanupPrompt, setCleanupPrompt]     = useState(null);
 
   const today = todayStr();
+
+  // Detect plans that just became active and have an unhandled week template
+  useEffect(() => {
+    if (applyPrompt !== null) return;
+    const plan = plans.find(p =>
+      p.status !== 'completed' && p.weekTemplateId && !p.autoApplied && p.startDate <= today
+    );
+    if (!plan) return;
+    const tmpl = weekTemplates.find(t => t.id === plan.weekTemplateId);
+    if (!tmpl) { markPlanAutoApplied(plan.id); return; }
+    const dates = getDatesBetween(plan.startDate, plan.endDate);
+    setApplyPrompt({ planId: plan.id, planName: plan.name, templateName: tmpl.name, templateDays: tmpl.days, dates });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plans, weekTemplates, applyPrompt]);
 
   // ── Derived lists ────────────────────────────────────────────────────────────
   const pending   = useMemo(() => plans.filter(p => p.status !== 'completed' && today < p.startDate), [plans, today]);
@@ -91,7 +147,13 @@ export default function Planes({ onBack }) {
         history={history}
         routines={routines}
         onBack={() => setSelectedPlanId(null)}
-        onComplete={(id, rating, notes) => completePlan(id, rating, notes)}
+        onComplete={(id, rating, notes) => {
+          const p = plans.find(pl => pl.id === id);
+          completePlan(id, rating, notes);
+          if (p?.autoApplied && p?.weekTemplateId) {
+            setCleanupPrompt({ planId: id, planName: p.name, dates: getDatesBetween(p.startDate, p.endDate), deleteAfter: false });
+          }
+        }}
       />
     );
   }
@@ -223,6 +285,16 @@ export default function Planes({ onBack }) {
     const plan = plans.find(p => p.id === reopenPromptId);
     setReopenPromptId(null);
     if (plan) openEditForm(plan, reopen);
+  }
+
+  function handleConfirmDelete() {
+    const p = plans.find(pl => pl.id === deleteConfirmId);
+    setDeleteConfirmId(null);
+    if (p?.autoApplied && p?.weekTemplateId) {
+      setCleanupPrompt({ planId: p.id, planName: p.name, dates: getDatesBetween(p.startDate, p.endDate), deleteAfter: true });
+    } else {
+      deletePlan(deleteConfirmId);
+    }
   }
 
   // ── Activity label ───────────────────────────────────────────────────────────
@@ -424,11 +496,20 @@ export default function Planes({ onBack }) {
                   <option key={t.id} value={t.id}>{t.name}{t.isDefault ? ' (predeterminada)' : ''}</option>
                 ))}
               </select>
-              {form.weekTemplateId && (
-                <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
-                  Al activarse el plan, se sugerirá aplicar esta semana tipo al período del plan.
-                </div>
-              )}
+              {form.weekTemplateId && (() => {
+                const tmpl = weekTemplates.find(t => t.id === form.weekTemplateId);
+                return (
+                  <div style={{ marginTop: 8 }}>
+                    <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                      Vista previa
+                    </div>
+                    <WeekTemplatePreview template={tmpl?.days} />
+                    <div style={{ fontSize: 11, color: '#64748B', marginTop: 6 }}>
+                      Se sugerirá aplicar esta semana tipo al activarse el plan.
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -611,7 +692,7 @@ export default function Planes({ onBack }) {
               <div style={{ display: 'flex', gap: 10 }}>
                 <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setDeleteConfirmId(null)}>Cancelar</button>
                 <button className="btn btn-primary" style={{ flex: 1, background: '#C62828', borderColor: '#C62828' }}
-                  onClick={() => { deletePlan(deleteConfirmId); setDeleteConfirmId(null); }}>
+                  onClick={handleConfirmDelete}>
                   Eliminar
                 </button>
               </div>
@@ -619,6 +700,71 @@ export default function Planes({ onBack }) {
           </div>
         );
       })()}
+
+      {/* ── Modal: aplicar semana tipo al plan ── */}
+      {applyPrompt && (
+        <div className="modal-overlay" onClick={() => { markPlanAutoApplied(applyPrompt.planId); setApplyPrompt(null); }}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
+            <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
+              Semana tipo del plan
+            </div>
+            <div style={{ fontSize: 14, color: '#78909C', marginBottom: 12, lineHeight: 1.5 }}>
+              El plan <strong style={{ color: '#263238' }}>"{applyPrompt.planName}"</strong> tiene la semana tipo{' '}
+              <strong style={{ color: '#263238' }}>"{applyPrompt.templateName}"</strong> asociada.
+              ¿Querés aplicarla al período del plan? Esto va a reemplazar las actividades asignadas en ese período.
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                Vista previa · {Math.ceil(applyPrompt.dates.length / 7)} semanas
+              </div>
+              <WeekTemplatePreview template={applyPrompt.templateDays} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-secondary" style={{ flex: 1 }}
+                onClick={() => { markPlanAutoApplied(applyPrompt.planId); setApplyPrompt(null); }}>
+                No, mantener lo actual
+              </button>
+              <button className="btn btn-primary" style={{ flex: 2 }}
+                onClick={() => {
+                  applyWeekTemplate(applyPrompt.dates, applyPrompt.templateDays);
+                  markPlanAutoApplied(applyPrompt.planId);
+                  setApplyPrompt(null);
+                }}>
+                Aplicar al período
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: limpiar actividades del plan ── */}
+      {cleanupPrompt && (
+        <div className="modal-overlay" onClick={() => { if (cleanupPrompt.deleteAfter) deletePlan(cleanupPrompt.planId); setCleanupPrompt(null); }}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
+            <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
+              Actividades del plan
+            </div>
+            <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
+              ¿Querés limpiar las actividades del plan{' '}
+              <strong style={{ color: '#263238' }}>"{cleanupPrompt.planName}"</strong> del calendario o mantenerlas?
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-secondary" style={{ flex: 1 }}
+                onClick={() => { if (cleanupPrompt.deleteAfter) deletePlan(cleanupPrompt.planId); setCleanupPrompt(null); }}>
+                Mantener
+              </button>
+              <button className="btn btn-primary" style={{ flex: 1 }}
+                onClick={() => {
+                  clearWeekSchedule(cleanupPrompt.dates);
+                  if (cleanupPrompt.deleteAfter) deletePlan(cleanupPrompt.planId);
+                  setCleanupPrompt(null);
+                }}>
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal: reabrir completado ── */}
       {reopenPromptId && (() => {

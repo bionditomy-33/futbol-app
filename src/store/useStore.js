@@ -531,6 +531,12 @@ export function useStore() {
     writeDoc('plans', next);
   }, []);
 
+  const markPlanAutoApplied = useCallback((id) => {
+    const next = state.plans.map(p => p.id === id ? { ...p, autoApplied: true } : p);
+    setState({ plans: next });
+    writeDoc('plans', next);
+  }, []);
+
   // ── Week Templates ────────────────────────────────────────────────────────
 
   const createWeekTemplate = useCallback(({ name, days }) => {
@@ -705,6 +711,7 @@ export function useStore() {
     completePlan,
     deletePlan,
     updatePlan,
+    markPlanAutoApplied,
     importData,
   };
 }

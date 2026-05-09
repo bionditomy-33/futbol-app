@@ -161,6 +161,13 @@ function GapIndicator({ gapMins }) {
 }
 
 // ── Main Semana component ──────────────────────────────────────────────────────
+function getWeekMondayStr(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const dow = d.getDay();
+  d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
+  return toDateStr(d);
+}
+
 function getDatesBetween(startStr, endStr) {
   const dates = [];
   const d = new Date(startStr + 'T12:00:00');
@@ -173,7 +180,7 @@ function getDatesBetween(startStr, endStr) {
 }
 
 export default function Semana() {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, applyWeekTemplate, clearWeekSchedule } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule } = useStore();
 
   const [weekOffset,      setWeekOffset]      = useState(0);
   const [selectedDateStr, setSelectedDateStr] = useState(TODAY);
@@ -208,6 +215,28 @@ export default function Semana() {
     });
     return map;
   }, [schedule, history, matches, weekTemplate, weekOffset]);
+
+  // Active plan info for current viewed week
+  const weekPlanInfo = useMemo(() => {
+    const mon = weekDateStrs[0];
+    const sun = weekDateStrs[6];
+    const active = plans.filter(p => p.status !== 'completed' && p.startDate <= sun && p.endDate >= mon);
+    const primary = active[active.length - 1] || null;
+    const withTemplate = active.filter(p => p.weekTemplateId);
+    const conflict = withTemplate.length > 1 && new Set(withTemplate.map(p => p.weekTemplateId)).size > 1;
+    let weekNum = null, totalWeeks = null;
+    if (primary) {
+      const planMon = getWeekMondayStr(primary.startDate);
+      weekNum = Math.max(1, Math.round(
+        (new Date(mon + 'T12:00:00') - new Date(planMon + 'T12:00:00')) / (7 * 86400000)
+      ) + 1);
+      totalWeeks = Math.max(1, Math.ceil(
+        (new Date(primary.endDate + 'T12:00:00') - new Date(primary.startDate + 'T12:00:00')) / (7 * 86400000)
+      ));
+    }
+    return { primary, conflict, weekNum, totalWeeks };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plans, weekOffset]);
 
   // Week range label
   const d0 = weekDays[0], d6 = weekDays[6];
@@ -257,6 +286,23 @@ export default function Semana() {
         </div>
         <button className="wk2-nav-btn" onClick={() => setWeekOffset(o => o + 1)}>›</button>
       </div>
+
+      {/* ── Plan badge ── */}
+      {weekPlanInfo.primary && (
+        <div style={{ padding: '2px 12px 4px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+            background: '#EEF2FF', color: '#3730A3',
+          }}>
+            {weekPlanInfo.primary.name} · Sem {weekPlanInfo.weekNum}/{weekPlanInfo.totalWeeks}
+          </span>
+          {weekPlanInfo.conflict && (
+            <span style={{ fontSize: 10, fontWeight: 600, color: '#DC2626' }}>
+              ⚠ Conflicto de planes
+            </span>
+          )}
+        </div>
+      )}
 
       {/* ── Action buttons ── */}
       {weekTemplates.length > 0 && (

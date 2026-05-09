@@ -149,7 +149,7 @@ function CalDayBars({ acts, isToday }) {
 }
 
 // ── Month summary by week ────────────────────────────────────────────────────
-function MonthSummary({ year, month, schedule, history, weekTemplate }) {
+function MonthSummary({ year, month, schedule, history, weekTemplate, plans }) {
   const weeks = useMemo(() => {
     const first    = new Date(year, month, 1);
     const firstDow = first.getDay();
@@ -181,10 +181,16 @@ function MonthSummary({ year, month, schedule, history, weekTemplate }) {
       weekStart.setDate(start.getDate() + w * 7);
       const weekEnd = new Date(start);
       weekEnd.setDate(start.getDate() + w * 7 + 6);
-      result.push({ planned, done, isCurrentWeek, weekStart, weekEnd });
+      const monStr = toDateStr(weekStart);
+      const sunStr = toDateStr(weekEnd);
+      const activePlans = (plans || []).filter(p =>
+        p.status !== 'completed' && p.startDate <= sunStr && p.endDate >= monStr
+      );
+      const primaryPlan = activePlans[activePlans.length - 1] || null;
+      result.push({ planned, done, isCurrentWeek, weekStart, weekEnd, primaryPlan });
     }
     return result;
-  }, [year, month, schedule, history, weekTemplate]);
+  }, [year, month, schedule, history, weekTemplate, plans]);
 
   return (
     <div className="cal-summary">
@@ -199,6 +205,11 @@ function MonthSummary({ year, month, schedule, history, weekTemplate }) {
               <div className="cal-summary-bar-bg">
                 <div className="cal-summary-bar-fill" style={{ width: `${pct}%` }} />
               </div>
+              {w.primaryPlan && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: '#3730A3', whiteSpace: 'nowrap', marginTop: 2, display: 'block' }}>
+                  {w.primaryPlan.name}
+                </span>
+              )}
             </div>
             <span className="cal-summary-pct">
               {w.planned > 0 ? `${w.done}/${w.planned}` : '—'}
@@ -322,7 +333,7 @@ function DaySheet({ dateStr, onClose, schedule, history, routines, matches, week
 
 // ── Main Calendario component ────────────────────────────────────────────────
 export default function Calendario() {
-  const { history, schedule, routines, matches, weekTemplate } = useStore();
+  const { history, schedule, routines, matches, weekTemplate, plans } = useStore();
 
   const [viewDate, setViewDate] = useState(() => {
     const d = new Date();
@@ -416,6 +427,7 @@ export default function Calendario() {
         schedule={schedule}
         history={history}
         weekTemplate={weekTemplate}
+        plans={plans}
       />
 
       {/* Day detail sheet */}
