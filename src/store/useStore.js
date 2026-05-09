@@ -226,6 +226,7 @@ let state = {
   plans:         [],
   weekTemplates: [], // array of { id, name, days, isDefault }
   isReady:       false,
+  loadError:     false,
 };
 
 export function getState() { return state; }
@@ -323,6 +324,7 @@ function initFirestore() {
       }
     }, (err) => {
       console.error(`[store] onSnapshot error for ${docName}:`, err);
+      setState({ loadError: true });
       onDocFirstLoad(docName);
     });
   });
@@ -341,7 +343,7 @@ export function useStore() {
     return () => { listeners = listeners.filter(l => l !== listener); };
   }, []);
 
-  const { catalog, routines, schedule, history, matches, weekTemplates, isReady } = state;
+  const { catalog, routines, schedule, history, matches, weekTemplates, isReady, loadError } = state;
   const exerciseMap = buildExerciseMap(catalog);
   // Backward-compat: expose default template's days as weekTemplate
   const weekTemplate = weekTemplates.find(t => t.isDefault)?.days || {};
@@ -680,6 +682,7 @@ export function useStore() {
     weekTemplate,    // computed: default template's days (backward compat)
     weekTemplates,   // full array
     isReady,
+    loadError,
     exerciseMap,
     assignRoutine,
     removeSchedule,

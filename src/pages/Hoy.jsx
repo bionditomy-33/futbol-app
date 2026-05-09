@@ -27,6 +27,17 @@ const ACT_SHORT = { gym: 'Gym', indiv: 'Individual', arsenal: 'Arsenal', match: 
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function getEffectiveTmpl(dateStr, plans, weekTemplates, defaultDays) {
+  const plan = (plans || []).find(p =>
+    p.status !== 'completed' && p.weekTemplateId && p.startDate <= dateStr && p.endDate >= dateStr
+  );
+  if (plan) {
+    const tmpl = (weekTemplates || []).find(t => t.id === plan.weekTemplateId);
+    if (tmpl) return tmpl.days;
+  }
+  return defaultDays;
+}
+
 function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
   const dow  = new Date(dateStr + 'T12:00:00').getDay();
   const tmpl = weekTemplate?.[dow] || {};
@@ -221,15 +232,15 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
   }, [activePlan, history, weekDateStrs]);
 
   // Today + tomorrow activities
-  const todayActs = useMemo(
-    () => getDayActivities(TODAY, schedule, history, matches, weekTemplate),
-    [schedule, history, matches, weekTemplate]
-  );
+  const todayActs = useMemo(() => {
+    const effTmpl = getEffectiveTmpl(TODAY, plans, weekTemplates, weekTemplate);
+    return getDayActivities(TODAY, schedule, history, matches, effTmpl);
+  }, [schedule, history, matches, weekTemplate, weekTemplates, plans]);
 
-  const tomorrowActs = useMemo(
-    () => getDayActivities(TOMORROW, schedule, history, matches, weekTemplate),
-    [schedule, history, matches, weekTemplate]
-  );
+  const tomorrowActs = useMemo(() => {
+    const effTmpl = getEffectiveTmpl(TOMORROW, plans, weekTemplates, weekTemplate);
+    return getDayActivities(TOMORROW, schedule, history, matches, effTmpl);
+  }, [schedule, history, matches, weekTemplate, weekTemplates, plans]);
 
   // Derived strings
   const todayDate    = new Date(TODAY    + 'T12:00:00');

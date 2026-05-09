@@ -62,7 +62,7 @@ const MAS_ITEMS = [
 ];
 
 export default function App() {
-  const { isReady } = useStore();
+  const { isReady, loadError } = useStore();
   const [mainTab, setMainTab]               = useState('inicio');
   const [entrenoTab, setEntrenoTab]         = useState('semana');
   const [masView, setMasView]               = useState(null); // null | 'lab' | 'catalogo' | 'historial' | 'planes' | 'semana-tipo'
@@ -75,6 +75,25 @@ export default function App() {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: '#F5F7F5' }}>
         <div style={{ color: '#78909C', fontSize: 14, fontFamily: 'inherit' }}>Cargando...</div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: '#F5F7F5', gap: 16, padding: 24 }}>
+        <div style={{ fontSize: 15, fontWeight: 600, color: '#263238', textAlign: 'center' }}>
+          Error al cargar los datos
+        </div>
+        <div style={{ fontSize: 13, color: '#78909C', textAlign: 'center' }}>
+          No se pudo conectar con la base de datos. Verificá tu conexión e intentá de nuevo.
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          style={{ padding: '10px 24px', borderRadius: 10, border: 'none', background: '#1D3461', color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+        >
+          Reintentar
+        </button>
       </div>
     );
   }
