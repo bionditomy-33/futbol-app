@@ -2,31 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { doc, setDoc, onSnapshot, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { INITIAL_CATALOG, INITIAL_ROUTINES } from '../data/initialData';
-import { todayStr } from '../utils/dates';
-
-// ─── Date helpers (store-local) ───────────────────────────────────────────────
-
-function storeDateStr(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function addDaysStore(dateStr, days) {
-  const d = new Date(dateStr + 'T12:00:00');
-  d.setDate(d.getDate() + days);
-  return storeDateStr(d);
-}
-
-function getWeekStart(dateStr) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  const day = date.getDay(); // 0 = Sun
-  const diff = day === 0 ? -6 : 1 - day; // Monday
-  date.setDate(date.getDate() + diff);
-  return storeDateStr(date);
-}
+import { todayStr, toDateStr, addDays, getWeekStart } from '../utils/dates';
 
 // ─── Plan progress (pure computation, exported for use in pages) ──────────────
 
@@ -148,7 +124,7 @@ export function getPlanWeeks(plan, history) {
   let weekStart = getWeekStart(startDate);
 
   while (weekStart <= endDate) {
-    const weekEnd = addDaysStore(weekStart, 6);
+    const weekEnd = addDays(weekStart, 6);
     let gym = 0, individual = 0;
 
     for (const [dateStr, day] of Object.entries(history)) {
@@ -179,7 +155,7 @@ export function getPlanWeeks(plan, history) {
       isPast, isCurrent, isFuture,
     });
 
-    weekStart = addDaysStore(weekStart, 7);
+    weekStart = addDays(weekStart, 7);
   }
   return weeks;
 }
