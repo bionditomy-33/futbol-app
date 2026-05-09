@@ -203,7 +203,8 @@ export default function DayEditor({ dateStr }) {
     assignRoutine, removeSchedule, updatePhaseObjective,
   } = useStore();
 
-  const assignedId = schedule[dateStr];
+  const schedVal = schedule[dateStr];
+  const assignedId = typeof schedVal === 'string' ? schedVal : schedVal?.routineId;
   const routine = routines.find(r => r.id === assignedId) || null;
   const day = getDay(dateStr);
   const completed = day.completed || {};

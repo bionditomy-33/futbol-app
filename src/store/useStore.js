@@ -389,8 +389,15 @@ export function useStore() {
     writeDoc('routines', nextRoutines);
 
     const nextSchedule = { ...state.schedule };
-    for (const [date, rid] of Object.entries(nextSchedule)) {
-      if (rid === id) delete nextSchedule[date];
+    for (const [date, val] of Object.entries(nextSchedule)) {
+      const rid = typeof val === 'string' ? val : val?.routineId;
+      if (rid === id) {
+        if (typeof val !== 'string') {
+          const { routineId: _r, ...rest } = val;
+          if (Object.keys(rest).length > 0) { nextSchedule[date] = rest; continue; }
+        }
+        delete nextSchedule[date];
+      }
     }
     setState({ schedule: nextSchedule });
     writeDoc('schedule', nextSchedule);
@@ -580,7 +587,7 @@ export function useStore() {
     }
   }, []);
 
-  // Apply a template's days to a set of date strings (sets schedule routineIds)
+  // Apply a template's days to a set of date strings (persists full day config)
   const applyWeekTemplate = useCallback((dateStrs, days = null) => {
     const tmpl = days || state.weekTemplates.find(t => t.isDefault)?.days;
     if (!tmpl || Object.keys(tmpl).length === 0) return;
@@ -589,7 +596,13 @@ export function useStore() {
     dateStrs.forEach(dateStr => {
       const dow = new Date(dateStr + 'T12:00:00').getDay();
       const dayTmpl = tmpl[dow];
-      if (dayTmpl?.routineId) newSchedule[dateStr] = dayTmpl.routineId;
+      if (!dayTmpl) return;
+      const entry = {};
+      if (dayTmpl.routineId) entry.routineId = dayTmpl.routineId;
+      if (dayTmpl.gym)       entry.gym = true;
+      if (dayTmpl.arsenal)   entry.arsenal = true;
+      if (dayTmpl.match)     entry.match = true;
+      if (Object.keys(entry).length > 0) newSchedule[dateStr] = entry;
     });
     setState({ schedule: newSchedule });
     writeDoc('schedule', newSchedule);

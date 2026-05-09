@@ -201,7 +201,8 @@ function DaySheet({ dateStr, onClose, schedule, history, routines, matches, week
   const acts      = getDayActivities(dateStr, schedule, history, matches, weekTemplate);
   const dayMatches = matches.filter(m => m.date === dateStr);
 
-  const assignedRoutineId = schedule[dateStr] || (weekTemplate?.[d.getDay()]?.routineId);
+  const schedVal = schedule[dateStr];
+  const assignedRoutineId = (typeof schedVal === 'string' ? schedVal : schedVal?.routineId) || (weekTemplate?.[d.getDay()]?.routineId);
   const doneRoutine   = day?.done ? routines.find(r => r.id === day.routineId) : null;
   const planRoutine   = !day?.done && assignedRoutineId ? routines.find(r => r.id === assignedRoutineId) : null;
   const showRoutine   = doneRoutine || planRoutine;
@@ -252,7 +253,7 @@ function DaySheet({ dateStr, onClose, schedule, history, routines, matches, week
         {acts.map((act, i) => {
           let bg, label, detail, borderColor;
           if (act.type === 'indiv') {
-            const r = routines.find(ro => ro.id === (day?.routineId || schedule[dateStr] || weekTemplate?.[d.getDay()]?.routineId));
+            const r = routines.find(ro => ro.id === (day?.routineId || assignedRoutineId));
             bg = act.missed ? '#FEE2E2' : act.done ? '#D1FAE5' : '#E8EDF5';
             borderColor = act.missed ? C.indivMissed : C.indiv;
             label = r ? r.name : 'Entrenamiento individual';
