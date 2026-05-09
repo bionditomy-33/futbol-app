@@ -52,6 +52,19 @@ function SmallBall({ size = 8 }) {
   );
 }
 
+// Returns the effective template days for a date: the active plan's template if one covers
+// this date, otherwise the default weekTemplate.
+function getEffectiveTmpl(dateStr, plans, weekTemplates, defaultDays) {
+  const plan = (plans || []).find(p =>
+    p.status !== 'completed' && p.weekTemplateId && p.startDate <= dateStr && p.endDate >= dateStr
+  );
+  if (plan) {
+    const tmpl = (weekTemplates || []).find(t => t.id === plan.weekTemplateId);
+    if (tmpl) return tmpl.days;
+  }
+  return defaultDays;
+}
+
 function getDayActs(dateStr, schedule, history, matches, weekTemplate) {
   const acts = [];
   const day  = history[dateStr];
@@ -149,7 +162,7 @@ function CalDayBars({ acts, isToday }) {
 }
 
 // ── Month summary by week ────────────────────────────────────────────────────
-function MonthSummary({ year, month, schedule, history, weekTemplate, plans }) {
+function MonthSummary({ year, month, schedule, history, weekTemplate, weekTemplates, plans }) {
   const weeks = useMemo(() => {
     const first    = new Date(year, month, 1);
     const firstDow = first.getDay();
@@ -167,7 +180,8 @@ function MonthSummary({ year, month, schedule, history, weekTemplate, plans }) {
         date.setDate(start.getDate() + w * 7 + d);
         const ds  = toDateStr(date);
         const dow = date.getDay();
-        const tmpl = weekTemplate?.[dow];
+        const effDays = getEffectiveTmpl(ds, plans, weekTemplates, weekTemplate);
+        const tmpl = effDays?.[dow];
         const day = history[ds];
         const suppressTemplate = !!(day?.cleared && !day?.done && !day?.gym);
         const hasSchedule = !!schedule[ds];
@@ -190,7 +204,7 @@ function MonthSummary({ year, month, schedule, history, weekTemplate, plans }) {
       result.push({ planned, done, isCurrentWeek, weekStart, weekEnd, primaryPlan });
     }
     return result;
-  }, [year, month, schedule, history, weekTemplate, plans]);
+  }, [year, month, schedule, history, weekTemplate, weekTemplates, plans]);
 
   return (
     <div className="cal-summary">
@@ -335,7 +349,7 @@ function DaySheet({ dateStr, onClose, schedule, history, routines, matches, week
 
 // ── Main Calendario component ────────────────────────────────────────────────
 export default function Calendario() {
-  const { history, schedule, routines, matches, weekTemplate, plans } = useStore();
+  const { history, schedule, routines, matches, weekTemplate, weekTemplates, plans } = useStore();
 
   const [viewDate, setViewDate] = useState(() => {
     const d = new Date();
@@ -391,7 +405,8 @@ export default function Calendario() {
           {calDays.map(({ dateStr, inMonth, dayNum }) => {
             const isToday    = dateStr === TODAY;
             const isFuture   = dateStr > TODAY;
-            const acts       = getDayActs(dateStr, schedule, history, matches, weekTemplate);
+            const effTmpl    = getEffectiveTmpl(dateStr, plans, weekTemplates, weekTemplate);
+            const acts       = getDayActs(dateStr, schedule, history, matches, effTmpl);
 
             return (
               <div
@@ -429,6 +444,7 @@ export default function Calendario() {
         schedule={schedule}
         history={history}
         weekTemplate={weekTemplate}
+        weekTemplates={weekTemplates}
         plans={plans}
       />
 
@@ -441,7 +457,7 @@ export default function Calendario() {
           history={history}
           routines={routines}
           matches={matches}
-          weekTemplate={weekTemplate}
+          weekTemplate={getEffectiveTmpl(selectedDay, plans, weekTemplates, weekTemplate)}
         />
       )}
     </div>

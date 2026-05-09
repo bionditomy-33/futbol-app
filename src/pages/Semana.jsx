@@ -211,10 +211,17 @@ export default function Semana() {
   const dayActs = useMemo(() => {
     const map = {};
     weekDateStrs.forEach(ds => {
-      map[ds] = getDayActivities(ds, schedule, history, matches, weekTemplate);
+      // Use the active plan's template for this date if available, else the default template
+      const planForDay = plans.find(p =>
+        p.status !== 'completed' && p.weekTemplateId && p.startDate <= ds && p.endDate >= ds
+      );
+      const effTmpl = planForDay
+        ? (weekTemplates.find(t => t.id === planForDay.weekTemplateId)?.days || weekTemplate)
+        : weekTemplate;
+      map[ds] = getDayActivities(ds, schedule, history, matches, effTmpl);
     });
     return map;
-  }, [schedule, history, matches, weekTemplate, weekOffset]);
+  }, [schedule, history, matches, weekTemplate, weekTemplates, plans, weekOffset]);
 
   // Active plan info + template info for the viewed week
   const weekPlanInfo = useMemo(() => {
