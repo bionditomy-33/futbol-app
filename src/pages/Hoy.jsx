@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useStore, getPlanProgress } from '../store/useStore';
 import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
+import { getDayActivities } from '../utils/activities';
 import { CalendarIcon } from '../components/Icons';
 
 const TODAY = todayStr();
@@ -36,46 +37,6 @@ function getEffectiveTmpl(dateStr, plans, weekTemplates, defaultDays) {
     if (tmpl) return tmpl.days;
   }
   return defaultDays;
-}
-
-function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
-  const dow  = new Date(dateStr + 'T12:00:00').getDay();
-  const tmpl = weekTemplate?.[dow] || {};
-  const day  = history[dateStr];
-  const acts = [];
-
-  const suppressTemplate = !!(day?.cleared && !day?.done && !day?.gym);
-
-  if (day?.gym || (!suppressTemplate && tmpl.gym)) {
-    acts.push({ type: 'gym', time: tmpl.gymTime || '07:00', done: !!day?.gym });
-  }
-
-  const schedId = schedule[dateStr];
-  const histId  = day?.done ? day.routineId : null;
-  const tmplId  = !suppressTemplate ? tmpl.routineId : null;
-  if (histId || schedId || tmplId) {
-    acts.push({
-      type: 'indiv',
-      time: tmpl.indivTime || '08:10',
-      done: !!day?.done,
-      routineId: histId || schedId || tmplId,
-    });
-  }
-
-  if (!suppressTemplate && tmpl.arsenal) {
-    acts.push({ type: 'arsenal', time: tmpl.arsenalTime || '19:30' });
-  }
-
-  const defaultMatchTime = dow === 6 ? '15:00' : dow === 0 ? '16:00' : '15:00';
-  const dayMatches = matches.filter(m => m.date === dateStr);
-  dayMatches.forEach(m => acts.push({
-    type: 'match', time: tmpl.matchTime || defaultMatchTime, match: m,
-  }));
-  if (!suppressTemplate && tmpl.match && dayMatches.length === 0) {
-    acts.push({ type: 'match', time: tmpl.matchTime || defaultMatchTime });
-  }
-
-  return acts.sort((a, b) => a.time.localeCompare(b.time));
 }
 
 function timeToMins(t) {

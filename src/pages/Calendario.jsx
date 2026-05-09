@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr, toDateStr } from '../utils/dates';
+import { getDayActivities } from '../utils/activities';
 import { TrophyIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
 
@@ -65,46 +66,6 @@ function getEffectiveTmpl(dateStr, plans, weekTemplates, defaultDays) {
   return defaultDays;
 }
 
-function getDayActs(dateStr, schedule, history, matches, weekTemplate) {
-  const acts = [];
-  const day  = history[dateStr];
-  const dow  = new Date(dateStr + 'T12:00:00').getDay();
-  const tmpl = weekTemplate?.[dow];
-
-  // If explicitly cleared with no real training data, suppress template activities
-  const suppressTemplate = !!(day?.cleared && !day?.done && !day?.gym);
-
-  // Individual routine
-  if (day?.done) {
-    acts.push({ type: 'indiv', done: true, missed: false });
-  } else if (schedule[dateStr]) {
-    acts.push({ type: 'indiv', done: false, missed: dateStr < TODAY });
-  } else if (!suppressTemplate && tmpl?.routineId) {
-    acts.push({ type: 'indiv', done: false, missed: false, planned: true });
-  }
-
-  // Gym
-  if (day?.gym) {
-    acts.push({ type: 'gym', done: true });
-  } else if (!suppressTemplate && tmpl?.gym) {
-    acts.push({ type: 'gym', done: false, planned: true });
-  }
-
-  // Arsenal
-  if (!suppressTemplate && tmpl?.arsenal) {
-    acts.push({ type: 'arsenal', planned: true });
-  }
-
-  // Match
-  const dayMatches = matches.filter(m => m.date === dateStr);
-  dayMatches.forEach(m => acts.push({ type: 'match', done: true, match: m }));
-  if (!suppressTemplate && tmpl?.match && dayMatches.length === 0) {
-    acts.push({ type: 'match', done: false, planned: true });
-  }
-
-  return acts;
-}
-
 function CalDayBars({ acts, isToday }) {
   if (acts.length === 0) return null;
 
@@ -113,7 +74,7 @@ function CalDayBars({ acts, isToday }) {
   const arsenalAct = acts.find(a => a.type === 'arsenal');
   const matchAct   = acts.find(a => a.type === 'match');
 
-  const planned = (act) => !act?.done && act?.planned;
+  const planned = (act) => !act?.done && act?.fromTemplate;
 
   const bars = [];
 
@@ -243,7 +204,7 @@ function DaySheet({ dateStr, onClose, schedule, history, routines, matches, week
   const d         = new Date(dateStr + 'T12:00:00');
   const isToday   = dateStr === TODAY;
   const day       = history[dateStr];
-  const acts      = getDayActs(dateStr, schedule, history, matches, weekTemplate);
+  const acts      = getDayActivities(dateStr, schedule, history, matches, weekTemplate);
   const dayMatches = matches.filter(m => m.date === dateStr);
 
   const assignedRoutineId = schedule[dateStr] || (weekTemplate?.[d.getDay()]?.routineId);
@@ -406,7 +367,7 @@ export default function Calendario() {
             const isToday    = dateStr === TODAY;
             const isFuture   = dateStr > TODAY;
             const effTmpl    = getEffectiveTmpl(dateStr, plans, weekTemplates, weekTemplate);
-            const acts       = getDayActs(dateStr, schedule, history, matches, effTmpl);
+            const acts       = getDayActivities(dateStr, schedule, history, matches, effTmpl);
 
             return (
               <div
