@@ -195,6 +195,7 @@ let listeners = [];
 
 let state = {
   catalog:       INITIAL_CATALOG,
+  catLinks:      {},
   routines:      INITIAL_ROUTINES,
   schedule:      {},
   history:       {},
@@ -217,6 +218,12 @@ function setState(partial) {
 function writeDoc(docName, data) {
   setDoc(doc(db, 'app', docName), { data }).catch(err => {
     console.error(`[store] Failed to write ${docName}:`, err);
+  });
+}
+
+function writeCatalog(catalog, catLinks) {
+  setDoc(doc(db, 'app', 'catalog'), { data: catalog, catLinks }).catch(err => {
+    console.error('[store] Failed to write catalog:', err);
   });
 }
 
@@ -295,7 +302,11 @@ function initFirestore() {
         let data = snap.data().data;
         if (docName === 'routines')      data = migrateRoutines(data);
         if (docName === 'weekTemplates') data = Array.isArray(data) ? data : [];
-        setState({ [docName]: data });
+        if (docName === 'catalog') {
+          setState({ catalog: data, catLinks: snap.data().catLinks || {} });
+        } else {
+          setState({ [docName]: data });
+        }
         onDocFirstLoad(docName);
       }
     }, (err) => {
@@ -319,7 +330,7 @@ export function useStore() {
     return () => { listeners = listeners.filter(l => l !== listener); };
   }, []);
 
-  const { catalog, routines, schedule, history, matches, weekTemplates, isReady, loadError } = state;
+  const { catalog, catLinks, routines, schedule, history, matches, weekTemplates, isReady, loadError } = state;
   const exerciseMap = buildExerciseMap(catalog);
   // Backward-compat: expose default template's days as weekTemplate
   const weekTemplate = weekTemplates.find(t => t.isDefault)?.days || {};
@@ -434,7 +445,7 @@ export function useStore() {
     const cat = state.catalog[category] || [];
     const next = { ...state.catalog, [category]: [...cat, exercise] };
     setState({ catalog: next });
-    writeDoc('catalog', next);
+    writeCatalog(next, state.catLinks);
   }, []);
 
   const editExercise = useCallback((id, patch) => {
@@ -443,7 +454,7 @@ export function useStore() {
       next[cat] = exercises.map(ex => ex.id === id ? { ...ex, ...patch } : ex);
     }
     setState({ catalog: next });
-    writeDoc('catalog', next);
+    writeCatalog(next, state.catLinks);
   }, []);
 
   const deleteExercise = useCallback((id) => {
@@ -452,21 +463,67 @@ export function useStore() {
       next[cat] = exercises.filter(ex => ex.id !== id);
     }
     setState({ catalog: next });
-    writeDoc('catalog', next);
+    writeCatalog(next, state.catLinks);
   }, []);
 
   const addCategory = useCallback((name) => {
     if (state.catalog[name]) return;
     const next = { ...state.catalog, [name]: [] };
     setState({ catalog: next });
-    writeDoc('catalog', next);
+    writeCatalog(next, state.catLinks);
   }, []);
 
   const deleteCategory = useCallback((name) => {
-    const next = { ...state.catalog };
-    delete next[name];
-    setState({ catalog: next });
-    writeDoc('catalog', next);
+    const nextCatalog = { ...state.catalog };
+    delete nextCatalog[name];
+    const nextLinks = { ...state.catLinks };
+    delete nextLinks[name];
+    setState({ catalog: nextCatalog, catLinks: nextLinks });
+    writeCatalog(nextCatalog, nextLinks);
+  }, []);
+
+  const editCategory = useCallback((catName, newName, link) => {
+    let nextCatalog = { ...state.catalog };
+    let nextLinks = { ...state.catLinks };
+    const trimmedNew = newName.trim();
+    const effectiveName = (trimmedNew && trimmedNew !== catName) ? trimmedNew : catName;
+
+    if (effectiveName !== catName) {
+      nextCatalog[effectiveName] = nextCatalog[catName];
+      delete nextCatalog[catName];
+      if (nextLinks[catName] !== undefined) {
+        nextLinks[effectiveName] = nextLinks[catName];
+        delete nextLinks[catName];
+      }
+    }
+
+    const trimmedLink = link.trim();
+    if (trimmedLink) {
+      nextLinks[effectiveName] = trimmedLink;
+    } else {
+      delete nextLinks[effectiveName];
+    }
+
+    setState({ catalog: nextCatalog, catLinks: nextLinks });
+    writeCatalog(nextCatalog, nextLinks);
+  }, []);
+
+  const moveLinkToCategory = useCallback((catName, exerciseId) => {
+    const exercise = (state.catalog[catName] || []).find(ex => ex.id === exerciseId);
+    if (!exercise?.link) return null;
+    const link = exercise.link;
+
+    const nextCatalog = { ...state.catalog };
+    nextCatalog[catName] = nextCatalog[catName].map(ex => {
+      if (ex.id !== exerciseId) return ex;
+      const { link: _removed, ...rest } = ex;
+      return rest;
+    });
+    const nextLinks = { ...state.catLinks, [catName]: link };
+
+    setState({ catalog: nextCatalog, catLinks: nextLinks });
+    writeCatalog(nextCatalog, nextLinks);
+    return link;
   }, []);
 
   const isExerciseUsed = useCallback((id) => {
@@ -663,6 +720,7 @@ export function useStore() {
 
   return {
     catalog,
+    catLinks,
     routines,
     schedule,
     history,
@@ -689,6 +747,8 @@ export function useStore() {
     deleteExercise,
     addCategory,
     deleteCategory,
+    editCategory,
+    moveLinkToCategory,
     isExerciseUsed,
     setMatches,
     saveWeekTemplate,     // backward compat shim

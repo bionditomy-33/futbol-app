@@ -15,7 +15,12 @@ function generateId(category) {
 }
 
 export default function Catalogo({ onBack } = {}) {
-  const { catalog, addExercise, editExercise, deleteExercise, addCategory, deleteCategory, isExerciseUsed } = useStore();
+  const {
+    catalog, catLinks,
+    addExercise, editExercise, deleteExercise,
+    addCategory, deleteCategory, editCategory, moveLinkToCategory,
+    isExerciseUsed,
+  } = useStore();
 
   const [open, setOpen] = useState({});
   const [search, setSearch] = useState('');
@@ -27,6 +32,8 @@ export default function Catalogo({ onBack } = {}) {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [editingCat, setEditingCat] = useState(null);
+  const [catEditForm, setCatEditForm] = useState({ name: '', link: '' });
 
   const totalExercises = useMemo(
     () => Object.values(catalog).reduce((s, ex) => s + ex.length, 0),
@@ -97,10 +104,21 @@ export default function Catalogo({ onBack } = {}) {
     deleteCategory(cat);
   }
 
+  function startEditCat(cat) {
+    setCatEditForm({ name: cat, link: catLinks[cat] || '' });
+    setEditingCat(cat);
+    setOpen(o => ({ ...o, [cat]: true }));
+  }
+
+  function saveEditCat(cat) {
+    editCategory(cat, catEditForm.name, catEditForm.link);
+    setEditingCat(null);
+  }
+
   const allCategories = Object.keys(catalog);
 
   return (
-    <div className="catalog-page" onClick={() => setOpenMenuId(null)}>
+    <div className="catalog-page" onClick={() => { setOpenMenuId(null); }}>
 
       {/* ── Dark header ── */}
       <div className="catalog-header">
@@ -198,18 +216,44 @@ export default function Catalogo({ onBack } = {}) {
           const isOpen = open[cat] || !!q;
           const catTotal = catalog[cat];
           const isEmpty = catTotal.length === 0;
+          const catLink = catLinks[cat];
+          const isEditingThisCat = editingCat === cat;
 
           return (
             <div key={cat} className="catalog-cat-card" style={{ borderLeftColor: color }}>
-              <div className="catalog-cat-header" onClick={() => toggle(cat)}>
-                <div style={{ flex: 1, minWidth: 0 }}>
+
+              {/* ── Category header ── */}
+              <div
+                className="catalog-cat-header"
+                onClick={() => { if (!isEditingThisCat) toggle(cat); }}
+              >
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span className="catalog-cat-name">{cat}</span>
+                  {catLink && !isEditingThisCat && (
+                    <a
+                      href={catLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="catalog-cat-play"
+                      onClick={e => e.stopPropagation()}
+                      title="Ver video de la categoría"
+                    >
+                      <PlayIcon size={9} />
+                    </a>
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span className="catalog-count-badge">
                     {catTotal.length} ejercicio{catTotal.length !== 1 ? 's' : ''}
                   </span>
-                  {isEmpty && !q && (
+                  <button
+                    className="catalog-cat-action-btn"
+                    onClick={e => { e.stopPropagation(); isEditingThisCat ? setEditingCat(null) : startEditCat(cat); }}
+                    title={isEditingThisCat ? 'Cancelar edición' : 'Editar categoría'}
+                  >
+                    {isEditingThisCat ? <XIcon size={13} /> : <EditIcon size={13} />}
+                  </button>
+                  {isEmpty && !q && !isEditingThisCat && (
                     <button
                       className="catalog-delete-cat-btn"
                       onClick={e => { e.stopPropagation(); handleDeleteCategory(cat); }}
@@ -217,13 +261,64 @@ export default function Catalogo({ onBack } = {}) {
                       <TrashIcon size={12} />
                     </button>
                   )}
-                  <span className={`catalog-chevron${isOpen ? ' is-open' : ''}`}>
-                    <ChevronDown size={15} />
-                  </span>
+                  {!isEditingThisCat && (
+                    <span className={`catalog-chevron${isOpen ? ' is-open' : ''}`}>
+                      <ChevronDown size={15} />
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {isOpen && (
+              {/* ── Category edit form ── */}
+              {isEditingThisCat && (
+                <div className="catalog-cat-edit-form" onClick={e => e.stopPropagation()}>
+                  <div className="form-group">
+                    <label className="form-label">Nombre de la categoría</label>
+                    <input
+                      className="input"
+                      value={catEditForm.name}
+                      onChange={e => setCatEditForm(f => ({ ...f, name: e.target.value }))}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: moveLinkSuggestion(exercises, catLinks, cat, catEditForm) ? 10 : 14 }}>
+                    <label className="form-label">
+                      Video de la categoría <span style={{ color: '#94A3B8', fontWeight: 500 }}>(opcional)</span>
+                    </label>
+                    <input
+                      className="input"
+                      placeholder="https://..."
+                      value={catEditForm.link}
+                      onChange={e => setCatEditForm(f => ({ ...f, link: e.target.value }))}
+                    />
+                  </div>
+                  <MoveLinkNotice
+                    exercises={exercises}
+                    catLinks={catLinks}
+                    cat={cat}
+                    catEditFormLink={catEditForm.link}
+                    onMove={(exWithLink) => {
+                      const link = moveLinkToCategory(cat, exWithLink.id);
+                      if (link) setCatEditForm(f => ({ ...f, link }));
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => saveEditCat(cat)}
+                      disabled={!catEditForm.name.trim()}
+                    >
+                      Guardar
+                    </button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setEditingCat(null)}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Exercises list ── */}
+              {isOpen && !isEditingThisCat && (
                 <div className="catalog-exercises-list" style={{ backgroundColor: color + '12' }}>
                   {exercises.length === 0 && (
                     <div className="catalog-empty-state">
@@ -310,6 +405,27 @@ export default function Catalogo({ onBack } = {}) {
         )}
 
       </div>
+    </div>
+  );
+}
+
+function moveLinkSuggestion(exercises, catLinks, cat, catEditForm) {
+  if (catLinks[cat] || catEditForm.link) return false;
+  return exercises.some(ex => ex.link);
+}
+
+function MoveLinkNotice({ exercises, catLinks, cat, catEditFormLink, onMove }) {
+  if (catLinks[cat] || catEditFormLink) return null;
+  const exWithLink = exercises.find(ex => ex.link);
+  if (!exWithLink) return null;
+  return (
+    <div className="catalog-move-link-notice">
+      <span>
+        El ejercicio <strong>{exWithLink.name}</strong> tiene un video asignado. ¿Querés moverlo a la categoría?
+      </span>
+      <button className="btn btn-outline btn-sm" style={{ whiteSpace: 'nowrap', flexShrink: 0 }} onClick={() => onMove(exWithLink)}>
+        Mover
+      </button>
     </div>
   );
 }

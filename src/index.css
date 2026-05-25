@@ -1252,6 +1252,51 @@ select.input {
   color: var(--text-secondary);
   font-size: 14px;
 }
+.catalog-cat-play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--emerald-100);
+  color: var(--emerald-600);
+  border-radius: 50%;
+  flex-shrink: 0;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.catalog-cat-play:hover { background: var(--emerald-600); color: white; }
+.catalog-cat-action-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  color: #94A3B8;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.catalog-cat-action-btn:hover { color: #475569; }
+.catalog-cat-edit-form {
+  padding: 12px 14px 14px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  background: #F8FAFC;
+}
+.catalog-move-link-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #FFF7ED;
+  border: 1px solid #FED7AA;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  color: #92400E;
+  margin-bottom: 12px;
+}
+.catalog-move-link-notice strong { color: #78350F; }
 
 /* ──────────────────────────────────────────
    SEMANA VISTA
