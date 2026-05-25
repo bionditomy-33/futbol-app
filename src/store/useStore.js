@@ -221,14 +221,25 @@ function writeDoc(docName, data) {
   });
 }
 
+function stripUndefined(val) {
+  if (Array.isArray(val)) return val.map(stripUndefined);
+  if (val !== null && typeof val === 'object') {
+    return Object.fromEntries(
+      Object.entries(val)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, stripUndefined(v)])
+    );
+  }
+  return val;
+}
+
 function writeCatalog(catalog, catLinks) {
-  const data = Object.keys(catLinks).length > 0
+  const raw = Object.keys(catLinks).length > 0
     ? { ...catalog, __catLinks: catLinks }
     : catalog;
-  console.log('[CAT-DEBUG] writeCatalog → catLinks:', JSON.stringify(catLinks), '| data keys:', Object.keys(data));
-  setDoc(doc(db, 'app', 'catalog'), { data })
-    .then(() => console.log('[CAT-DEBUG] writeCatalog → setDoc OK (server confirmed)'))
-    .catch(err => console.error('[CAT-DEBUG] writeCatalog → setDoc ERROR:', err));
+  setDoc(doc(db, 'app', 'catalog'), { data: stripUndefined(raw) }).catch(err => {
+    console.error('[store] Failed to write catalog:', err);
+  });
 }
 
 const docLoadedSet = new Set();
@@ -307,10 +318,7 @@ function initFirestore() {
         if (docName === 'routines')      data = migrateRoutines(data);
         if (docName === 'weekTemplates') data = Array.isArray(data) ? data : [];
         if (docName === 'catalog') {
-          const meta = snap.metadata;
-          console.log('[CAT-DEBUG] onSnapshot → fromCache:', meta.fromCache, '| hasPendingWrites:', meta.hasPendingWrites, '| data keys:', Object.keys(data || {}));
           const { __catLinks = {}, ...catalog } = data || {};
-          console.log('[CAT-DEBUG] onSnapshot → __catLinks extraído:', JSON.stringify(__catLinks));
           setState({ catalog, catLinks: __catLinks });
         } else {
           setState({ [docName]: data });
@@ -459,7 +467,12 @@ export function useStore() {
   const editExercise = useCallback((id, patch) => {
     const next = {};
     for (const [cat, exercises] of Object.entries(state.catalog)) {
-      next[cat] = exercises.map(ex => ex.id === id ? { ...ex, ...patch } : ex);
+      next[cat] = exercises.map(ex => {
+        if (ex.id !== id) return ex;
+        const updated = { ...ex, ...patch };
+        if (!updated.link) delete updated.link;
+        return updated;
+      });
     }
     setState({ catalog: next });
     writeCatalog(next, state.catLinks);
@@ -491,7 +504,6 @@ export function useStore() {
   }, []);
 
   const editCategory = useCallback((catName, newName, link) => {
-    console.log('[CAT-DEBUG] editCategory → catName:', catName, '| newName:', newName, '| link:', link);
     let nextCatalog = { ...state.catalog };
     let nextLinks = { ...state.catLinks };
     const trimmedNew = newName.trim();
@@ -513,7 +525,6 @@ export function useStore() {
       delete nextLinks[effectiveName];
     }
 
-    console.log('[CAT-DEBUG] editCategory → nextLinks:', JSON.stringify(nextLinks));
     setState({ catalog: nextCatalog, catLinks: nextLinks });
     writeCatalog(nextCatalog, nextLinks);
   }, []);

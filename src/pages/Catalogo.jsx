@@ -85,7 +85,7 @@ export default function Catalogo({ onBack } = {}) {
   }
 
   function saveEdit(id) {
-    editExercise(id, { name: editForm.name.trim() || editForm.name, link: editForm.link.trim() || undefined });
+    editExercise(id, { name: editForm.name.trim() || editForm.name, link: editForm.link.trim() || null });
     setEditingId(null);
   }
 
