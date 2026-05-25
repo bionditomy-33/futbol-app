@@ -222,7 +222,10 @@ function writeDoc(docName, data) {
 }
 
 function writeCatalog(catalog, catLinks) {
-  setDoc(doc(db, 'app', 'catalog'), { data: catalog, catLinks }).catch(err => {
+  const data = Object.keys(catLinks).length > 0
+    ? { ...catalog, __catLinks: catLinks }
+    : catalog;
+  setDoc(doc(db, 'app', 'catalog'), { data }).catch(err => {
     console.error('[store] Failed to write catalog:', err);
   });
 }
@@ -303,7 +306,8 @@ function initFirestore() {
         if (docName === 'routines')      data = migrateRoutines(data);
         if (docName === 'weekTemplates') data = Array.isArray(data) ? data : [];
         if (docName === 'catalog') {
-          setState({ catalog: data, catLinks: snap.data().catLinks || {} });
+          const { __catLinks = {}, ...catalog } = data || {};
+          setState({ catalog, catLinks: __catLinks });
         } else {
           setState({ [docName]: data });
         }
