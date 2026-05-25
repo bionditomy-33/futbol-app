@@ -225,9 +225,10 @@ function writeCatalog(catalog, catLinks) {
   const data = Object.keys(catLinks).length > 0
     ? { ...catalog, __catLinks: catLinks }
     : catalog;
-  setDoc(doc(db, 'app', 'catalog'), { data }).catch(err => {
-    console.error('[store] Failed to write catalog:', err);
-  });
+  console.log('[CAT-DEBUG] writeCatalog → catLinks:', JSON.stringify(catLinks), '| data keys:', Object.keys(data));
+  setDoc(doc(db, 'app', 'catalog'), { data })
+    .then(() => console.log('[CAT-DEBUG] writeCatalog → setDoc OK (server confirmed)'))
+    .catch(err => console.error('[CAT-DEBUG] writeCatalog → setDoc ERROR:', err));
 }
 
 const docLoadedSet = new Set();
@@ -306,7 +307,10 @@ function initFirestore() {
         if (docName === 'routines')      data = migrateRoutines(data);
         if (docName === 'weekTemplates') data = Array.isArray(data) ? data : [];
         if (docName === 'catalog') {
+          const meta = snap.metadata;
+          console.log('[CAT-DEBUG] onSnapshot → fromCache:', meta.fromCache, '| hasPendingWrites:', meta.hasPendingWrites, '| data keys:', Object.keys(data || {}));
           const { __catLinks = {}, ...catalog } = data || {};
+          console.log('[CAT-DEBUG] onSnapshot → __catLinks extraído:', JSON.stringify(__catLinks));
           setState({ catalog, catLinks: __catLinks });
         } else {
           setState({ [docName]: data });
@@ -487,6 +491,7 @@ export function useStore() {
   }, []);
 
   const editCategory = useCallback((catName, newName, link) => {
+    console.log('[CAT-DEBUG] editCategory → catName:', catName, '| newName:', newName, '| link:', link);
     let nextCatalog = { ...state.catalog };
     let nextLinks = { ...state.catLinks };
     const trimmedNew = newName.trim();
@@ -508,6 +513,7 @@ export function useStore() {
       delete nextLinks[effectiveName];
     }
 
+    console.log('[CAT-DEBUG] editCategory → nextLinks:', JSON.stringify(nextLinks));
     setState({ catalog: nextCatalog, catLinks: nextLinks });
     writeCatalog(nextCatalog, nextLinks);
   }, []);
