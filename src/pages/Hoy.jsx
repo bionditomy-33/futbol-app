@@ -84,7 +84,7 @@ function GymCard({ act, onToggle }) {
   );
 }
 
-function IndivCard({ act, routines, history, onStart }) {
+function IndivCard({ act, routines, history, onStart, onPreview }) {
   const c = ACT_COLORS.indiv;
   const r = routines.find(r => r.id === act.routineId);
   const title = r ? r.name : 'Entrenamiento individual';
@@ -107,15 +107,25 @@ function IndivCard({ act, routines, history, onStart }) {
             <div className="hoy-progress-fill" style={{ width: `${(doneEx / totalEx) * 100}%`, background: c.sub }} />
           </div>
         )}
-        {act.done ? (
-          <div className="hoy-done-badge" style={{ color: c.sub }}>
-            ✓ Completado{totalEx > 0 ? ` · ${doneEx}/${totalEx}` : ''}
-          </div>
-        ) : (
-          <button className="hoy-start-btn" style={{ background: c.sub }} onClick={onStart}>
-            {started ? 'Continuar' : 'Empezar'}
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
+          {r && (
+            <button
+              style={{ padding: '7px 14px', borderRadius: 8, border: `1.5px solid ${c.sub}`, background: 'transparent', color: c.sub, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
+              onClick={onPreview}
+            >
+              Ver
+            </button>
+          )}
+          {act.done ? (
+            <div className="hoy-done-badge" style={{ color: c.sub, margin: 0 }}>
+              ✓ Completado{totalEx > 0 ? ` · ${doneEx}/${totalEx}` : ''}
+            </div>
+          ) : (
+            <button className="hoy-start-btn" style={{ background: c.sub, marginTop: 0, flex: 1 }} onClick={onStart}>
+              {started ? 'Continuar' : 'Empezar'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -201,9 +211,9 @@ function RoutinePreviewModal({ routine, exerciseMap, onClose }) {
   );
 }
 
-function ActivityCard({ act, routines, history, onGym, onIndiv }) {
+function ActivityCard({ act, routines, history, onGym, onIndiv, onPreview }) {
   if (act.type === 'gym')    return <GymCard    act={act} onToggle={onGym} />;
-  if (act.type === 'indiv')  return <IndivCard  act={act} routines={routines} history={history} onStart={onIndiv} />;
+  if (act.type === 'indiv')  return <IndivCard  act={act} routines={routines} history={history} onStart={onIndiv} onPreview={onPreview} />;
   if (act.type === 'arsenal') return <ArsenalCard act={act} />;
   if (act.type === 'match')  return <MatchCard  act={act} />;
   return null;
@@ -338,6 +348,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
                   history={history}
                   onGym={() => updateDay(TODAY, { gym: !act.done })}
                   onIndiv={onGoToEntreno}
+                  onPreview={() => setPreviewRoutineId(act.routineId)}
                 />
               </div>
             );
