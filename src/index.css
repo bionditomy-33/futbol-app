@@ -232,6 +232,124 @@ body {
 }
 
 /* ──────────────────────────────────────────
+   HOY — activity cards & layout
+────────────────────────────────────────── */
+.hoy-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94A3B8;
+  margin-bottom: 10px;
+}
+.hoy-acts {
+  padding: 16px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hoy-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: 12px;
+  padding: 14px;
+}
+.hoy-card-time {
+  font-size: 11px;
+  color: #94A3B8;
+  flex-shrink: 0;
+  min-width: 38px;
+  padding-top: 3px;
+  font-weight: 500;
+}
+.hoy-card-body {
+  flex: 1;
+}
+.hoy-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.hoy-card-sub {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.hoy-gym-toggle {
+  margin-top: 10px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1.5px solid;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.hoy-start-btn {
+  margin-top: 10px;
+  padding: 9px 20px;
+  border-radius: 9px;
+  border: none;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.hoy-done-badge {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.hoy-progress {
+  height: 4px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 99px;
+  margin: 8px 0 4px;
+  overflow: hidden;
+}
+.hoy-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+}
+.hoy-gap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 2px 48px;
+}
+.hoy-gap-line {
+  border-left: 2px dashed #CBD5E1;
+  height: 16px;
+}
+.hoy-gap-label {
+  font-size: 11px;
+  color: #94A3B8;
+}
+.hoy-free-day {
+  text-align: center;
+  color: #94A3B8;
+  font-size: 14px;
+  padding: 20px 0;
+}
+.hoy-tomorrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.hoy-tomorrow-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 20px;
+  padding: 6px 12px;
+}
+.hoy-tomorrow-chip-time {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ──────────────────────────────────────────
    METRICS
 ────────────────────────────────────────── */
 .metrics-row {
