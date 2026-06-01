@@ -3,6 +3,7 @@ import { useStore, getPlanProgress } from '../store/useStore';
 import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
+import { PlayIcon, XIcon } from '../components/Icons';
 
 const TODAY = todayStr();
 const TOMORROW = (() => {
@@ -147,6 +148,59 @@ function MatchCard({ act }) {
   );
 }
 
+const PHASE_COLORS = ['#1D3461', '#059669', '#D97706', '#475569'];
+
+function RoutinePreviewModal({ routine, exerciseMap, onClose }) {
+  if (!routine) return null;
+  const totalEx = routine.phases.reduce((s, p) => s + p.exercises.length, 0);
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '20px 20px 28px', maxHeight: '80vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', lineHeight: 1.2 }}>{routine.name}</div>
+            <div style={{ fontSize: 12, color: '#78909C', marginTop: 3 }}>{routine.duration} · {totalEx} ejercicios</div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4, lineHeight: 0 }}
+          >
+            <XIcon size={18} />
+          </button>
+        </div>
+        {routine.phases.map((phase, i) => (
+          <div key={i} style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: PHASE_COLORS[i] || '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+              {phase.phase}
+            </div>
+            {phase.exercises.map((ex, ei) => {
+              const info = exerciseMap[ex.ref];
+              if (!info) return null;
+              return (
+                <div key={ei} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: '0.5px solid #F1F5F4' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, color: '#263238', fontWeight: 500 }}>{info.name}</div>
+                    {(ex.series || ex.reps) && (
+                      <div style={{ fontSize: 12, color: '#78909C', marginTop: 1 }}>
+                        {ex.series ? `${ex.series}s` : ''}{ex.series && ex.reps ? ' · ' : ''}{ex.reps || ''}
+                      </div>
+                    )}
+                  </div>
+                  {info.link && (
+                    <a href={info.link} target="_blank" rel="noopener noreferrer" className="video-btn" onClick={e => e.stopPropagation()}>
+                      <PlayIcon size={9} /> Video
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ActivityCard({ act, routines, history, onGym, onIndiv }) {
   if (act.type === 'gym')    return <GymCard    act={act} onToggle={onGym} />;
   if (act.type === 'indiv')  return <IndivCard  act={act} routines={routines} history={history} onStart={onIndiv} />;
@@ -156,8 +210,9 @@ function ActivityCard({ act, routines, history, onGym, onIndiv }) {
 }
 
 export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, updateDay } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, updateDay, exerciseMap } = useStore();
   const [templateSuggestionDismissed, setTemplateSuggestionDismissed] = useState(false);
+  const [previewRoutineId, setPreviewRoutineId] = useState(null);
 
   const weekDateStrs = useMemo(() => getWeekDays(new Date()).map(d => toDateStr(d)), []);
 
@@ -325,10 +380,17 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
           <div className="hoy-tomorrow">
             {tomorrowActs.map((act, i) => {
               const c = ACT_COLORS[act.type];
+              const clickable = act.type === 'indiv' && act.routineId;
               return (
-                <div key={i} className="hoy-tomorrow-chip" style={{ background: c.bg }}>
+                <div
+                  key={i}
+                  className="hoy-tomorrow-chip"
+                  style={{ background: c.bg, cursor: clickable ? 'pointer' : 'default' }}
+                  onClick={clickable ? () => setPreviewRoutineId(act.routineId) : undefined}
+                >
                   <span className="hoy-tomorrow-chip-time" style={{ color: c.sub }}>{act.time}</span>
                   <span style={{ color: c.title, fontWeight: 600, fontSize: 12 }}>{ACT_LABEL[act.type]}</span>
+                  {clickable && <span style={{ fontSize: 10, color: c.sub, marginLeft: 2 }}>›</span>}
                 </div>
               );
             })}
@@ -373,6 +435,14 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
             </div>
           </div>
         </div>
+      )}
+
+      {previewRoutineId && (
+        <RoutinePreviewModal
+          routine={routines.find(r => r.id === previewRoutineId)}
+          exerciseMap={exerciseMap}
+          onClose={() => setPreviewRoutineId(null)}
+        />
       )}
 
     </div>
