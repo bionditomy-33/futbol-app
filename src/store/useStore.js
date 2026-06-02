@@ -160,6 +160,45 @@ export function getPlanWeeks(plan, history) {
   return weeks;
 }
 
+// ─── Plan weekly compensation log ─────────────────────────────────────────────
+
+export function computePlanWeeklyLog(plan, history) {
+  const { gymWeeklyFrequency: gymBase = 0, individualWeeklyFrequency: indivBase = 0 } = plan;
+  const weeks = getPlanWeeks(plan, history);
+  let accGym = 0;
+  let accIndiv = 0;
+
+  return weeks.map(week => {
+    const gymCompAvail  = gymBase  > 0 ? Math.min(accGym,   2) : 0;
+    const indivCompAvail = indivBase > 0 ? Math.min(accIndiv, 2) : 0;
+    const gymEffTarget  = gymBase  + gymCompAvail;
+    const indivEffTarget = indivBase + indivCompAvail;
+
+    if (week.isPast) {
+      if (gymBase > 0) {
+        const comp = Math.max(0, Math.min(week.gym - gymBase, gymCompAvail));
+        const miss = Math.max(0, gymBase - week.gym);
+        accGym = Math.max(0, accGym - comp + miss);
+      }
+      if (indivBase > 0) {
+        const comp = Math.max(0, Math.min(week.individual - indivBase, indivCompAvail));
+        const miss = Math.max(0, indivBase - week.individual);
+        accIndiv = Math.max(0, accIndiv - comp + miss);
+      }
+    }
+
+    return {
+      ...week,
+      gymEffTarget,
+      indivEffTarget,
+      gymCompAvail,
+      indivCompAvail,
+      accGymDebt:   week.isPast ? accGym   : null,
+      accIndivDebt: week.isPast ? accIndiv : null,
+    };
+  });
+}
+
 // Migrate old phase names to current names
 const PHASE_MIGRATION = {
   'Movilidad':             'Activacion - Bloque Agilidad',

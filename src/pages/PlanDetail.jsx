@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getPlanProgress, getPlanWeeks } from '../store/useStore';
+import { getPlanProgress, getPlanWeeks, computePlanWeeklyLog } from '../store/useStore';
 import { formatDate } from '../utils/dates';
 import { ChevronLeft, CheckCircleIcon } from '../components/Icons';
 
@@ -190,7 +190,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   const [showCloseForm, setShowCloseForm] = useState(false);
 
   const progress = getPlanProgress(plan, history);
-  const weeks = getPlanWeeks(plan, history);
+  const weeks = computePlanWeeklyLog(plan, history);
   const actType = plan.activityType || 'individual';
 
   const routineLabel = () => {
@@ -327,6 +327,10 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             const isLast = i === weeks.length - 1;
             const bg = week.isCurrent ? '#EEF2FF' : 'transparent';
             const borderColor = week.isCurrent ? '#C7D2FE' : '#F1F5F9';
+            const hasGymComp   = week.gymCompAvail   > 0;
+            const hasIndivComp = week.indivCompAvail > 0;
+            const gymMet   = week.gym       >= week.gymEffTarget;
+            const indivMet = week.individual >= week.indivEffTarget;
 
             return (
               <div key={week.num} style={{
@@ -352,36 +356,40 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                   </div>
 
                   {/* Gym column */}
-                  {(actType === 'gym' || actType === 'both') && week.gymTarget > 0 && (
+                  {(actType === 'gym' || actType === 'both') && week.gymEffTarget > 0 && (
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 10, color: '#78909C', marginBottom: 2 }}>Gym</div>
+                      <div style={{ fontSize: 10, color: '#78909C', marginBottom: 2 }}>
+                        Gym{hasGymComp && <span style={{ color: '#D97706', fontWeight: 700 }}> +{week.gymCompAvail}</span>}
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span style={{
                           fontSize: 12, fontWeight: 700,
-                          color: week.isFuture ? '#B0BEC5' : week.gymMet ? '#1D3461' : '#EF5350',
+                          color: week.isFuture ? '#B0BEC5' : gymMet ? '#1D3461' : '#EF5350',
                         }}>
-                          {week.isFuture ? `—/${week.gymTarget}` : `${week.gym}/${week.gymTarget}`}
+                          {week.isFuture ? `—/${week.gymEffTarget}` : `${week.gym}/${week.gymEffTarget}`}
                         </span>
                         {!week.isFuture && (
-                          <span style={{ fontSize: 12 }}>{week.gymMet ? '✓' : '✗'}</span>
+                          <span style={{ fontSize: 12 }}>{gymMet ? '✓' : '✗'}</span>
                         )}
                       </div>
                     </div>
                   )}
 
                   {/* Individual column */}
-                  {(actType === 'individual' || actType === 'both') && week.individualTarget > 0 && (
+                  {(actType === 'individual' || actType === 'both') && week.indivEffTarget > 0 && (
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 10, color: '#78909C', marginBottom: 2 }}>Entreno</div>
+                      <div style={{ fontSize: 10, color: '#78909C', marginBottom: 2 }}>
+                        Entreno{hasIndivComp && <span style={{ color: '#D97706', fontWeight: 700 }}> +{week.indivCompAvail}</span>}
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span style={{
                           fontSize: 12, fontWeight: 700,
-                          color: week.isFuture ? '#B0BEC5' : week.individualMet ? '#059669' : '#EF5350',
+                          color: week.isFuture ? '#B0BEC5' : indivMet ? '#059669' : '#EF5350',
                         }}>
-                          {week.isFuture ? `—/${week.individualTarget}` : `${week.individual}/${week.individualTarget}`}
+                          {week.isFuture ? `—/${week.indivEffTarget}` : `${week.individual}/${week.indivEffTarget}`}
                         </span>
                         {!week.isFuture && (
-                          <span style={{ fontSize: 12 }}>{week.individualMet ? '✓' : '✗'}</span>
+                          <span style={{ fontSize: 12 }}>{indivMet ? '✓' : '✗'}</span>
                         )}
                       </div>
                     </div>
@@ -402,6 +410,41 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             );
           })}
         </div>
+
+        {/* Deuda acumulada + Esta semana */}
+        {(() => {
+          const lastPast = [...weeks].reverse().find(w => w.isPast);
+          const gymDebt   = lastPast?.accGymDebt   || 0;
+          const indivDebt = lastPast?.accIndivDebt || 0;
+          const curWeek   = weeks.find(w => w.isCurrent);
+          const gymComp   = curWeek?.gymCompAvail   || 0;
+          const indivComp = curWeek?.indivCompAvail || 0;
+          if (!gymDebt && !indivDebt && !gymComp && !indivComp) return null;
+          return (
+            <div style={{ marginTop: 12, padding: '10px 12px', background: '#FEF3C7', borderRadius: 8 }}>
+              {(gymDebt > 0 || indivDebt > 0) && (
+                <div style={{ fontSize: 12, color: '#92400E', fontWeight: 600, marginBottom: (gymComp > 0 || indivComp > 0) ? 6 : 0 }}>
+                  Deuda actual:{' '}
+                  {[
+                    gymDebt   > 0 && `${gymDebt} gym`,
+                    indivDebt > 0 && `${indivDebt} individual`,
+                  ].filter(Boolean).join(' · ')}
+                </div>
+              )}
+              {curWeek && (gymComp > 0 || indivComp > 0) && (
+                <div style={{ fontSize: 12, color: '#92400E' }}>
+                  Esta semana:{' '}
+                  {[
+                    (actType === 'gym' || actType === 'both') && gymComp > 0 &&
+                      `${curWeek.gymEffTarget} gym (${curWeek.gymEffTarget - gymComp} base + ${gymComp} comp)`,
+                    (actType === 'individual' || actType === 'both') && indivComp > 0 &&
+                      `${curWeek.indivEffTarget} individual (${curWeek.indivEffTarget - indivComp} base + ${indivComp} comp)`,
+                  ].filter(Boolean).join(', ')}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* ── Racha ── */}

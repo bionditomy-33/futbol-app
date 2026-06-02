@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useStore } from '../store/useStore';
+import { useStore, computePlanWeeklyLog } from '../store/useStore';
 import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
@@ -244,6 +244,18 @@ export default function Semana({ editToday = false, onConsumed }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plans, weekTemplates, weekOffset]);
 
+  // Compensation info for viewed week
+  const compensationInfo = useMemo(() => {
+    const plan = weekPlanInfo.primary;
+    if (!plan || (!plan.gymWeeklyFrequency && !plan.individualWeeklyFrequency)) return null;
+    const log = computePlanWeeklyLog(plan, history);
+    const mon = weekDateStrs[0];
+    const entry = log.find(w => w.startDate <= mon && w.endDate >= mon);
+    if (!entry || (entry.gymCompAvail === 0 && entry.indivCompAvail === 0)) return null;
+    return entry;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekPlanInfo, history, weekOffset]);
+
   // Week range label
   const d0 = weekDays[0], d6 = weekDays[6];
   const weekLabel = d0.getMonth() === d6.getMonth()
@@ -312,6 +324,18 @@ export default function Semana({ editToday = false, onConsumed }) {
             background: '#EEF2FF', color: '#3730A3',
           }}>
             Sem {weekPlanInfo.weekNum}/{weekPlanInfo.totalWeeks}
+          </span>
+        )}
+        {compensationInfo && (
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99,
+            background: '#FEF3C7', color: '#92400E',
+          }}>
+            Comp:{' '}
+            {[
+              compensationInfo.gymCompAvail   > 0 && `+${compensationInfo.gymCompAvail} gym`,
+              compensationInfo.indivCompAvail > 0 && `+${compensationInfo.indivCompAvail} indiv`,
+            ].filter(Boolean).join(', ')}
           </span>
         )}
         {weekPlanInfo.conflict && (
