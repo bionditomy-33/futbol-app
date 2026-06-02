@@ -400,6 +400,18 @@ export function useStore() {
     writeDoc('history', next);
   }, []);
 
+  const toggleSkipActivity = useCallback((dateStr, actType) => {
+    const day = state.history[dateStr] || { done: false, routineId: null, completed: {}, gym: false, notes: '' };
+    const skipped = day.skipped || [];
+    const nextSkipped = skipped.includes(actType)
+      ? skipped.filter(t => t !== actType)
+      : [...skipped, actType];
+    const patch = nextSkipped.length > 0 ? { skipped: nextSkipped } : { skipped: [] };
+    const next = { ...state.history, [dateStr]: { ...day, ...patch } };
+    setState({ history: next });
+    writeDoc('history', next);
+  }, []);
+
   // ── Routines ──────────────────────────────────────────────────────────────
   const saveRoutine = useCallback((routine) => {
     const exists = state.routines.find(r => r.id === routine.id);
@@ -759,6 +771,7 @@ export function useStore() {
     toggleExercise,
     completeDay,
     uncompleteDay,
+    toggleSkipActivity,
     saveRoutine,
     deleteRoutine,
     duplicateRoutine,

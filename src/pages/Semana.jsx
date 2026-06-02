@@ -31,19 +31,24 @@ function timeToMinutes(t) {
 // ── Grid activity block (tiny, inside the 7-col grid) ─────────────────────────
 function ActBlock({ act }) {
   const c = ACT_COLORS[act.type];
+  const opacity = act.skipped ? 0.5 : (act.fromTemplate && !act.done ? 0.55 : 1);
   return (
     <div
       className="wk2-block"
-      style={{ background: c.bg, opacity: act.fromTemplate && !act.done ? 0.55 : 1 }}
+      style={{ background: c.bg, opacity }}
     >
-      <span className="wk2-block-name" style={{ color: c.title }}>{ACT_SHORT[act.type]}</span>
-      <span className="wk2-block-time" style={{ color: c.sub }}>{act.time}</span>
+      <span className="wk2-block-name" style={{ color: c.title, textDecoration: act.skipped ? 'line-through' : 'none' }}>
+        {ACT_SHORT[act.type]}
+      </span>
+      <span className="wk2-block-time" style={{ color: act.skipped ? '#DC2626' : c.sub }}>
+        {act.skipped ? '✗' : act.time}
+      </span>
     </div>
   );
 }
 
 // ── Activity row in day detail ─────────────────────────────────────────────────
-function ActivityRow({ act, routines }) {
+function ActivityRow({ act, routines, onToggleSkip, isPastOrToday }) {
   const c = ACT_COLORS[act.type];
   let title = '', subtitle = '';
 
@@ -69,12 +74,32 @@ function ActivityRow({ act, routines }) {
     }
   }
 
+  const canSkip = isPastOrToday && !act.done && (act.type === 'gym' || act.type === 'indiv');
+
   return (
     <div className="wk2-act-row">
       <div className="wk2-act-time">{act.time}</div>
       <div className="wk2-act-pill" style={{ background: c.bg }}>
         <div className="wk2-act-title" style={{ color: c.title }}>{title}</div>
         {subtitle && <div className="wk2-act-sub" style={{ color: c.sub }}>{subtitle}</div>}
+        {act.skipped && (
+          <div style={{ fontSize: 11, color: '#DC2626', fontWeight: 700, marginTop: 4 }}>No realizado</div>
+        )}
+        {canSkip && (
+          <button
+            onClick={e => { e.stopPropagation(); onToggleSkip?.(act.type); }}
+            style={{
+              marginTop: 6, fontSize: 11, fontWeight: 600,
+              padding: '3px 8px', borderRadius: 5, cursor: 'pointer',
+              border: act.skipped ? '1px solid #CBD5E1' : '1px solid #FCA5A5',
+              background: act.skipped ? '#F1F5F9' : '#FEF2F2',
+              color: act.skipped ? '#64748B' : '#DC2626',
+              display: 'block',
+            }}
+          >
+            {act.skipped ? 'Restablecer' : 'No hecho'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -110,7 +135,7 @@ function getDatesBetween(startStr, endStr) {
 }
 
 export default function Semana({ editToday = false, onConsumed }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity } = useStore();
 
   const [weekOffset,      setWeekOffset]      = useState(0);
   const [selectedDateStr, setSelectedDateStr] = useState(TODAY);
@@ -198,9 +223,10 @@ export default function Semana({ editToday = false, onConsumed }) {
     : `${d0.getDate()} ${MONTHS_SHORT[d0.getMonth()]} — ${d6.getDate()} ${MONTHS_SHORT[d6.getMonth()]}`;
 
   // Selected day data
-  const selActs      = dayActs[selectedDateStr] || [];
-  const selDate      = new Date(selectedDateStr + 'T12:00:00');
-  const isSelToday   = selectedDateStr === TODAY;
+  const selActs       = dayActs[selectedDateStr] || [];
+  const selDate       = new Date(selectedDateStr + 'T12:00:00');
+  const isSelToday    = selectedDateStr === TODAY;
+  const isPastOrToday = selectedDateStr <= TODAY;
 
   // Edit mode: full-page DayEditor
   if (editing) {
@@ -364,7 +390,12 @@ export default function Semana({ editToday = false, onConsumed }) {
             return (
               <div key={i}>
                 {gapMins > 120 && <GapIndicator gapMins={gapMins} />}
-                <ActivityRow act={act} routines={routines} />
+                <ActivityRow
+                  act={act}
+                  routines={routines}
+                  isPastOrToday={isPastOrToday}
+                  onToggleSkip={(actType) => toggleSkipActivity(selectedDateStr, actType)}
+                />
               </div>
             );
           })

@@ -23,6 +23,7 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
       type: 'gym',
       time: tmpl.gymTime || tmpl.time || '07:00',
       done: !!day?.gym,
+      skipped: !!(day?.skipped?.includes('gym')),
       fromTemplate: !day?.gym && !sched.gym && !!tmpl.gym,
     });
   }
@@ -36,6 +37,7 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
       type: 'indiv',
       time: tmpl.indivTime || '08:10',
       done: !!day?.done,
+      skipped: !!(day?.skipped?.includes('indiv')),
       missed: !day?.done && !!schedId && dateStr < today,
       routineId: histId || schedId || tmplId,
       fromTemplate: !schedId && !day?.done && !!tmplId,
