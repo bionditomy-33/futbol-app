@@ -69,6 +69,7 @@ export default function App() {
   const [labRoutine, setLabRoutine]         = useState(null);
   const [labReturnToRutinas, setLabReturnToRutinas] = useState(false);
   const [pendingNav, setPendingNav]         = useState(null);
+  const [semanaEditToday, setSemanaEditToday] = useState(false);
   const labIsDirtyRef = useRef(false);
 
   if (!isReady) {
@@ -195,7 +196,7 @@ export default function App() {
       {mainTab === 'inicio' && (
         <Hoy
           onGoToDesafios={() => { setMainTab('mas'); setMasView('planes'); }}
-          onGoToEntreno={() => { setMainTab('entreno'); setEntrenoTab('semana'); }}
+          onGoToEntreno={() => { setSemanaEditToday(true); setMainTab('entreno'); setEntrenoTab('semana'); }}
         />
       )}
 
@@ -212,7 +213,7 @@ export default function App() {
               </div>
             ))}
           </div>
-          {entrenoTab === 'semana'     && <Semana />}
+          {entrenoTab === 'semana'     && <Semana editToday={semanaEditToday} onConsumed={() => setSemanaEditToday(false)} />}
           {entrenoTab === 'calendario' && <Calendario />}
           {entrenoTab === 'rutinas'    && (
             <Rutinas

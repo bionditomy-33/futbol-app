@@ -120,6 +120,8 @@ function RatingDisplay({ rating, hardestExercise }) {
 
 const TODAY = todayStr();
 
+const CAT_COLORS_PALETTE = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316', '#EC4899'];
+
 function groupExsByCategory(exercises, catByExId) {
   const groups = [];
   for (const ex of exercises) {
@@ -223,6 +225,11 @@ export default function DayEditor({ dateStr }) {
       for (const ex of exs) map[ex.id] = cat;
     }
     return map;
+  }, [catalog]);
+
+  const catColorMap = useMemo(() => {
+    const cats = Object.keys(catalog);
+    return Object.fromEntries(cats.map((cat, i) => [cat, CAT_COLORS_PALETTE[i % CAT_COLORS_PALETTE.length]]));
   }, [catalog]);
 
   const schedVal = schedule[dateStr];
@@ -459,8 +466,9 @@ export default function DayEditor({ dateStr }) {
                         const total = catExs.length;
                         const done  = catExs.filter(ex => !!completed[ex.ref]).length;
                         const catLink = catLinks[cat];
+                        const catColor = catColorMap[cat] || '#94A3B8';
                         return (
-                          <div key={key} style={{ marginBottom: 4 }}>
+                          <div key={key} style={{ marginBottom: 4, borderLeft: `3px solid ${catColor}`, paddingLeft: 8, marginLeft: 4 }}>
                             <div
                               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0 5px', cursor: 'pointer', borderBottom: '0.5px solid #E8ECEB' }}
                               onClick={() => setExpandedCats(prev => ({ ...prev, [key]: !isExpanded }))}

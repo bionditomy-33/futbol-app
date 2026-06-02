@@ -109,12 +109,16 @@ function getDatesBetween(startStr, endStr) {
   return dates;
 }
 
-export default function Semana() {
+export default function Semana({ editToday = false, onConsumed }) {
   const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule } = useStore();
 
   const [weekOffset,      setWeekOffset]      = useState(0);
   const [selectedDateStr, setSelectedDateStr] = useState(TODAY);
-  const [editing,         setEditing]         = useState(false);
+  const [editing,         setEditing]         = useState(editToday);
+
+  useEffect(() => {
+    if (editToday && onConsumed) onConsumed();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Apply modal state
   const [showApplyModal,  setShowApplyModal]  = useState(false);
