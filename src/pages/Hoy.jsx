@@ -4,6 +4,7 @@ import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
 import { PlayIcon, XIcon } from '../components/Icons';
+import ExerciseGroupedList from '../components/ExerciseGroupedList';
 
 const TODAY = todayStr();
 const TOMORROW = (() => {
@@ -160,7 +161,7 @@ function MatchCard({ act }) {
 
 const PHASE_COLORS = ['#1D3461', '#059669', '#D97706', '#475569'];
 
-function RoutinePreviewModal({ routine, exerciseMap, onClose }) {
+function RoutinePreviewModal({ routine, exerciseMap, catalog, catLinks, onClose }) {
   if (!routine) return null;
   const totalEx = routine.phases.reduce((s, p) => s + p.exercises.length, 0);
   return (
@@ -183,27 +184,13 @@ function RoutinePreviewModal({ routine, exerciseMap, onClose }) {
             <div style={{ fontSize: 11, fontWeight: 700, color: PHASE_COLORS[i] || '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
               {phase.phase}
             </div>
-            {phase.exercises.map((ex, ei) => {
-              const info = exerciseMap[ex.ref];
-              if (!info) return null;
-              return (
-                <div key={ei} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: '0.5px solid #F1F5F4' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, color: '#263238', fontWeight: 500 }}>{info.name}</div>
-                    {(ex.series || ex.reps) && (
-                      <div style={{ fontSize: 12, color: '#78909C', marginTop: 1 }}>
-                        {ex.series ? `${ex.series}s` : ''}{ex.series && ex.reps ? ' · ' : ''}{ex.reps || ''}
-                      </div>
-                    )}
-                  </div>
-                  {info.link && (
-                    <a href={info.link} target="_blank" rel="noopener noreferrer" className="video-btn" onClick={e => e.stopPropagation()}>
-                      <PlayIcon size={9} /> Video
-                    </a>
-                  )}
-                </div>
-              );
-            })}
+            <ExerciseGroupedList
+              exercises={phase.exercises}
+              catalog={catalog}
+              exerciseMap={exerciseMap}
+              catLinks={catLinks}
+              mode="read"
+            />
           </div>
         ))}
       </div>
@@ -220,7 +207,7 @@ function ActivityCard({ act, routines, history, onGym, onIndiv, onPreview }) {
 }
 
 export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, updateDay, exerciseMap } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, updateDay, exerciseMap, catalog, catLinks } = useStore();
   const [templateSuggestionDismissed, setTemplateSuggestionDismissed] = useState(false);
   const [previewRoutineId, setPreviewRoutineId] = useState(null);
 
@@ -452,6 +439,8 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
         <RoutinePreviewModal
           routine={routines.find(r => r.id === previewRoutineId)}
           exerciseMap={exerciseMap}
+          catalog={catalog}
+          catLinks={catLinks}
           onClose={() => setPreviewRoutineId(null)}
         />
       )}

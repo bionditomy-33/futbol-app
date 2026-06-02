@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { EditIcon, CopyIcon, TrashIcon, PlusIcon, EyeIcon, ChevronLeft, PlayIcon, BodyIcon, BallIcon, FireIcon } from '../components/Icons';
+import ExerciseGroupedList from '../components/ExerciseGroupedList';
 
 function countExercises(routine) {
   return routine.phases.reduce((sum, p) => sum + p.exercises.length, 0);
@@ -48,7 +49,7 @@ function getPhaseChipStyle(pi) {
   return { background: '#F1F5F9', color: '#475569' };
 }
 
-function RutinaDetail({ routine, exerciseMap, onClose }) {
+function RutinaDetail({ routine, exerciseMap, catalog, catLinks, onClose }) {
   const totalEx = countExercises(routine);
 
   return (
@@ -122,42 +123,13 @@ function RutinaDetail({ routine, exerciseMap, onClose }) {
                 {phase.exercises.length === 0 && !phase.note && (
                   <div style={{ fontSize: 13, color: '#94A3B8', padding: '4px 0' }}>Sin ejercicios</div>
                 )}
-                {phase.exercises.map((ex, ei) => {
-                  const info = exerciseMap[ex.ref];
-                  if (!info) return null;
-                  return (
-                    <div key={ei} style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '9px 0',
-                      borderBottom: ei < phase.exercises.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
-                    }}>
-                      <div style={{
-                        width: 24, height: 24, minWidth: 24,
-                        background: 'rgba(255,255,255,0.85)',
-                        borderRadius: 6,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 10, fontWeight: 800, color: accentColor,
-                      }}>
-                        {ei + 1}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#1A2332' }}>{info.name}</div>
-                        {(ex.series || ex.reps) && (
-                          <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>
-                            {ex.series && `${ex.series} serie${ex.series !== '1' ? 's' : ''}`}
-                            {ex.series && ex.reps ? ' · ' : ''}
-                            {ex.reps}
-                          </div>
-                        )}
-                      </div>
-                      {info.link && (
-                        <a href={info.link} target="_blank" rel="noopener noreferrer" className="video-btn" onClick={e => e.stopPropagation()}>
-                          <PlayIcon size={9} /> Video
-                        </a>
-                      )}
-                    </div>
-                  );
-                })}
+                <ExerciseGroupedList
+                  exercises={phase.exercises}
+                  catalog={catalog}
+                  exerciseMap={exerciseMap}
+                  catLinks={catLinks}
+                  mode="read"
+                />
               </div>
             </div>
           );
@@ -174,7 +146,7 @@ function RutinaDetail({ routine, exerciseMap, onClose }) {
 }
 
 export default function Rutinas({ onEdit, onNew }) {
-  const { routines, catalog, exerciseMap, deleteRoutine, duplicateRoutine } = useStore();
+  const { routines, catalog, catLinks, exerciseMap, deleteRoutine, duplicateRoutine } = useStore();
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [viewing, setViewing] = useState(null);
 
@@ -183,6 +155,8 @@ export default function Rutinas({ onEdit, onNew }) {
       <RutinaDetail
         routine={viewing}
         exerciseMap={exerciseMap}
+        catalog={catalog}
+        catLinks={catLinks}
         onClose={() => setViewing(null)}
       />
     );

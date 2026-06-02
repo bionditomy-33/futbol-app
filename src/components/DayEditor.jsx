@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr } from '../utils/dates';
 import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, GripIcon } from './Icons';
 import { useDragSort } from '../hooks/useDragSort';
+import ExerciseGroupedList from './ExerciseGroupedList';
 
 function getPhaseColor(displayIdx) {
   if (displayIdx === 0) return '#1D3461'; // navy
@@ -120,55 +121,9 @@ function RatingDisplay({ rating, hardestExercise }) {
 
 const TODAY = todayStr();
 
-const CAT_COLORS_PALETTE = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316', '#EC4899'];
-
-function groupExsByCategory(exercises, catByExId) {
-  const groups = [];
-  for (const ex of exercises) {
-    const cat = catByExId[ex.ref] || 'Sin categoría';
-    const last = groups[groups.length - 1];
-    if (last && last.cat === cat) {
-      last.exercises.push(ex);
-    } else {
-      groups.push({ cat, exercises: [ex] });
-    }
-  }
-  return groups;
-}
-
 function countExercises(routine) {
   if (!routine) return 0;
   return routine.phases.reduce((sum, p) => sum + p.exercises.length, 0);
-}
-
-function ExerciseRow({ ex, exerciseMap, completed, onToggle }) {
-  const info = exerciseMap[ex.ref];
-  if (!info) return null;
-  const done = !!completed[ex.ref];
-  return (
-    <div className={`exercise-item${done ? ' done' : ''}`}>
-      <div onClick={onToggle} style={{ cursor: 'pointer' }}>
-        <div className={`checkbox-custom${done ? ' checked' : ''}`}>
-          {done && <CheckIcon size={11} />}
-        </div>
-      </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, color: '#263238', fontWeight: done ? 400 : 500, lineHeight: 1.3 }}>
-          {info.name}
-        </div>
-        {(ex.series || ex.reps) && (
-          <div style={{ fontSize: 12, color: '#78909C', marginTop: 2 }}>
-            {ex.series && `${ex.series}s`}{ex.series && ex.reps ? ' · ' : ''}{ex.reps}
-          </div>
-        )}
-      </div>
-      {info.link && (
-        <a href={info.link} target="_blank" rel="noopener noreferrer" className="video-btn" onClick={e => e.stopPropagation()}>
-          <PlayIcon size={9} /> Video
-        </a>
-      )}
-    </div>
-  );
 }
 
 function RoutineSelector({ routines, onSelect, onClear, onCancel, showCancel }) {
@@ -219,19 +174,6 @@ export default function DayEditor({ dateStr }) {
     assignRoutine, removeSchedule, updatePhaseObjective,
   } = useStore();
 
-  const catByExId = useMemo(() => {
-    const map = {};
-    for (const [cat, exs] of Object.entries(catalog)) {
-      for (const ex of exs) map[ex.id] = cat;
-    }
-    return map;
-  }, [catalog]);
-
-  const catColorMap = useMemo(() => {
-    const cats = Object.keys(catalog);
-    return Object.fromEntries(cats.map((cat, i) => [cat, CAT_COLORS_PALETTE[i % CAT_COLORS_PALETTE.length]]));
-  }, [catalog]);
-
   const schedVal = schedule[dateStr];
   const assignedId = typeof schedVal === 'string' ? schedVal : schedVal?.routineId;
   const routine = routines.find(r => r.id === assignedId) || null;
@@ -240,7 +182,6 @@ export default function DayEditor({ dateStr }) {
 
   const [showSelector, setShowSelector] = useState(false);
   const [showRating, setShowRating]     = useState(false);
-  const [expandedCats, setExpandedCats] = useState({});
 
   // Objetivos locales por nombre de fase; se sincronizan cuando cambia la rutina
   const [objectives, setObjectives] = useState(() =>
@@ -460,52 +401,15 @@ export default function DayEditor({ dateStr }) {
                         <div style={{ fontSize: 13, color: '#B0BEC5' }}>Sin ejercicios asignados</div>
                       )}
 
-                      {groupExsByCategory(phase.exercises, catByExId).map(({ cat, exercises: catExs }) => {
-                        const key = `${phase.phase}::${cat}`;
-                        const isExpanded = expandedCats[key] !== false;
-                        const total = catExs.length;
-                        const done  = catExs.filter(ex => !!completed[ex.ref]).length;
-                        const catLink = catLinks[cat];
-                        const catColor = catColorMap[cat] || '#94A3B8';
-                        return (
-                          <div key={key} style={{ marginBottom: 4, borderLeft: `3px solid ${catColor}`, paddingLeft: 8, marginLeft: 4 }}>
-                            <div
-                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0 5px', cursor: 'pointer', borderBottom: '0.5px solid #E8ECEB' }}
-                              onClick={() => setExpandedCats(prev => ({ ...prev, [key]: !isExpanded }))}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                {catLink && (
-                                  <a
-                                    href={catLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={e => e.stopPropagation()}
-                                    style={{ color: color, lineHeight: 0, display: 'flex' }}
-                                  >
-                                    <PlayIcon size={9} />
-                                  </a>
-                                )}
-                                <span style={{ fontSize: 12, fontWeight: 700, color: '#37474F' }}>
-                                  {cat}
-                                </span>
-                                <span style={{ fontSize: 12, color: '#94A3B8' }}>
-                                  ({done}/{total})
-                                </span>
-                              </div>
-                              <span style={{ fontSize: 10, color: '#B0BEC5' }}>{isExpanded ? '▼' : '▶'}</span>
-                            </div>
-                            {isExpanded && catExs.map((ex, ei) => (
-                              <ExerciseRow
-                                key={`${ex.ref}-${ei}`}
-                                ex={ex}
-                                exerciseMap={exerciseMap}
-                                completed={completed}
-                                onToggle={() => toggleExercise(dateStr, ex.ref)}
-                              />
-                            ))}
-                          </div>
-                        );
-                      })}
+                      <ExerciseGroupedList
+                        exercises={phase.exercises}
+                        catalog={catalog}
+                        exerciseMap={exerciseMap}
+                        catLinks={catLinks}
+                        completed={completed}
+                        onToggle={(ref) => toggleExercise(dateStr, ref)}
+                        mode="edit"
+                      />
                     </div>
                   </div>
 
