@@ -16,9 +16,10 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
   const sched = getScheduleEntry(schedule, dateStr);
 
   const suppressTemplate = !!(day?.cleared && !day?.done && !day?.gym);
+  const suppressed = sched.suppressedTypes || [];
 
   // Gym (from history, schedule entry, or template)
-  if (day?.gym || sched.gym || (!suppressTemplate && tmpl.gym)) {
+  if (!suppressed.includes('gym') && (day?.gym || sched.gym || (!suppressTemplate && tmpl.gym))) {
     acts.push({
       type: 'gym',
       time: tmpl.gymTime || tmpl.time || '07:00',
@@ -32,7 +33,7 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
   const schedId = sched.routineId;
   const histId  = day?.done ? day.routineId : null;
   const tmplId  = !suppressTemplate ? tmpl.routineId : null;
-  if (histId || schedId || tmplId) {
+  if (!suppressed.includes('indiv') && (histId || schedId || tmplId)) {
     acts.push({
       type: 'indiv',
       time: tmpl.indivTime || '08:10',
@@ -45,7 +46,7 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
   }
 
   // Arsenal (from schedule entry or template)
-  if (sched.arsenal || (!suppressTemplate && tmpl.arsenal)) {
+  if (!suppressed.includes('arsenal') && (sched.arsenal || (!suppressTemplate && tmpl.arsenal))) {
     acts.push({
       type: 'arsenal',
       time: tmpl.arsenalTime || '19:30',
@@ -65,7 +66,7 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
   }));
 
   // Match from schedule or template (if no real match data)
-  if (dayMatches.length === 0 && (sched.match || (!suppressTemplate && tmpl.match))) {
+  if (dayMatches.length === 0 && !suppressed.includes('match') && (sched.match || (!suppressTemplate && tmpl.match))) {
     acts.push({
       type: 'match',
       time: tmpl.matchTime || defaultMatchTime,

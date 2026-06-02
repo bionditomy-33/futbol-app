@@ -400,6 +400,33 @@ export function useStore() {
     writeDoc('history', next);
   }, []);
 
+  const removeActivityFromDay = useCallback((dateStr, actType) => {
+    // Suppress via schedule entry (prevents template/schedule from re-showing)
+    const currentSched = state.schedule[dateStr];
+    const sched = typeof currentSched === 'string'
+      ? { routineId: currentSched }
+      : (currentSched ? { ...currentSched } : {});
+    const suppressed = sched.suppressedTypes || [];
+    if (!suppressed.includes(actType)) {
+      const nextSched = { ...sched, suppressedTypes: [...suppressed, actType] };
+      const nextSchedule = { ...state.schedule, [dateStr]: nextSched };
+      setState({ schedule: nextSchedule });
+      writeDoc('schedule', nextSchedule);
+    }
+    // If done, also undo in history
+    const day = state.history[dateStr];
+    if (!day) return;
+    if (actType === 'gym' && day.gym) {
+      const next = { ...state.history, [dateStr]: { ...day, gym: false } };
+      setState({ history: next });
+      writeDoc('history', next);
+    } else if (actType === 'indiv' && day.done) {
+      const next = { ...state.history, [dateStr]: { ...day, done: false, routineId: null } };
+      setState({ history: next });
+      writeDoc('history', next);
+    }
+  }, []);
+
   const toggleSkipActivity = useCallback((dateStr, actType) => {
     const day = state.history[dateStr] || { done: false, routineId: null, completed: {}, gym: false, notes: '' };
     const skipped = day.skipped || [];
@@ -771,6 +798,7 @@ export function useStore() {
     toggleExercise,
     completeDay,
     uncompleteDay,
+    removeActivityFromDay,
     toggleSkipActivity,
     saveRoutine,
     deleteRoutine,

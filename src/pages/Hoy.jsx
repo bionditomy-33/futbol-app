@@ -3,7 +3,7 @@ import { useStore, getPlanProgress } from '../store/useStore';
 import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
-import { PlayIcon, XIcon } from '../components/Icons';
+import { PlayIcon, XIcon, TrashIcon } from '../components/Icons';
 import ExerciseGroupedList from '../components/ExerciseGroupedList';
 
 const TODAY = todayStr();
@@ -62,13 +62,30 @@ function PlanBar({ label, value, max, color }) {
   );
 }
 
-function GymCard({ act, onToggle }) {
+function GymCard({ act, onToggle, onDelete }) {
+  const [confirmDel, setConfirmDel] = useState(false);
   const c = ACT_COLORS.gym;
   return (
     <div className="hoy-card" style={{ background: c.bg }}>
       <div className="hoy-card-time">{act.time}</div>
       <div className="hoy-card-body">
-        <div className="hoy-card-title" style={{ color: c.title }}>Gimnasio</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div className="hoy-card-title" style={{ color: c.title }}>Gimnasio</div>
+          {onDelete && (
+            <button onClick={() => act.done ? setConfirmDel(true) : onDelete()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '2px 0 2px 4px', lineHeight: 0 }}>
+              <TrashIcon size={13} />
+            </button>
+          )}
+        </div>
+        {confirmDel && (
+          <div style={{ margin: '6px 0', padding: '8px 10px', background: 'rgba(220,38,38,0.07)', borderRadius: 6 }}>
+            <div style={{ fontSize: 12, color: '#DC2626', fontWeight: 600, marginBottom: 6 }}>Actividad completada. ¿Eliminar?</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => setConfirmDel(false)} style={{ flex: 1, fontSize: 11, padding: '4px 0', borderRadius: 5, border: '1px solid #CBD5E1', background: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+              <button onClick={onDelete} style={{ flex: 1, fontSize: 11, fontWeight: 600, padding: '4px 0', borderRadius: 5, border: 'none', background: '#DC2626', color: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>Eliminar</button>
+            </div>
+          </div>
+        )}
         <button
           className="hoy-gym-toggle"
           style={{
@@ -85,7 +102,8 @@ function GymCard({ act, onToggle }) {
   );
 }
 
-function IndivCard({ act, routines, history, onStart, onPreview }) {
+function IndivCard({ act, routines, history, onStart, onPreview, onDelete }) {
+  const [confirmDel, setConfirmDel] = useState(false);
   const c = ACT_COLORS.indiv;
   const r = routines.find(r => r.id === act.routineId);
   const title = r ? r.name : 'Entrenamiento individual';
@@ -101,8 +119,24 @@ function IndivCard({ act, routines, history, onStart, onPreview }) {
     <div className="hoy-card" style={{ background: c.bg }}>
       <div className="hoy-card-time">{act.time}</div>
       <div className="hoy-card-body">
-        <div className="hoy-card-title" style={{ color: c.title }}>{title}</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div className="hoy-card-title" style={{ color: c.title }}>{title}</div>
+          {onDelete && (
+            <button onClick={() => act.done ? setConfirmDel(true) : onDelete()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '2px 0 2px 4px', lineHeight: 0 }}>
+              <TrashIcon size={13} />
+            </button>
+          )}
+        </div>
         {sub && <div className="hoy-card-sub" style={{ color: c.sub }}>{sub}</div>}
+        {confirmDel && (
+          <div style={{ margin: '6px 0', padding: '8px 10px', background: 'rgba(220,38,38,0.07)', borderRadius: 6 }}>
+            <div style={{ fontSize: 12, color: '#DC2626', fontWeight: 600, marginBottom: 6 }}>Actividad completada. ¿Eliminar?</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => setConfirmDel(false)} style={{ flex: 1, fontSize: 11, padding: '4px 0', borderRadius: 5, border: '1px solid #CBD5E1', background: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+              <button onClick={onDelete} style={{ flex: 1, fontSize: 11, fontWeight: 600, padding: '4px 0', borderRadius: 5, border: 'none', background: '#DC2626', color: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>Eliminar</button>
+            </div>
+          </div>
+        )}
         {totalEx > 0 && (
           <div className="hoy-progress">
             <div className="hoy-progress-fill" style={{ width: `${(doneEx / totalEx) * 100}%`, background: c.sub }} />
@@ -132,13 +166,20 @@ function IndivCard({ act, routines, history, onStart, onPreview }) {
   );
 }
 
-function ArsenalCard({ act }) {
+function ArsenalCard({ act, onDelete }) {
   const c = ACT_COLORS.arsenal;
   return (
     <div className="hoy-card" style={{ background: c.bg }}>
       <div className="hoy-card-time">{act.time}</div>
       <div className="hoy-card-body">
-        <div className="hoy-card-title" style={{ color: c.title }}>Arsenal — Entrenamiento</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div className="hoy-card-title" style={{ color: c.title }}>Arsenal — Entrenamiento</div>
+          {onDelete && (
+            <button onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '2px 0 2px 4px', lineHeight: 0 }}>
+              <TrashIcon size={13} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -198,16 +239,16 @@ function RoutinePreviewModal({ routine, exerciseMap, catalog, catLinks, onClose 
   );
 }
 
-function ActivityCard({ act, routines, history, onGym, onIndiv, onPreview }) {
-  if (act.type === 'gym')    return <GymCard    act={act} onToggle={onGym} />;
-  if (act.type === 'indiv')  return <IndivCard  act={act} routines={routines} history={history} onStart={onIndiv} onPreview={onPreview} />;
-  if (act.type === 'arsenal') return <ArsenalCard act={act} />;
+function ActivityCard({ act, routines, history, onGym, onIndiv, onPreview, onDelete }) {
+  if (act.type === 'gym')    return <GymCard    act={act} onToggle={onGym} onDelete={onDelete} />;
+  if (act.type === 'indiv')  return <IndivCard  act={act} routines={routines} history={history} onStart={onIndiv} onPreview={onPreview} onDelete={onDelete} />;
+  if (act.type === 'arsenal') return <ArsenalCard act={act} onDelete={onDelete} />;
   if (act.type === 'match')  return <MatchCard  act={act} />;
   return null;
 }
 
 export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, updateDay, exerciseMap, catalog, catLinks } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, updateDay, removeActivityFromDay, exerciseMap, catalog, catLinks } = useStore();
   const [templateSuggestionDismissed, setTemplateSuggestionDismissed] = useState(false);
   const [previewRoutineId, setPreviewRoutineId] = useState(null);
 
@@ -336,6 +377,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
                   onGym={() => updateDay(TODAY, { gym: !act.done })}
                   onIndiv={onGoToEntreno}
                   onPreview={() => setPreviewRoutineId(act.routineId)}
+                  onDelete={!(act.type === 'match' && act.done) ? () => removeActivityFromDay(TODAY, act.type) : undefined}
                 />
               </div>
             );

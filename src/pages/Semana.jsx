@@ -3,7 +3,7 @@ import { useStore } from '../store/useStore';
 import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
-import { ChevronLeft } from '../components/Icons';
+import { ChevronLeft, TrashIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
 
 const TODAY = todayStr();
@@ -48,7 +48,8 @@ function ActBlock({ act }) {
 }
 
 // ── Activity row in day detail ─────────────────────────────────────────────────
-function ActivityRow({ act, routines, onToggleSkip, isPastOrToday }) {
+function ActivityRow({ act, routines, onToggleSkip, isPastOrToday, onDelete }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const c = ACT_COLORS[act.type];
   let title = '', subtitle = '';
 
@@ -80,12 +81,39 @@ function ActivityRow({ act, routines, onToggleSkip, isPastOrToday }) {
     <div className="wk2-act-row">
       <div className="wk2-act-time">{act.time}</div>
       <div className="wk2-act-pill" style={{ background: c.bg }}>
-        <div className="wk2-act-title" style={{ color: c.title }}>{title}</div>
-        {subtitle && <div className="wk2-act-sub" style={{ color: c.sub }}>{subtitle}</div>}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
+          <div>
+            <div className="wk2-act-title" style={{ color: c.title }}>{title}</div>
+            {subtitle && <div className="wk2-act-sub" style={{ color: c.sub }}>{subtitle}</div>}
+          </div>
+          {onDelete && (
+            <button
+              onClick={e => { e.stopPropagation(); act.done ? setConfirmDelete(true) : onDelete(); }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '2px 0 2px 4px', lineHeight: 0, flexShrink: 0 }}
+            >
+              <TrashIcon size={13} />
+            </button>
+          )}
+        </div>
         {act.skipped && (
           <div style={{ fontSize: 11, color: '#DC2626', fontWeight: 700, marginTop: 4 }}>No realizado</div>
         )}
-        {canSkip && (
+        {confirmDelete && (
+          <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(220,38,38,0.07)', borderRadius: 6 }}>
+            <div style={{ fontSize: 12, color: '#DC2626', fontWeight: 600, marginBottom: 6 }}>
+              Actividad completada. ¿Eliminarla igual?
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, fontSize: 11, padding: '4px 0', borderRadius: 5, border: '1px solid #CBD5E1', background: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
+                Cancelar
+              </button>
+              <button onClick={() => { setConfirmDelete(false); onDelete(); }} style={{ flex: 1, fontSize: 11, fontWeight: 600, padding: '4px 0', borderRadius: 5, border: 'none', background: '#DC2626', color: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
+                Eliminar
+              </button>
+            </div>
+          </div>
+        )}
+        {canSkip && !confirmDelete && (
           <button
             onClick={e => { e.stopPropagation(); onToggleSkip?.(act.type); }}
             style={{
@@ -135,7 +163,7 @@ function getDatesBetween(startStr, endStr) {
 }
 
 export default function Semana({ editToday = false, onConsumed }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity, removeActivityFromDay } = useStore();
 
   const [weekOffset,      setWeekOffset]      = useState(0);
   const [selectedDateStr, setSelectedDateStr] = useState(TODAY);
@@ -395,6 +423,7 @@ export default function Semana({ editToday = false, onConsumed }) {
                   routines={routines}
                   isPastOrToday={isPastOrToday}
                   onToggleSkip={(actType) => toggleSkipActivity(selectedDateStr, actType)}
+                  onDelete={!(act.type === 'match' && act.done) ? () => removeActivityFromDay(selectedDateStr, act.type) : undefined}
                 />
               </div>
             );
