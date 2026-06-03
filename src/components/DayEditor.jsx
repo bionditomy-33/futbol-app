@@ -294,8 +294,21 @@ export default function DayEditor({ dateStr }) {
 
   return (
     <div>
+      {/* Rutina eliminada — assignedId existe pero el routines array no la tiene */}
+      {assignedId && !routine && !showSelector && (
+        <div className="card" style={{ textAlign: 'center', padding: '20px 16px', borderColor: '#FCA5A5' }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>⚠️</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#B91C1C', marginBottom: 4 }}>Esta rutina ya no existe</div>
+          <div style={{ fontSize: 13, color: '#78909C', marginBottom: 16 }}>La rutina asignada fue eliminada. Podés asignar otra o dejar el día como descanso.</div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+            <button className="btn btn-secondary" onClick={() => { handleClear(); }}>Quitar asignación</button>
+            <button className="btn btn-primary" onClick={() => setShowSelector(true)}>Asignar otra</button>
+          </div>
+        </div>
+      )}
+
       {/* Sin rutina asignada */}
-      {!routine && !showSelector && (
+      {!assignedId && !routine && !showSelector && (
         <div className="card" style={{ textAlign: 'center', padding: '20px 16px' }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>⚽</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#263238', marginBottom: 4 }}>Sin rutina asignada</div>

@@ -44,6 +44,8 @@ export default function Historial({ onBack } = {}) {
   const [importConfirm, setImportConfirm] = useState(false);
   const [pendingData, setPendingData]     = useState(null);
   const [importError, setImportError]     = useState('');
+  const [importing, setImporting]         = useState(false);
+  const preImportRef = useRef(null);
   const currentMonth = getCurrentMonthStr();
 
   const entries = Object.entries(history)
@@ -147,13 +149,19 @@ export default function Historial({ onBack } = {}) {
 
   async function confirmImport() {
     if (!pendingData) return;
+    const s = getState();
+    preImportRef.current = { catalog: s.catalog, routines: s.routines, schedule: s.schedule, history: s.history };
+    setImporting(true);
+    setImportConfirm(false);
     try {
       await importData(pendingData);
-      setImportConfirm(false);
       setPendingData(null);
     } catch (err) {
-      setImportConfirm(false);
-      setImportError('Error al importar. Verificá tu conexión e intentá de nuevo.');
+      setImportError('Error al importar. Los datos anteriores fueron restaurados.');
+      try { await importData(preImportRef.current); } catch { /* red issue, can't restore */ }
+    } finally {
+      setImporting(false);
+      preImportRef.current = null;
     }
   }
 
@@ -361,6 +369,16 @@ export default function Historial({ onBack } = {}) {
           onChange={handleFileChange}
         />
       </div>
+
+      {/* Overlay de carga durante importación */}
+      {importing && (
+        <div className="modal-overlay">
+          <div style={{ color: 'white', fontSize: 15, fontWeight: 600, textAlign: 'center' }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+            Importando datos…
+          </div>
+        </div>
+      )}
 
       {/* Modal confirmación importar */}
       {importConfirm && (

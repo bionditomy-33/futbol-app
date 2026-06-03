@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr, toDateStr } from '../utils/dates';
-import { getDayActivities } from '../utils/activities';
+import { getDayActivities, getScheduleEntry } from '../utils/activities';
 import { ACT_DOT_COLORS as C } from '../utils/colors';
 import { TrophyIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
@@ -201,8 +201,8 @@ function DaySheet({ dateStr, onClose, schedule, history, routines, matches, week
   const acts      = getDayActivities(dateStr, schedule, history, matches, weekTemplate);
   const dayMatches = matches.filter(m => m.date === dateStr);
 
-  const schedVal = schedule[dateStr];
-  const assignedRoutineId = (typeof schedVal === 'string' ? schedVal : schedVal?.routineId) || (weekTemplate?.[d.getDay()]?.routineId);
+  const sched = getScheduleEntry(schedule, dateStr);
+  const assignedRoutineId = sched.routineId || weekTemplate?.[d.getDay()]?.routineId;
   const doneRoutine   = day?.done ? routines.find(r => r.id === day.routineId) : null;
   const planRoutine   = !day?.done && assignedRoutineId ? routines.find(r => r.id === assignedRoutineId) : null;
   const showRoutine   = doneRoutine || planRoutine;

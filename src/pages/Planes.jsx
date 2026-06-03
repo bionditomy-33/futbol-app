@@ -1,37 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useStore, getPlanProgress } from '../store/useStore';
-import { todayStr, formatDate, toDateStr } from '../utils/dates';
+import { todayStr, formatDate, addDays } from '../utils/dates';
+import { daysUntil, weeksBetween, getDatesBetween } from '../utils/plans';
 import { PlusIcon, TrashIcon, EditIcon, ChevronLeft, CheckIcon, ChevronRight } from '../components/Icons';
 import PlanDetail from './PlanDetail';
 
-function addDays(dateStr, days) {
-  const d = new Date(dateStr + 'T12:00:00');
-  d.setDate(d.getDate() + days);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function daysUntil(dateStr) {
-  const nowMs = new Date(todayStr() + 'T12:00:00').getTime();
-  const targetMs = new Date(dateStr + 'T12:00:00').getTime();
-  return Math.round((targetMs - nowMs) / 86400000);
-}
-
-function weeksBetween(startDate, endDate) {
-  const startMs = new Date(startDate + 'T12:00:00').getTime();
-  const endMs   = new Date(endDate   + 'T12:00:00').getTime();
-  return Math.round((endMs - startMs) / (7 * 86400000));
-}
-
-function getDatesBetween(startStr, endStr) {
-  const dates = [];
-  const d = new Date(startStr + 'T12:00:00');
-  const end = new Date(endStr + 'T12:00:00');
-  while (d <= end) {
-    dates.push(toDateStr(d));
-    d.setDate(d.getDate() + 1);
-  }
-  return dates;
-}
 
 function WeekTemplatePreview({ template }) {
   const DOW_MAP = [1, 2, 3, 4, 5, 6, 0];
@@ -135,7 +108,8 @@ export default function Planes({ onBack }) {
 
   // ── Derived lists ────────────────────────────────────────────────────────────
   const pending   = useMemo(() => plans.filter(p => p.status !== 'completed' && today < p.startDate), [plans, today]);
-  const active    = useMemo(() => plans.filter(p => p.status !== 'completed' && today >= p.startDate), [plans, today]);
+  const active    = useMemo(() => plans.filter(p => p.status !== 'completed' && today >= p.startDate && today <= p.endDate), [plans, today]);
+  const expired   = useMemo(() => plans.filter(p => p.status !== 'completed' && today > p.endDate), [plans, today]);
   const completed = useMemo(() => plans.filter(p => p.status === 'completed'), [plans]);
 
   // ── Detail view ──────────────────────────────────────────────────────────────
@@ -640,6 +614,41 @@ export default function Planes({ onBack }) {
           </div>
         );
       })}
+
+      {/* ── Vencidos ── */}
+      {expired.length > 0 && (
+        <>
+          <div style={{ padding: '16px 16px 8px', fontWeight: 700, fontSize: 12, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Vencidos
+          </div>
+          {expired.map(plan => {
+            const prog = getPlanProgress(plan, history);
+            return (
+              <div key={plan.id} className="card" style={{ cursor: 'pointer', borderColor: '#FDE68A' }}
+                onClick={() => setSelectedPlanId(plan.id)}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                  <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#263238' }}>{plan.name}</div>
+                    {plan.objective && <div style={{ fontSize: 12, color: '#78909C', marginTop: 2 }}>{plan.objective}</div>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#FEF3C7', color: '#92400E' }}>
+                      Vencido
+                    </span>
+                    <CardActions plan={plan} />
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, color: '#78909C', marginBottom: 8 }}>
+                  {formatDate(plan.startDate)} — {formatDate(plan.endDate)} · {prog.completedSessions}/{prog.effTotal} ses.
+                </div>
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: `${prog.pct}%`, background: '#D97706' }} />
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
 
       {/* ── Completados ── */}
       {completed.length > 0 && (

@@ -92,12 +92,19 @@ function ActivityRow({ act, routines, onToggleSkip, isPastOrToday, onDelete, onS
             onClick={e => e.stopPropagation()}
           />
         ) : (
-          <span
-            onClick={e => { e.stopPropagation(); if (onSetTime) setEditingTime(true); }}
-            style={{ cursor: onSetTime ? 'pointer' : 'default', textDecoration: onSetTime ? 'underline dotted' : 'none', textUnderlineOffset: 2 }}
-          >
-            {act.time}
-          </span>
+          <>
+            <span
+              onClick={e => { e.stopPropagation(); if (onSetTime) setEditingTime(true); }}
+              style={{ cursor: onSetTime ? 'pointer' : 'default', textDecoration: onSetTime ? 'underline dotted' : 'none', textUnderlineOffset: 2 }}
+            >
+              {act.time}
+            </span>
+            {act.type === 'match' && act.match && (
+              <span style={{ display: 'block', fontSize: 9, color: '#94A3B8', marginTop: 2, lineHeight: 1.2 }}>
+                Editar en<br />Partidos
+              </span>
+            )}
+          </>
         )}
       </div>
       <div className="wk2-act-pill" style={{ background: c.bg }}>

@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { useStore } from './store/useStore';
 import { todayStr } from './utils/dates';
+import { getDatesBetween } from './utils/plans';
 import Hoy from './pages/Hoy';
 import Planes from './pages/Planes';
 import Semana from './pages/Semana';
@@ -77,7 +78,7 @@ const MAS_ITEMS = [
 ];
 
 export default function App() {
-  const { isReady, loadError, plans, history, routines } = useStore();
+  const { isReady, loadError, plans, history, routines, completePlan, clearWeekSchedule } = useStore();
   const [mainTab, setMainTab]                     = useState('inicio');
   const [calendarioTab, setCalendarioTab]         = useState('semana');
   const [masView, setMasView]                     = useState(null);
@@ -86,10 +87,11 @@ export default function App() {
   const [pendingNav, setPendingNav]               = useState(null);
   const [semanaEditToday, setSemanaEditToday]     = useState(false);
   const labIsDirtyRef = useRef(false);
+  const [cleanupPrompt, setCleanupPrompt] = useState(null);
 
   // Must be before any early return — React hooks must always be called unconditionally
   const activePlan = useMemo(
-    () => (plans || []).find(p => p.status !== 'completed' && TODAY >= p.startDate),
+    () => (plans || []).find(p => p.status !== 'completed' && TODAY >= p.startDate && TODAY <= p.endDate),
     [plans]
   );
 
@@ -176,7 +178,13 @@ export default function App() {
           plan={activePlan}
           history={history}
           routines={routines}
-          onComplete={() => { /* store handles completion state, screen updates automatically */ }}
+          onComplete={(id, rating, notes) => {
+            const p = plans.find(pl => pl.id === id);
+            completePlan(id, rating, notes);
+            if (p?.autoApplied && p?.weekTemplateId) {
+              setCleanupPrompt({ planId: id, planName: p.name, dates: getDatesBetween(p.startDate, p.endDate) });
+            }
+          }}
           onEdit={() => { setMainTab('mas'); setMasView('planes'); }}
         />
       );
@@ -342,6 +350,29 @@ export default function App() {
           </div>
         ))}
       </nav>
+
+      {/* Cleanup prompt after plan completion */}
+      {cleanupPrompt && (
+        <div className="modal-overlay" onClick={() => setCleanupPrompt(null)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
+            <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
+              Actividades del plan
+            </div>
+            <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
+              ¿Querés limpiar las actividades del plan{' '}
+              <strong style={{ color: '#263238' }}>"{cleanupPrompt.planName}"</strong> del calendario o mantenerlas?
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setCleanupPrompt(null)}>
+                Mantener
+              </button>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { clearWeekSchedule(cleanupPrompt.dates); setCleanupPrompt(null); }}>
+                Limpiar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Unsaved changes dialog */}
       {pendingNav && (

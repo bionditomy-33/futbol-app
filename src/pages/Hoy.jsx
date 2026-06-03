@@ -291,7 +291,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
   }, [schedule, history]);
 
   const activePlan = useMemo(
-    () => plans.find(p => p.status !== 'completed' && TODAY >= p.startDate),
+    () => plans.find(p => p.status !== 'completed' && TODAY >= p.startDate && TODAY <= p.endDate),
     [plans]
   );
 
