@@ -16,10 +16,10 @@ function getPhaseClass(displayIdx) {
 }
 
 function getPhaseAccentColor(displayIdx) {
-  if (displayIdx === 0) return '#2E7D32';
-  if (displayIdx === 1) return '#F57F17';
-  if (displayIdx === 2) return '#1565C0';
-  return '#607D8B';
+  if (displayIdx === 0) return '#1D3461';
+  if (displayIdx === 1) return '#059669';
+  if (displayIdx === 2) return '#D97706';
+  return '#64748B';
 }
 
 function getPhaseIcon(displayIdx) {
@@ -92,7 +92,7 @@ function PhaseExercises({ exercises, exerciseMap, onReorder, onMove, onRemove, o
                   </button>
                   <button
                     className="btn btn-ghost"
-                    style={{ padding: '3px 5px', color: '#EF5350' }}
+                    style={{ padding: '3px 5px', color: 'var(--red-600)' }}
                     onClick={() => onRemove(ei)}
                   >
                     <XIcon size={12} />
@@ -465,7 +465,7 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                 </button>
                 <button
                   className="btn btn-primary"
-                  style={{ flex: 1, background: '#C62828', borderColor: '#C62828' }}
+                  style={{ flex: 1, background: 'var(--red-600)', borderColor: 'var(--red-600)' }}
                   onClick={() => { removeCustomPhase(deleteConfirmPhase); setDeleteConfirmPhase(null); }}
                 >
                   Eliminar

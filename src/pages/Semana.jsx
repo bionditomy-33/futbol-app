@@ -348,7 +348,7 @@ export default function Semana({ editToday = false, onConsumed }) {
         {weekPlanInfo.primary && (
           <span style={{
             fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
-            background: '#EEF2FF', color: '#3730A3',
+            background: 'var(--bg-selected)', color: 'var(--navy-600)',
           }}>
             Sem {weekPlanInfo.weekNum}/{weekPlanInfo.totalWeeks}
           </span>

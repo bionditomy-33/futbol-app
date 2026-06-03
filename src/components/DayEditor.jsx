@@ -4,6 +4,7 @@ import { todayStr } from '../utils/dates';
 import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, GripIcon } from './Icons';
 import { useDragSort } from '../hooks/useDragSort';
 import ExerciseGroupedList from './ExerciseGroupedList';
+import ProgressBar from './ProgressBar';
 
 function getPhaseColor(displayIdx) {
   if (displayIdx === 0) return '#1D3461'; // navy
@@ -19,7 +20,7 @@ function getPhaseBg(displayIdx) {
   return '#F8FAFC';
 }
 
-const RATING_COLORS = ['', '#EF5350', '#FF7043', '#FFC107', '#66BB6A', '#2E7D32'];
+const RATING_COLORS = ['', 'var(--red-600)', 'var(--amber-800)', 'var(--amber-600)', 'var(--emerald-400)', 'var(--emerald-600)'];
 const RATING_LABELS = ['', 'Muy mal', 'Mal', 'Regular', 'Bien', 'Excelente'];
 
 function RatingModal({ onSave, onSkip }) {
@@ -154,7 +155,7 @@ function RoutineSelector({ routines, onSelect, onClear, onCancel, showCancel }) 
               <div style={{ fontWeight: 600, fontSize: 14, color: '#263238' }}>{r.name}</div>
               <div style={{ fontSize: 12, color: '#78909C' }}>{r.duration} · {countExercises(r)} ejercicios</div>
             </div>
-            <span style={{ color: '#1B5E20', fontWeight: 700, fontSize: 14 }}>Elegir</span>
+            <span style={{ color: 'var(--emerald-600)', fontWeight: 700, fontSize: 14 }}>Elegir</span>
           </div>
         ))
       )}
@@ -342,9 +343,7 @@ export default function DayEditor({ dateStr }) {
               <span style={{ fontSize: 13, color: '#78909C' }}>Progreso</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: '#263238' }}>{doneCount}/{totalEx}</span>
             </div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progress}%` }} />
-            </div>
+            <ProgressBar value={progress} />
           </div>
 
           {/* Bloques de fases con diseño de flujo vertical */}

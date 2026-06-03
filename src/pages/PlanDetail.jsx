@@ -511,7 +511,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
               }}>
                 <span style={{
                   fontSize: 11, width: 46, flexShrink: 0, paddingTop: 1,
-                  color: isToday ? '#3730A3' : isPast ? '#94A3B8' : '#263238',
+                  color: isToday ? 'var(--navy-600)' : isPast ? '#94A3B8' : '#263238',
                   fontWeight: isToday ? 700 : 400,
                 }}>
                   {DAY_SHORT[d.getDay()]} {d.getDate()}{isToday ? ' ·' : ''}
@@ -605,7 +605,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                   <div style={{ width: 60, flexShrink: 0 }}>
                     <div style={{
                       fontSize: 11, fontWeight: week.isCurrent ? 800 : 600,
-                      color: week.isCurrent ? '#3730A3' : week.isFuture ? '#B0BEC5' : '#263238',
+                      color: week.isCurrent ? 'var(--navy-600)' : week.isFuture ? '#B0BEC5' : '#263238',
                     }}>
                       Sem {week.num}
                     </div>
@@ -651,7 +651,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                   {week.isPast && (
                     <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: week.isCompliant ? '#059669' : '#EF5350' }} />
                   )}
-                  {week.isCurrent && <span style={{ fontSize: 10, fontWeight: 700, color: '#3730A3', flexShrink: 0 }}>HOY</span>}
+                  {week.isCurrent && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--navy-600)', flexShrink: 0 }}>HOY</span>}
                   {canExpand && (
                     <span style={{ fontSize: 10, color: '#B0BEC5', flexShrink: 0 }}>{isExpanded ? '▼' : '▶'}</span>
                   )}
@@ -672,7 +672,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                         }}>
                           <span style={{
                             fontSize: 11, width: 44, flexShrink: 0,
-                            color: isToday ? '#3730A3' : isPast ? '#94A3B8' : '#263238',
+                            color: isToday ? 'var(--navy-600)' : isPast ? '#94A3B8' : '#263238',
                             fontWeight: isToday ? 700 : 400,
                           }}>
                             {DAY_SHORT[d.getDay()]} {d.getDate()}

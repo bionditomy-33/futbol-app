@@ -200,7 +200,7 @@ function MatchCard({ act }) {
   );
 }
 
-const PHASE_COLORS = ['#1D3461', '#059669', '#D97706', '#475569'];
+const PHASE_COLORS = ['#1D3461', '#059669', '#D97706', '#64748B'];
 
 function RoutinePreviewModal({ routine, exerciseMap, catalog, catLinks, onClose }) {
   if (!routine) return null;
@@ -387,23 +387,23 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
 
       {/* ── Template suggestion ── */}
       {templateSuggestion && (
-        <div style={{ margin: '0 16px 12px', padding: '12px 14px', background: '#EEF4FF', borderRadius: 10, border: '1px solid #C7D7F5' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#1D3461', marginBottom: 6 }}>
+        <div style={{ margin: '0 16px 12px', padding: '12px 14px', background: 'var(--bg-selected)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--navy-100)' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy-600)', marginBottom: 6 }}>
             "{templateSuggestion.plan.name}" comienza hoy
           </div>
-          <div style={{ fontSize: 12, color: '#334155', marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10 }}>
             ¿Aplicar la semana tipo <strong>{templateSuggestion.tmpl.name}</strong> al período del plan?
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={() => setTemplateSuggestionDismissed(true)}
-              style={{ flex: 1, padding: '7px', borderRadius: 8, border: '1px solid #C7D7F5', background: 'white', fontSize: 12, color: '#64748B', cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ flex: 1, padding: '7px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', background: 'white', fontSize: 12, color: 'var(--gray-mid)', cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Luego
             </button>
             <button
               onClick={() => applyPlanTemplate(templateSuggestion.plan, templateSuggestion.tmpl)}
-              style={{ flex: 2, padding: '7px', borderRadius: 8, border: 'none', background: '#1D3461', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ flex: 2, padding: '7px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--navy-600)', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Aplicar al plan
             </button>
@@ -470,8 +470,8 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
               </span>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
-              <PlanBar label="Sesiones" value={planData.prog.completedSessions} max={planData.prog.effTotal || 1} color="#0F6E56" />
-              <PlanBar label="Semana" value={planData.weekDone} max={planData.weekTarget} color="#185FA5" />
+              <PlanBar label="Sesiones" value={planData.prog.completedSessions} max={planData.prog.effTotal || 1} color="var(--emerald-600)" />
+              <PlanBar label="Semana" value={planData.weekDone} max={planData.weekTarget} color="var(--navy-600)" />
             </div>
           </div>
         </div>

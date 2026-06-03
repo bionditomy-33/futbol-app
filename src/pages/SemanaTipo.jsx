@@ -36,17 +36,17 @@ function MiniPreview({ days }) {
       {WEEK_DAYS.map(({ dow, label }) => {
         const d = days?.[dow] || {};
         const dots = [];
-        if (d.routineId) dots.push('#0F6E56');
-        if (d.gym)       dots.push('#185FA5');
-        if (d.arsenal)   dots.push('#854F0B');
-        if (d.match)     dots.push('#993C1D');
+        if (d.routineId) dots.push('var(--emerald-600)');
+        if (d.gym)       dots.push('var(--navy-600)');
+        if (d.arsenal)   dots.push('var(--amber-800)');
+        if (d.match)     dots.push('var(--amber-600)');
         return (
           <div key={dow} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
             <div style={{ fontSize: 8, color: '#94A3B8', fontWeight: 600 }}>{DAY_SHORT[dow]}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {dots.length > 0
                 ? dots.map((c, i) => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: c }} />)
-                : <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#E8ECEB' }} />
+                : <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--border-color)' }} />
               }
             </div>
           </div>
@@ -73,7 +73,7 @@ function TemplateCard({ tmpl, onEdit, onDuplicate, onDelete, onSetDefault, plans
   return (
     <div style={{
       background: 'white',
-      border: `1.5px solid ${activePlan ? '#059669' : tmpl.isDefault ? '#1D3461' : '#E8ECEB'}`,
+      border: `1.5px solid ${activePlan ? '#059669' : tmpl.isDefault ? '#1D3461' : 'var(--border-color)'}`,
       borderRadius: 12,
       padding: '14px 14px 12px',
     }}>
@@ -92,7 +92,7 @@ function TemplateCard({ tmpl, onEdit, onDuplicate, onDelete, onSetDefault, plans
             {activePlan && (
               <span style={{
                 fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 99,
-                background: '#D1FAE5', color: '#065F46', textTransform: 'uppercase', letterSpacing: '0.05em',
+                background: '#D1FAE5', color: 'var(--emerald-800)', textTransform: 'uppercase', letterSpacing: '0.05em',
               }}>
                 ACTIVA
               </span>
@@ -104,7 +104,7 @@ function TemplateCard({ tmpl, onEdit, onDuplicate, onDelete, onSetDefault, plans
             </div>
           )}
           {linkedPlan && (
-            <div style={{ fontSize: 11, color: '#64748B', marginTop: 3 }}>
+            <div style={{ fontSize: 11, color: 'var(--gray-mid)', marginTop: 3 }}>
               Vinculada a: <strong>{linkedPlan.name}</strong>
             </div>
           )}
@@ -113,21 +113,21 @@ function TemplateCard({ tmpl, onEdit, onDuplicate, onDelete, onSetDefault, plans
         <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
           <button
             onClick={() => onEdit(tmpl)}
-            style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', borderRadius: 6 }}
+            style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-mid)', borderRadius: 6 }}
             title="Editar"
           >
             <EditIcon size={15} />
           </button>
           <button
             onClick={() => onDuplicate(tmpl.id)}
-            style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', borderRadius: 6, fontSize: 13 }}
+            style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-mid)', borderRadius: 6, fontSize: 13 }}
             title="Duplicar"
           >
             ⧉
           </button>
           <button
             onClick={() => setConfirmDelete(true)}
-            style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#EF5350', borderRadius: 6 }}
+            style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red-600)', borderRadius: 6 }}
             title="Eliminar"
           >
             <TrashIcon size={15} />
@@ -140,7 +140,7 @@ function TemplateCard({ tmpl, onEdit, onDuplicate, onDelete, onSetDefault, plans
           onClick={() => onSetDefault(tmpl.id)}
           style={{
             marginTop: 10, width: '100%', padding: '7px', borderRadius: 8,
-            border: '1px solid #E2E8F0', background: '#F8FAFC',
+            border: '1px solid var(--border-color)', background: '#F8FAFC',
             fontSize: 12, fontWeight: 600, color: '#475569', cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
@@ -149,18 +149,18 @@ function TemplateCard({ tmpl, onEdit, onDuplicate, onDelete, onSetDefault, plans
       )}
 
       {confirmDelete && (
-        <div style={{ marginTop: 10, padding: '10px', background: '#FEF2F2', borderRadius: 8 }}>
-          <div style={{ fontSize: 12, color: '#991B1B', marginBottom: 8 }}>¿Eliminar "{tmpl.name}"?</div>
+        <div style={{ marginTop: 10, padding: '10px', background: 'var(--red-100)', borderRadius: 'var(--radius-sm)' }}>
+          <div style={{ fontSize: 12, color: 'var(--red-800)', marginBottom: 8 }}>¿Eliminar "{tmpl.name}"?</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={() => setConfirmDelete(false)}
-              style={{ flex: 1, padding: '6px', borderRadius: 6, border: '1px solid #E2E8F0', background: 'white', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ flex: 1, padding: '6px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'white', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Cancelar
             </button>
             <button
               onClick={() => { onDelete(tmpl.id); setConfirmDelete(false); }}
-              style={{ flex: 1, padding: '6px', borderRadius: 6, border: 'none', background: '#EF5350', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ flex: 1, padding: '6px', borderRadius: 6, border: 'none', background: 'var(--red-600)', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Eliminar
             </button>
@@ -276,9 +276,9 @@ function TemplateEditor({ initial, routines, onSave, onCancel }) {
           value={name}
           onChange={e => { setName(e.target.value); setNameError(''); }}
           placeholder="ej: Temporada regular"
-          style={nameError ? { borderColor: '#EF5350' } : {}}
+          style={nameError ? { borderColor: 'var(--red-600)' } : {}}
         />
-        {nameError && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{nameError}</div>}
+        {nameError && <div style={{ fontSize: 12, color: 'var(--red-600)', marginTop: 4 }}>{nameError}</div>}
       </div>
 
       {/* Per-day configuration */}
@@ -436,7 +436,7 @@ export default function SemanaTipo({ onBack }) {
         </button>
       </div>
 
-      <p style={{ margin: '0 16px 14px', fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
+      <p style={{ margin: '0 16px 14px', fontSize: 13, color: 'var(--gray-mid)', lineHeight: 1.5 }}>
         Definí múltiples semanas tipo y elegí cuál aplicar a cada período.
       </p>
 

@@ -30,8 +30,8 @@ export default class ErrorBoundary extends Component {
         <button
           onClick={() => { try { localStorage.clear(); } catch { /* nada */ } window.location.reload(); }}
           style={{
-            background: '#1B5E20', color: '#fff', border: 'none',
-            borderRadius: 12, padding: '14px 28px',
+            background: 'var(--emerald-800)', color: '#fff', border: 'none',
+            borderRadius: 'var(--radius-md)', padding: '14px 28px',
             fontFamily: 'inherit', fontWeight: 700, fontSize: 15,
             cursor: 'pointer', letterSpacing: '-0.01em',
           }}

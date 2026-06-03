@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
+import { useToast } from '../components/useToast';
 import { EditIcon, CopyIcon, TrashIcon, PlusIcon, EyeIcon, ChevronLeft, PlayIcon, BodyIcon, BallIcon, FireIcon } from '../components/Icons';
 import ExerciseGroupedList from '../components/ExerciseGroupedList';
 
@@ -141,6 +142,7 @@ function RutinaDetail({ routine, exerciseMap, catalog, catLinks, onClose }) {
           Volver a rutinas
         </button>
       </div>
+      {ToastEl}
     </div>
   );
 }
@@ -149,6 +151,7 @@ export default function Rutinas({ onEdit, onNew, onBack }) {
   const { routines, catalog, catLinks, exerciseMap, deleteRoutine, duplicateRoutine } = useStore();
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [viewing, setViewing] = useState(null);
+  const { showToast, ToastEl } = useToast();
 
   if (viewing) {
     return (
@@ -166,6 +169,7 @@ export default function Rutinas({ onEdit, onNew, onBack }) {
     if (confirmDelete === id) {
       deleteRoutine(id);
       setConfirmDelete(null);
+      showToast('Rutina eliminada');
     } else {
       setConfirmDelete(id);
     }

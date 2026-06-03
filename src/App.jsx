@@ -17,6 +17,7 @@ import {
   HomeIcon, BallIcon, TrophyIcon, MoreHorizIcon,
   ChevronRight, EditIcon, BodyIcon, FireIcon, StarIcon, CalendarIcon,
 } from './components/Icons';
+import AnimatedModal from './components/AnimatedModal';
 
 const TODAY = todayStr();
 
@@ -88,6 +89,7 @@ export default function App() {
   const [semanaEditToday, setSemanaEditToday]     = useState(false);
   const labIsDirtyRef = useRef(false);
   const [cleanupPrompt, setCleanupPrompt] = useState(null);
+  const [planCelebration, setPlanCelebration] = useState(null);
 
   // Must be before any early return — React hooks must always be called unconditionally
   const activePlan = useMemo(
@@ -181,9 +183,13 @@ export default function App() {
           onComplete={(id, rating, notes) => {
             const p = plans.find(pl => pl.id === id);
             completePlan(id, rating, notes);
-            if (p?.autoApplied && p?.weekTemplateId) {
-              setCleanupPrompt({ planId: id, planName: p.name, dates: getDatesBetween(p.startDate, p.endDate) });
-            }
+            setPlanCelebration({ planName: p?.name || '' });
+            setTimeout(() => {
+              setPlanCelebration(null);
+              if (p?.autoApplied && p?.weekTemplateId) {
+                setCleanupPrompt({ planId: id, planName: p.name, dates: getDatesBetween(p.startDate, p.endDate) });
+              }
+            }, 1800);
           }}
           onEdit={() => { setMainTab('mas'); setMasView('planes'); }}
         />
@@ -351,50 +357,59 @@ export default function App() {
         ))}
       </nav>
 
-      {/* Cleanup prompt after plan completion */}
-      {cleanupPrompt && (
-        <div className="modal-overlay" onClick={() => setCleanupPrompt(null)}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
-            <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
-              Actividades del plan
-            </div>
-            <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
-              ¿Querés limpiar las actividades del plan{' '}
-              <strong style={{ color: '#263238' }}>"{cleanupPrompt.planName}"</strong> del calendario o mantenerlas?
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setCleanupPrompt(null)}>
-                Mantener
-              </button>
-              <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { clearWeekSchedule(cleanupPrompt.dates); setCleanupPrompt(null); }}>
-                Limpiar
-              </button>
-            </div>
-          </div>
+      {/* Plan completion celebration */}
+      {planCelebration && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(5,150,105,0.88)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          zIndex: 300, animation: 'fadeIn 0.3s ease',
+        }}>
+          <div style={{ fontSize: 80, marginBottom: 20, animation: 'checkPop 0.4s ease' }}>✅</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: 'white', marginBottom: 8, letterSpacing: '-0.02em' }}>¡Plan completado!</div>
+          {planCelebration.planName && (
+            <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.85)' }}>{planCelebration.planName}</div>
+          )}
         </div>
       )}
 
-      {/* Unsaved changes dialog */}
-      {pendingNav && (
-        <div className="modal-overlay" onClick={cancelLeave}>
-          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
-            <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
-              Cambios sin guardar
-            </div>
-            <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
-              Si salís ahora se pierden los cambios que hiciste en la rutina.
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn btn-primary" style={{ flex: 1 }} onClick={cancelLeave}>
-                Quedarme
-              </button>
-              <button className="btn btn-secondary" style={{ flex: 1 }} onClick={confirmLeave}>
-                Salir sin guardar
-              </button>
-            </div>
-          </div>
+      {/* Cleanup prompt after plan completion */}
+      <AnimatedModal open={!!cleanupPrompt} onClose={() => setCleanupPrompt(null)} sheetStyle={{ padding: '24px 20px 32px' }}>
+        <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
+          Actividades del plan
         </div>
-      )}
+        <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
+          ¿Querés limpiar las actividades del plan{' '}
+          <strong style={{ color: '#263238' }}>"{cleanupPrompt?.planName}"</strong> del calendario o mantenerlas?
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setCleanupPrompt(null)}>
+            Mantener
+          </button>
+          <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { clearWeekSchedule(cleanupPrompt.dates); setCleanupPrompt(null); }}>
+            Limpiar
+          </button>
+        </div>
+      </AnimatedModal>
+
+      {/* Unsaved changes dialog */}
+      <AnimatedModal open={!!pendingNav} onClose={cancelLeave} sheetStyle={{ padding: '24px 20px 32px' }}>
+        <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
+          Cambios sin guardar
+        </div>
+        <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
+          Si salís ahora se pierden los cambios que hiciste en la rutina.
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-primary" style={{ flex: 1 }} onClick={cancelLeave}>
+            Quedarme
+          </button>
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={confirmLeave}>
+            Salir sin guardar
+          </button>
+        </div>
+      </AnimatedModal>
     </div>
   );
 }

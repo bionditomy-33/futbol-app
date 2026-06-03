@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr, formatDate, getDayName } from '../utils/dates';
 import { PlusIcon, EditIcon, TrashIcon, ChevronLeft } from '../components/Icons';
+import { useToast } from '../components/useToast';
 
 const COMPETITIONS = ['Arsenal Liga', 'Premier', 'Otro'];
 const RESULTS = [
-  { value: 'ganamos', label: 'Victoria', short: 'V', color: '#065F46', bg: '#D1FAE5', badgeClass: 'result-win' },
+  { value: 'ganamos', label: 'Victoria', short: 'V', color: '#064E3B', bg: '#D1FAE5', badgeClass: 'result-win' },
   { value: 'perdimos', label: 'Derrota', short: 'D', color: '#991B1B', bg: '#FEE2E2', badgeClass: 'result-loss' },
   { value: 'empate',   label: 'Empate',  short: 'E', color: '#92400E', bg: '#FEF3C7', badgeClass: 'result-draw' },
 ];
@@ -28,6 +29,7 @@ export default function Partidos({ onBack }) {
   const [form, setForm]                       = useState(emptyForm);
   const [errors, setErrors]                   = useState({});
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const { showToast, ToastEl } = useToast();
 
   function updateForm(field, value) {
     setForm(f => ({ ...f, [field]: value }));
@@ -101,6 +103,7 @@ export default function Partidos({ onBack }) {
     const updated = matches.filter(m => m.id !== id);
     setMatches(updated);
     setDeleteConfirmId(null);
+    showToast('Partido eliminado');
   }
 
   const stats = getResultStats(matches);
@@ -125,7 +128,7 @@ export default function Partidos({ onBack }) {
       {matches.length > 0 && !showForm && (
         <div className="metrics-row">
           <div className="metric-card">
-            <div className="metric-value" style={{ color: '#2E7D32' }}>{stats.wins}</div>
+            <div className="metric-value" style={{ color: 'var(--emerald-600)' }}>{stats.wins}</div>
             <div className="metric-label">Victorias</div>
           </div>
           <div className="metric-card">
@@ -133,7 +136,7 @@ export default function Partidos({ onBack }) {
             <div className="metric-label">Empates</div>
           </div>
           <div className="metric-card">
-            <div className="metric-value" style={{ color: '#C62828' }}>{stats.losses}</div>
+            <div className="metric-value" style={{ color: 'var(--red-600)' }}>{stats.losses}</div>
             <div className="metric-label">Derrotas</div>
           </div>
         </div>
@@ -153,9 +156,9 @@ export default function Partidos({ onBack }) {
               className="input"
               value={form.date}
               onChange={e => updateForm('date', e.target.value)}
-              style={errors.date ? { borderColor: '#EF5350' } : {}}
+              style={errors.date ? { borderColor: 'var(--red-600)' } : {}}
             />
-            {errors.date && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.date}</div>}
+            {errors.date && <div style={{ fontSize: 12, color: 'var(--red-600)', marginTop: 4 }}>{errors.date}</div>}
           </div>
 
           <div className="form-group">
@@ -327,7 +330,7 @@ export default function Partidos({ onBack }) {
                 </button>
                 <button
                   className="btn btn-primary"
-                  style={{ flex: 1, background: '#C62828', boxShadow: '0 2px 8px rgba(198,40,40,0.3)' }}
+                  style={{ flex: 1, background: 'var(--red-600)', boxShadow: 'var(--shadow-primary)' }}
                   onClick={() => handleDelete(deleteConfirmId)}
                 >
                   Eliminar
@@ -337,6 +340,7 @@ export default function Partidos({ onBack }) {
           </div>
         );
       })()}
+      {ToastEl}
     </div>
   );
 }

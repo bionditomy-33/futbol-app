@@ -3,6 +3,7 @@ import { useStore, getState } from '../store/useStore';
 import { INITIAL_CATALOG } from '../data/initialData';
 import { todayStr, formatDate, getDayName } from '../utils/dates';
 import { GymIcon, ChevronLeft } from '../components/Icons';
+import ProgressBar from '../components/ProgressBar';
 
 const RATING_COLORS = ['', '#EF5350', '#FF7043', '#FFC107', '#66BB6A', '#2E7D32'];
 const RATING_LABELS = ['', 'Muy mal', 'Mal', 'Regular', 'Bien', 'Excelente'];
@@ -206,9 +207,7 @@ export default function Historial({ onBack } = {}) {
                   {count} {count === 1 ? 'vez' : 'veces'}
                 </span>
               </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${Math.round((count / maxCount) * 100)}%` }} />
-              </div>
+              <ProgressBar value={Math.round((count / maxCount) * 100)} />
             </div>
           ))}
         </div>
@@ -345,7 +344,7 @@ export default function Historial({ onBack } = {}) {
 
         {importError && (
           <div style={{
-            fontSize: 13, color: '#C62828', background: '#FFEBEE',
+            fontSize: 13, color: 'var(--red-600)', background: 'var(--red-100)',
             borderRadius: 8, padding: '9px 12px', marginBottom: 12,
           }}>
             {importError}

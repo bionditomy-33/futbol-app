@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useToast } from '../components/useToast';
 import { useStore } from '../store/useStore';
 import {
   PlayIcon, EditIcon, TrashIcon, PlusIcon, XIcon,
@@ -34,6 +35,7 @@ export default function Catalogo({ onBack } = {}) {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [editingCat, setEditingCat] = useState(null);
   const [catEditForm, setCatEditForm] = useState({ name: '', link: '' });
+  const { showToast, ToastEl } = useToast();
 
   const totalExercises = useMemo(
     () => Object.values(catalog).reduce((s, ex) => s + ex.length, 0),
@@ -94,6 +96,7 @@ export default function Catalogo({ onBack } = {}) {
     if (confirmDeleteId === id) {
       deleteExercise(id);
       setConfirmDeleteId(null);
+      showToast('Ejercicio eliminado');
     } else {
       setConfirmDeleteId(id);
     }
@@ -102,6 +105,7 @@ export default function Catalogo({ onBack } = {}) {
   function handleDeleteCategory(cat) {
     if ((catalog[cat] || []).length > 0) return;
     deleteCategory(cat);
+    showToast('Categoría eliminada');
   }
 
   function startEditCat(cat) {
@@ -120,18 +124,21 @@ export default function Catalogo({ onBack } = {}) {
   return (
     <div className="catalog-page" onClick={() => { setOpenMenuId(null); }}>
 
-      {/* ── Dark header ── */}
-      <div className="catalog-header">
+      {/* ── Header ── */}
+      <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {onBack && (
-            <button className="catalog-back-btn" onClick={onBack}>
-              <ChevronLeft size={18} />
+            <button
+              onClick={onBack}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '4px', display: 'flex', alignItems: 'center' }}
+            >
+              <ChevronLeft size={20} />
             </button>
           )}
-          <h1 className="catalog-title">Catálogo</h1>
-          <span className="catalog-total-badge">{totalExercises}</span>
+          <h1 className="page-title">Catálogo</h1>
+          <span className="badge badge-navy">{totalExercises}</span>
         </div>
-        <button className="catalog-add-btn" onClick={() => setShowAddEx(true)}>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowAddEx(true)}>
           <PlusIcon size={12} /> Agregar
         </button>
       </div>
@@ -405,6 +412,7 @@ export default function Catalogo({ onBack } = {}) {
         )}
 
       </div>
+      {ToastEl}
     </div>
   );
 }

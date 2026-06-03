@@ -172,7 +172,7 @@ function MonthSummary({ year, month, schedule, history, weekTemplate, weekTempla
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <span className="cal-summary-week-label">{label}</span>
               {w.primaryPlan && (
-                <span style={{ fontSize: 9, fontWeight: 600, color: '#3730A3', lineHeight: 1.3 }}>
+                <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--navy-600)', lineHeight: 1.3 }}>
                   {w.primaryPlan.name}
                 </span>
               )}

@@ -4,6 +4,7 @@ import { todayStr, formatDate, addDays } from '../utils/dates';
 import { daysUntil, weeksBetween, getDatesBetween } from '../utils/plans';
 import { PlusIcon, TrashIcon, EditIcon, ChevronLeft, CheckIcon, ChevronRight } from '../components/Icons';
 import PlanDetail from './PlanDetail';
+import ProgressBar from '../components/ProgressBar';
 
 
 function WeekTemplatePreview({ template }) {
@@ -593,9 +594,7 @@ export default function Planes({ onBack }) {
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#263238' }}>{prog.pct}%</span>
                 </div>
               </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${prog.pct}%` }} />
-              </div>
+              <ProgressBar value={prog.pct} />
             </div>
 
             {/* Ritmo */}
@@ -641,9 +640,7 @@ export default function Planes({ onBack }) {
                 <div style={{ fontSize: 12, color: '#78909C', marginBottom: 8 }}>
                   {formatDate(plan.startDate)} — {formatDate(plan.endDate)} · {prog.completedSessions}/{prog.effTotal} ses.
                 </div>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${prog.pct}%`, background: '#D97706' }} />
-                </div>
+                <ProgressBar value={prog.pct} color="var(--amber-600)" />
               </div>
             );
           })}
@@ -716,7 +713,7 @@ export default function Planes({ onBack }) {
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setDeleteConfirmId(null)}>Cancelar</button>
-                <button className="btn btn-primary" style={{ flex: 1, background: '#C62828', borderColor: '#C62828' }}
+                <button className="btn btn-primary" style={{ flex: 1, background: 'var(--red-600)', borderColor: 'var(--red-600)' }}
                   onClick={handleConfirmDelete}>
                   Eliminar
                 </button>
