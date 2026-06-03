@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { getPlanProgress, getPlanWeeks, computePlanWeeklyLog } from '../store/useStore';
-import { formatDate } from '../utils/dates';
+import { useState, useMemo } from 'react';
+import { getPlanProgress, computePlanWeeklyLog, useStore } from '../store/useStore';
+import { toDateStr, todayStr } from '../utils/dates';
+import { getDayActivities } from '../utils/activities';
 import { ChevronLeft, CheckCircleIcon } from '../components/Icons';
 
-// ─── Helpers locales ──────────────────────────────────────────────────────────
+const TODAY = todayStr();
+const DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 function dateShort(dateStr) {
   const [, m, d] = dateStr.split('-').map(Number);
@@ -108,7 +110,6 @@ function CloseForm({ plan, progress, weeks, onClose, onCancel }) {
         <div style={{ fontWeight: 800, fontSize: 16, color: '#059669' }}>Cerrar plan</div>
       </div>
 
-      {/* Resumen general */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
         <div style={{ flex: 1, background: '#F8FAFC', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
           <div style={{ fontSize: 26, fontWeight: 800, color: '#1D3461' }}>{progress.pct}%</div>
@@ -128,7 +129,6 @@ function CloseForm({ plan, progress, weeks, onClose, onCancel }) {
         )}
       </div>
 
-      {/* Semanas */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
         <div style={{ fontSize: 13, color: '#263238' }}>
           <strong>{completedWeeks}</strong>/{pastWeeks.length} semanas al 100%
@@ -145,7 +145,6 @@ function CloseForm({ plan, progress, weeks, onClose, onCancel }) {
         )}
       </div>
 
-      {/* Autoevaluación */}
       <div style={{ marginBottom: 12 }}>
         <div className="form-label" style={{ marginBottom: 6 }}>¿Cómo estás ahora en esto? (1-10)</div>
         <RatingPicker value={finalRating} onChange={setFinalRating} />
@@ -160,7 +159,6 @@ function CloseForm({ plan, progress, weeks, onClose, onCancel }) {
         </div>
       </div>
 
-      {/* Notas */}
       <div className="form-group">
         <label className="form-label">¿Qué sacaste de este plan? <span style={{ color: '#B0BEC5' }}>(opcional)</span></label>
         <textarea
@@ -184,14 +182,76 @@ function CloseForm({ plan, progress, weeks, onClose, onCancel }) {
   );
 }
 
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+function isRelevantAct(act, actType, routineIds = []) {
+  if ((actType === 'gym' || actType === 'both') && act.type === 'gym') return true;
+  if ((actType === 'individual' || actType === 'both') && act.type === 'indiv') {
+    return routineIds.length === 0 || routineIds.includes(act.routineId);
+  }
+  return false;
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function PlanDetail({ plan, history, routines, onBack, onComplete }) {
+export default function PlanDetail({ plan, history, routines, onBack, onComplete, onEdit }) {
   const [showCloseForm, setShowCloseForm] = useState(false);
+  const [expandedWeeks, setExpandedWeeks] = useState(() => new Set());
+
+  const { schedule, matches, weekTemplate, weekTemplates } = useStore();
 
   const progress = getPlanProgress(plan, history);
-  const weeks = computePlanWeeklyLog(plan, history);
-  const actType = plan.activityType || 'individual';
+  const weeks    = computePlanWeeklyLog(plan, history);
+  const actType  = plan.activityType || 'individual';
+
+  const effectiveTmpl = useMemo(() => {
+    if (plan.weekTemplateId) {
+      const tmpl = weekTemplates.find(t => t.id === plan.weekTemplateId);
+      if (tmpl) return tmpl.days;
+    }
+    return weekTemplate;
+  }, [plan.weekTemplateId, weekTemplates, weekTemplate]);
+
+  const currentWeek = weeks.find(w => w.isCurrent);
+  const lastPast    = [...weeks].reverse().find(w => w.isPast);
+  const gymDebt     = lastPast?.accGymDebt   || 0;
+  const indivDebt   = lastPast?.accIndivDebt || 0;
+
+  // "Esta semana" — days of the current plan week
+  const thisWeekData = useMemo(() => {
+    if (!currentWeek) return [];
+    const out = [];
+    let d = new Date(currentWeek.startDate + 'T12:00:00');
+    const end = new Date(currentWeek.endDate + 'T12:00:00');
+    while (d <= end) {
+      const ds = toDateStr(d);
+      out.push({
+        dateStr: ds,
+        acts: getDayActivities(ds, schedule, history, matches, effectiveTmpl)
+          .filter(a => isRelevantAct(a, actType, plan.routineIds || [])),
+      });
+      d.setDate(d.getDate() + 1);
+    }
+    return out;
+  }, [currentWeek, schedule, history, matches, effectiveTmpl, actType, plan.routineIds]);
+
+  // "Próximos entrenamientos" — next 7 pending plan activities
+  const upcomingActs = useMemo(() => {
+    const result = [];
+    const startFrom = TODAY > plan.startDate ? TODAY : plan.startDate;
+    let d = new Date(startFrom + 'T12:00:00');
+    let iters = 0;
+    while (result.length < 7 && iters < 90) {
+      iters++;
+      const ds = toDateStr(d);
+      if (ds > plan.endDate) break;
+      getDayActivities(ds, schedule, history, matches, effectiveTmpl)
+        .filter(a => isRelevantAct(a, actType, plan.routineIds || []) && !a.done)
+        .forEach(act => { if (result.length < 7) result.push({ dateStr: ds, act }); });
+      d.setDate(d.getDate() + 1);
+    }
+    return result;
+  }, [schedule, history, matches, effectiveTmpl, actType, plan]);
 
   const routineLabel = () => {
     if (actType === 'gym') return 'Gimnasio';
@@ -203,6 +263,34 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   const rhythmStatus = progress.isOnTrack
     ? (progress.completedSessions > (progress.effTotal * (progress.currentWeekNum / progress.totalWeeks)) + 0.5 ? 'ahead' : 'ontrack')
     : 'behind';
+
+  // Day-by-day breakdown for a week row (computed on demand when expanded)
+  function getWeekDayData(week) {
+    const out = [];
+    let d = new Date(week.startDate + 'T12:00:00');
+    const end = new Date(week.endDate + 'T12:00:00');
+    while (d <= end) {
+      const ds = toDateStr(d);
+      out.push({
+        dateStr: ds,
+        acts: getDayActivities(ds, schedule, history, matches, effectiveTmpl)
+          .filter(a => isRelevantAct(a, actType, plan.routineIds || [])),
+      });
+      d.setDate(d.getDate() + 1);
+    }
+    return out;
+  }
+
+  function toggleWeek(num) {
+    setExpandedWeeks(prev => {
+      const next = new Set(prev);
+      if (next.has(num)) next.delete(num);
+      else next.add(num);
+      return next;
+    });
+  }
+
+  // ── Close form view ──────────────────────────────────────────────────────────
 
   if (showCloseForm) {
     return (
@@ -224,8 +312,11 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
     );
   }
 
+  // ── Main view ────────────────────────────────────────────────────────────────
+
   return (
     <div className="page-content">
+
       {/* ── Header ── */}
       <div className="page-header">
         <button className="btn btn-ghost" style={{ padding: '6px 8px', marginRight: 4 }} onClick={onBack}>
@@ -234,43 +325,67 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
         <h1 className="page-title" style={{ flex: 1 }}>{plan.name}</h1>
       </div>
 
-      {/* ── Info del plan ── */}
+      {/* ── Plan card (dark) ── */}
       <div className="card" style={{ background: '#0A1628', color: 'white', marginBottom: 0 }}>
         {plan.objective && (
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: 10, lineHeight: 1.4 }}>
             {plan.objective}
           </div>
         )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
           <span style={{
-            fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 99,
+            fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 99,
             background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)',
           }}>
             Semana {progress.currentWeekNum} de {progress.totalWeeks}
           </span>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+          {!progress.isExpired && progress.remainingDays > 0 && (
+            <span style={{
+              fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 99,
+              background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.65)',
+            }}>
+              Quedan {progress.remainingDays} días
+            </span>
+          )}
+          {progress.isExpired && (
+            <span style={{
+              fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 99,
+              background: 'rgba(239,83,80,0.2)', color: '#FCA5A5',
+            }}>
+              Vencido
+            </span>
+          )}
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginLeft: 'auto' }}>
             {dateShort(plan.startDate)} — {dateShort(plan.endDate)}
           </span>
         </div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>
-          {routineLabel()}
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 14 }}>{routineLabel()}</div>
+        {/* Large progress bar */}
+        <div style={{ height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.15)', overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', borderRadius: 99, background: 'white',
+            width: `${progress.pct}%`, transition: 'width 0.4s ease',
+          }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+            {progress.completedSessions} / {progress.effTotal || '?'} sesiones
+          </span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: 'white' }}>{progress.pct}%</span>
         </div>
       </div>
 
-      {/* ── Progreso general ── */}
+      {/* ── Cómo vengo ── */}
       <div className="card">
-        <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 14 }}>Progreso general</div>
+        <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 14 }}>Cómo vengo</div>
 
         {actType === 'both' && progress.gymPct != null && progress.individualPct != null ? (
-          // Dual bars para "ambos"
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 14 }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#263238' }}>Gimnasio</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, color: '#78909C' }}>
-                    {progress.gymSessions}/{progress.effGymTarget} ses.
-                  </span>
+                  <span style={{ fontSize: 12, color: '#78909C' }}>{progress.gymSessions}/{progress.effGymTarget} ses.</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#1D3461' }}>{progress.gymPct}%</span>
                   <RhythmBadge onTrack={progress.gymOnTrack} ahead={false} />
                 </div>
@@ -281,68 +396,210 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: '#263238' }}>Entrenamiento</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, color: '#78909C' }}>
-                    {progress.individualSessions}/{progress.effIndTarget} ses.
-                  </span>
+                  <span style={{ fontSize: 12, color: '#78909C' }}>{progress.individualSessions}/{progress.effIndTarget} ses.</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#059669' }}>{progress.individualPct}%</span>
                   <RhythmBadge onTrack={progress.individualOnTrack} ahead={false} />
                 </div>
               </div>
               <LinearBar pct={progress.individualPct} color="#059669" />
             </div>
-            <div style={{ borderTop: '1px solid #E8EDF5', paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ borderTop: '1px solid #E8EDF5', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 13, color: '#78909C' }}>Total: {progress.completedSessions}/{progress.effTotal}</span>
               <span style={{ fontSize: 22, fontWeight: 800, color: '#1D3461' }}>{progress.pct}%</span>
             </div>
           </div>
         ) : (
-          // Circular para tipo único
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
             <div style={{ position: 'relative', flexShrink: 0 }}>
-              <CircularProgress pct={progress.pct} size={120} strokeWidth={10} />
-              <div style={{
-                position: 'absolute', top: '50%', left: '50%',
-                transform: 'translate(-50%, -50%)', textAlign: 'center',
-              }}>
-                <div style={{ fontSize: 26, fontWeight: 800, color: '#1D3461', lineHeight: 1 }}>{progress.pct}%</div>
+              <CircularProgress pct={progress.pct} size={100} strokeWidth={9} />
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#1D3461', lineHeight: 1 }}>{progress.pct}%</div>
                 <div style={{ fontSize: 9, color: '#94A3B8', marginTop: 2 }}>completado</div>
               </div>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#263238' }}>
-                {progress.completedSessions} / {progress.effTotal}
-              </div>
-              <div style={{ fontSize: 12, color: '#78909C', marginBottom: 10 }}>sesiones completadas</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#263238' }}>{progress.completedSessions} / {progress.effTotal}</div>
+              <div style={{ fontSize: 12, color: '#78909C', marginBottom: 8 }}>sesiones completadas</div>
               <RhythmBadge onTrack={progress.isOnTrack} ahead={rhythmStatus === 'ahead'} />
             </div>
           </div>
         )}
+
+        {/* Racha + deuda + ritmo */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {(() => {
+            const pastWeeks = weeks.filter(w => !w.isFuture);
+            let streak = 0;
+            for (let i = pastWeeks.length - 1; i >= 0; i--) {
+              if (pastWeeks[i].isCompliant) streak++;
+              else break;
+            }
+            if (streak === 0) return null;
+            return (
+              <div style={{ flex: 1, minWidth: 80, background: '#F8FAFC', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ fontSize: 11, color: '#78909C', marginBottom: 2 }}>Racha</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#1D3461' }}>{streak}</div>
+                <div style={{ fontSize: 10, color: '#78909C' }}>sem. consec.</div>
+              </div>
+            );
+          })()}
+
+          {(gymDebt > 0 || indivDebt > 0) && (
+            <div style={{ flex: 1, minWidth: 80, background: '#FEF3C7', borderRadius: 8, padding: '10px 12px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#92400E', marginBottom: 2 }}>Deuda</div>
+              <div style={{ fontSize: 12, color: '#92400E' }}>
+                {[gymDebt > 0 && `${gymDebt} gym`, indivDebt > 0 && `${indivDebt} indiv`].filter(Boolean).join(' · ')}
+              </div>
+            </div>
+          )}
+
+          {!progress.isExpired && progress.remainingDays > 0 && (
+            <div style={{ flex: 1, minWidth: 80, background: '#F8FAFC', borderRadius: 8, padding: '10px 12px' }}>
+              <div style={{ fontSize: 11, color: '#78909C', marginBottom: 2 }}>Para cerrar</div>
+              <div style={{ fontSize: 12, color: '#263238', fontWeight: 600 }}>
+                {actType === 'both'
+                  ? `${progress.neededGymPerWeek}gym + ${progress.neededIndividualPerWeek}ind/sem`
+                  : `${progress.neededPerWeek} ses/sem`}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ── Grilla semanal ── */}
+      {/* ── Esta semana ── */}
+      {currentWeek && (
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: '#263238' }}>Esta semana</div>
+            {(currentWeek.gymCompAvail > 0 || currentWeek.indivCompAvail > 0) && (
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: '#FEF3C7', color: '#92400E' }}>
+                +comp
+              </span>
+            )}
+          </div>
+
+          {/* Objetivo + progreso */}
+          <div style={{ fontSize: 12, color: '#78909C', marginBottom: 4 }}>
+            Objetivo:{' '}
+            {[
+              (actType === 'gym' || actType === 'both') && currentWeek.gymEffTarget > 0 &&
+                `${currentWeek.gymEffTarget} gym${currentWeek.gymCompAvail > 0 ? ` (${currentWeek.gymEffTarget - currentWeek.gymCompAvail}+${currentWeek.gymCompAvail})` : ''}`,
+              (actType === 'individual' || actType === 'both') && currentWeek.indivEffTarget > 0 &&
+                `${currentWeek.indivEffTarget} individual${currentWeek.indivCompAvail > 0 ? ` (${currentWeek.indivEffTarget - currentWeek.indivCompAvail}+${currentWeek.indivCompAvail})` : ''}`,
+            ].filter(Boolean).join(' · ')}
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#263238', marginBottom: 12 }}>
+            Completado:{' '}
+            {[
+              (actType === 'gym' || actType === 'both') && currentWeek.gymEffTarget > 0 && `${currentWeek.gym}/${currentWeek.gymEffTarget} gym`,
+              (actType === 'individual' || actType === 'both') && currentWeek.indivEffTarget > 0 && `${currentWeek.individual}/${currentWeek.indivEffTarget} entreno`,
+            ].filter(Boolean).join(' · ')}
+          </div>
+
+          {/* Day list */}
+          {thisWeekData.map(({ dateStr, acts }, idx) => {
+            const d = new Date(dateStr + 'T12:00:00');
+            const isToday  = dateStr === TODAY;
+            const isPast   = dateStr < TODAY;
+            const isLast   = idx === thisWeekData.length - 1;
+            return (
+              <div key={dateStr} style={{
+                display: 'flex', alignItems: 'flex-start', gap: 10, padding: '6px 0',
+                borderBottom: isLast ? 'none' : '0.5px solid #F1F5F9',
+              }}>
+                <span style={{
+                  fontSize: 11, width: 46, flexShrink: 0, paddingTop: 1,
+                  color: isToday ? '#3730A3' : isPast ? '#94A3B8' : '#263238',
+                  fontWeight: isToday ? 700 : 400,
+                }}>
+                  {DAY_SHORT[d.getDay()]} {d.getDate()}{isToday ? ' ·' : ''}
+                </span>
+                {acts.length === 0 ? (
+                  <span style={{ fontSize: 12, color: '#B0BEC5' }}>Descanso</span>
+                ) : (
+                  <div style={{ flex: 1 }}>
+                    {acts.map((act, ai) => {
+                      const icon = act.done ? '✓' : act.skipped ? '✗' : (isPast ? '—' : '○');
+                      const ic = act.done ? '#059669' : act.skipped ? '#DC2626' : (isPast ? '#B0BEC5' : '#94A3B8');
+                      const name = act.type === 'gym'
+                        ? 'Gimnasio'
+                        : (routines.find(r => r.id === act.routineId)?.name || 'Entrenamiento');
+                      return (
+                        <div key={ai} style={{ display: 'flex', gap: 6, marginBottom: ai < acts.length - 1 ? 2 : 0, fontSize: 12 }}>
+                          <span style={{ fontWeight: 700, color: ic, width: 12, flexShrink: 0 }}>{icon}</span>
+                          <span style={{ color: act.done ? '#059669' : '#263238', textDecoration: act.skipped ? 'line-through' : 'none' }}>
+                            {name}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Próximos entrenamientos ── */}
+      {upcomingActs.length > 0 && (
+        <div className="card">
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 12 }}>Próximos entrenamientos</div>
+          {upcomingActs.map(({ dateStr, act }, i) => {
+            const d = new Date(dateStr + 'T12:00:00');
+            const name = act.type === 'gym'
+              ? 'Gimnasio'
+              : (routines.find(r => r.id === act.routineId)?.name || 'Entrenamiento individual');
+            const dotColor = act.type === 'gym' ? '#185FA5' : '#0F6E56';
+            const isLast = i === upcomingActs.length - 1;
+            return (
+              <div key={`${dateStr}-${act.type}-${i}`} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0',
+                borderBottom: isLast ? 'none' : '0.5px solid #F1F5F9',
+              }}>
+                <div style={{ width: 54, flexShrink: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#263238' }}>
+                    {DAY_SHORT[d.getDay()]} {d.getDate()}/{d.getMonth() + 1}
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, color: '#263238', fontWeight: 500 }}>{name}</div>
+                  <div style={{ fontSize: 11, color: '#94A3B8' }}>{act.type === 'gym' ? 'Gimnasio' : 'Individual'}</div>
+                </div>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Historial del plan ── */}
       <div className="card">
-        <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 12 }}>Semana a semana</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 12 }}>Historial del plan</div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           {weeks.map((week, i) => {
-            const isLast = i === weeks.length - 1;
-            const bg = week.isCurrent ? '#EEF2FF' : 'transparent';
+            const isLast     = i === weeks.length - 1;
+            const isExpanded = expandedWeeks.has(week.num);
+            const canExpand  = week.isPast || week.isCurrent;
+            const bg         = week.isCurrent ? '#EEF2FF' : 'transparent';
             const borderColor = week.isCurrent ? '#C7D2FE' : '#F1F5F9';
-            const hasGymComp   = week.gymCompAvail   > 0;
-            const hasIndivComp = week.indivCompAvail > 0;
-            const gymMet   = week.gym       >= week.gymEffTarget;
-            const indivMet = week.individual >= week.indivEffTarget;
+            const gymMet     = week.gym       >= week.gymEffTarget;
+            const indivMet   = week.individual >= week.indivEffTarget;
+            const hasDebt    = week.isPast && (week.accGymDebt > 0 || week.accIndivDebt > 0);
 
             return (
               <div key={week.num} style={{
-                padding: '9px 0',
                 borderBottom: isLast ? 'none' : `1px solid ${borderColor}`,
-                background: bg,
-                borderRadius: week.isCurrent ? 8 : 0,
-                paddingLeft: week.isCurrent ? 8 : 0,
-                paddingRight: week.isCurrent ? 8 : 0,
+                background: hasDebt ? '#FFFBEB' : bg,
+                borderRadius: (week.isCurrent || hasDebt) ? 8 : 0,
+                paddingLeft: (week.isCurrent || hasDebt) ? 8 : 0,
+                paddingRight: (week.isCurrent || hasDebt) ? 8 : 0,
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {/* Week number + dates */}
+                {/* Week summary row */}
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 0', cursor: canExpand ? 'pointer' : 'default' }}
+                  onClick={() => canExpand && toggleWeek(week.num)}
+                >
                   <div style={{ width: 60, flexShrink: 0 }}>
                     <div style={{
                       fontSize: 11, fontWeight: week.isCurrent ? 800 : 600,
@@ -355,11 +612,10 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                     </div>
                   </div>
 
-                  {/* Gym column */}
                   {(actType === 'gym' || actType === 'both') && week.gymEffTarget > 0 && (
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 10, color: '#78909C', marginBottom: 2 }}>
-                        Gym{hasGymComp && <span style={{ color: '#D97706', fontWeight: 700 }}> +{week.gymCompAvail}</span>}
+                        Gym{week.gymCompAvail > 0 && <span style={{ color: '#D97706', fontWeight: 700 }}> +{week.gymCompAvail}</span>}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span style={{
@@ -368,18 +624,15 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                         }}>
                           {week.isFuture ? `—/${week.gymEffTarget}` : `${week.gym}/${week.gymEffTarget}`}
                         </span>
-                        {!week.isFuture && (
-                          <span style={{ fontSize: 12 }}>{gymMet ? '✓' : '✗'}</span>
-                        )}
+                        {!week.isFuture && <span style={{ fontSize: 12 }}>{gymMet ? '✓' : '✗'}</span>}
                       </div>
                     </div>
                   )}
 
-                  {/* Individual column */}
                   {(actType === 'individual' || actType === 'both') && week.indivEffTarget > 0 && (
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 10, color: '#78909C', marginBottom: 2 }}>
-                        Entreno{hasIndivComp && <span style={{ color: '#D97706', fontWeight: 700 }}> +{week.indivCompAvail}</span>}
+                        Entreno{week.indivCompAvail > 0 && <span style={{ color: '#D97706', fontWeight: 700 }}> +{week.indivCompAvail}</span>}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span style={{
@@ -388,133 +641,89 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                         }}>
                           {week.isFuture ? `—/${week.indivEffTarget}` : `${week.individual}/${week.indivEffTarget}`}
                         </span>
-                        {!week.isFuture && (
-                          <span style={{ fontSize: 12 }}>{indivMet ? '✓' : '✗'}</span>
-                        )}
+                        {!week.isFuture && <span style={{ fontSize: 12 }}>{indivMet ? '✓' : '✗'}</span>}
                       </div>
                     </div>
                   )}
 
-                  {/* Status dot for past weeks */}
                   {week.isPast && (
-                    <div style={{
-                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                      background: week.isCompliant ? '#059669' : '#EF5350',
-                    }} />
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: week.isCompliant ? '#059669' : '#EF5350' }} />
                   )}
-                  {week.isCurrent && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#3730A3', flexShrink: 0 }}>HOY</span>
+                  {week.isCurrent && <span style={{ fontSize: 10, fontWeight: 700, color: '#3730A3', flexShrink: 0 }}>HOY</span>}
+                  {canExpand && (
+                    <span style={{ fontSize: 10, color: '#B0BEC5', flexShrink: 0 }}>{isExpanded ? '▼' : '▶'}</span>
                   )}
                 </div>
+
+                {/* Expanded day detail */}
+                {isExpanded && (
+                  <div style={{ paddingBottom: 10 }}>
+                    {getWeekDayData(week).map(({ dateStr, acts }, di, arr) => {
+                      const d       = new Date(dateStr + 'T12:00:00');
+                      const isPast  = dateStr < TODAY;
+                      const isToday = dateStr === TODAY;
+                      const isLast  = di === arr.length - 1;
+                      return (
+                        <div key={dateStr} style={{
+                          display: 'flex', gap: 8, padding: '5px 0',
+                          borderBottom: isLast ? 'none' : '0.5px solid #F1F5F9',
+                        }}>
+                          <span style={{
+                            fontSize: 11, width: 44, flexShrink: 0,
+                            color: isToday ? '#3730A3' : isPast ? '#94A3B8' : '#263238',
+                            fontWeight: isToday ? 700 : 400,
+                          }}>
+                            {DAY_SHORT[d.getDay()]} {d.getDate()}
+                          </span>
+                          {acts.length === 0 ? (
+                            <span style={{ fontSize: 12, color: '#B0BEC5' }}>—</span>
+                          ) : (
+                            <div>
+                              {acts.map((act, ai) => {
+                                const icon = act.done ? '✓' : act.skipped ? '✗' : (isPast ? '—' : '○');
+                                const ic   = act.done ? '#059669' : act.skipped ? '#DC2626' : (isPast ? '#B0BEC5' : '#94A3B8');
+                                const name = act.type === 'gym'
+                                  ? 'Gimnasio'
+                                  : (routines.find(r => r.id === act.routineId)?.name || 'Entrenamiento');
+                                return (
+                                  <div key={ai} style={{ display: 'flex', gap: 5, fontSize: 12, color: '#263238', marginBottom: 1 }}>
+                                    <span style={{ fontWeight: 700, color: ic, width: 12, flexShrink: 0 }}>{icon}</span>
+                                    <span style={{ textDecoration: act.skipped ? 'line-through' : 'none' }}>{name}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
-
-        {/* Deuda acumulada + Esta semana */}
-        {(() => {
-          const lastPast = [...weeks].reverse().find(w => w.isPast);
-          const gymDebt   = lastPast?.accGymDebt   || 0;
-          const indivDebt = lastPast?.accIndivDebt || 0;
-          const curWeek   = weeks.find(w => w.isCurrent);
-          const gymComp   = curWeek?.gymCompAvail   || 0;
-          const indivComp = curWeek?.indivCompAvail || 0;
-          if (!gymDebt && !indivDebt && !gymComp && !indivComp) return null;
-          return (
-            <div style={{ marginTop: 12, padding: '10px 12px', background: '#FEF3C7', borderRadius: 8 }}>
-              {(gymDebt > 0 || indivDebt > 0) && (
-                <div style={{ fontSize: 12, color: '#92400E', fontWeight: 600, marginBottom: (gymComp > 0 || indivComp > 0) ? 6 : 0 }}>
-                  Deuda actual:{' '}
-                  {[
-                    gymDebt   > 0 && `${gymDebt} gym`,
-                    indivDebt > 0 && `${indivDebt} individual`,
-                  ].filter(Boolean).join(' · ')}
-                </div>
-              )}
-              {curWeek && (gymComp > 0 || indivComp > 0) && (
-                <div style={{ fontSize: 12, color: '#92400E' }}>
-                  Esta semana:{' '}
-                  {[
-                    (actType === 'gym' || actType === 'both') && gymComp > 0 &&
-                      `${curWeek.gymEffTarget} gym (${curWeek.gymEffTarget - gymComp} base + ${gymComp} comp)`,
-                    (actType === 'individual' || actType === 'both') && indivComp > 0 &&
-                      `${curWeek.indivEffTarget} individual (${curWeek.indivEffTarget - indivComp} base + ${indivComp} comp)`,
-                  ].filter(Boolean).join(', ')}
-                </div>
-              )}
-            </div>
-          );
-        })()}
       </div>
 
-      {/* ── Racha ── */}
-      {(() => {
-        const pastWeeks = weeks.filter(w => !w.isFuture);
-        let streak = 0, best = 0, cur = 0;
-        for (const w of pastWeeks) {
-          if (w.isCompliant) { cur++; best = Math.max(best, cur); }
-          else cur = 0;
-        }
-        // Current streak from the end
-        for (let i = pastWeeks.length - 1; i >= 0; i--) {
-          if (pastWeeks[i].isCompliant) streak++;
-          else break;
-        }
-        if (best === 0) return null;
-        return (
-          <div className="card">
-            <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 8 }}>Racha</div>
-            <div style={{ display: 'flex', gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#1D3461' }}>{streak}</div>
-                <div style={{ fontSize: 11, color: '#78909C' }}>semanas consecutivas</div>
-              </div>
-              {best > streak && (
-                <div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#78909C' }}>{best}</div>
-                  <div style={{ fontSize: 11, color: '#78909C' }}>mejor racha</div>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ── Ritmo ── */}
-      {!progress.isExpired && progress.remainingDays > 0 && (
-        <div className="card">
-          <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 8 }}>Para cerrar el plan</div>
-          <div style={{ fontSize: 13, color: '#263238', marginBottom: 4 }}>
-            Necesitás <strong>{Math.max(0, progress.effTotal - progress.completedSessions)}</strong> sesiones más
-            en <strong>{Math.ceil(progress.remainingDays / 7)}</strong> semanas
-          </div>
-          {actType === 'both' ? (
-            <div style={{ fontSize: 12, color: '#78909C' }}>
-              Gym: <strong style={{ color: '#1D3461' }}>{progress.neededGymPerWeek}/sem</strong>
-              {' + '}
-              Entreno: <strong style={{ color: '#059669' }}>{progress.neededIndividualPerWeek}/sem</strong>
-            </div>
-          ) : (
-            <div style={{ fontSize: 12, color: '#78909C' }}>
-              <strong style={{ color: progress.isOnTrack ? '#059669' : '#EF5350' }}>{progress.neededPerWeek} sesiones/semana</strong>
-            </div>
+      {/* ── Configuración del plan ── */}
+      <div className="card">
+        <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 12 }}>Configuración del plan</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {onEdit && (
+            <button className="btn btn-secondary btn-full" onClick={() => onEdit(plan)}>
+              Editar plan
+            </button>
           )}
-          <div style={{ marginTop: 8 }}>
-            <RhythmBadge onTrack={progress.isOnTrack} ahead={rhythmStatus === 'ahead'} />
-          </div>
+          <button
+            className="btn btn-primary btn-full"
+            style={{ background: '#059669', borderColor: '#059669' }}
+            onClick={() => setShowCloseForm(true)}
+          >
+            Cerrar este plan
+          </button>
         </div>
-      )}
-
-      {/* ── Botón cerrar plan ── */}
-      <div style={{ padding: '4px 0 8px' }}>
-        <button
-          className="btn btn-primary btn-full"
-          style={{ background: '#059669', borderColor: '#059669' }}
-          onClick={() => setShowCloseForm(true)}
-        >
-          Cerrar este plan
-        </button>
       </div>
+
     </div>
   );
 }
