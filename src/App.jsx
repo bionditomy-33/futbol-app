@@ -87,6 +87,12 @@ export default function App() {
   const [semanaEditToday, setSemanaEditToday]     = useState(false);
   const labIsDirtyRef = useRef(false);
 
+  // Must be before any early return — React hooks must always be called unconditionally
+  const activePlan = useMemo(
+    () => (plans || []).find(p => p.status !== 'completed' && TODAY >= p.startDate),
+    [plans]
+  );
+
   if (!isReady) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: '#F5F7F5' }}>
@@ -115,11 +121,6 @@ export default function App() {
   }
 
   const isInLab = mainTab === 'mas' && masView === 'lab';
-
-  const activePlan = useMemo(
-    () => (plans || []).find(p => p.status !== 'completed' && TODAY >= p.startDate),
-    [plans]
-  );
 
   function goToLab(routine = null, fromRutinas = false) {
     labIsDirtyRef.current = false;

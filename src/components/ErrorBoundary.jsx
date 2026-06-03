@@ -11,11 +11,6 @@ export default class ErrorBoundary extends Component {
     console.error('[ErrorBoundary]', error, info?.componentStack);
   }
 
-  handleReset() {
-    try { localStorage.clear(); } catch { /* nada */ }
-    window.location.reload();
-  }
-
   render() {
     if (!this.state.hasError) return this.props.children;
 
@@ -33,7 +28,7 @@ export default class ErrorBoundary extends Component {
           La app encontró un error inesperado. Podés resetear los datos para volver a usarla.
         </div>
         <button
-          onClick={this.handleReset}
+          onClick={() => { try { localStorage.clear(); } catch { /* nada */ } window.location.reload(); }}
           style={{
             background: '#1B5E20', color: '#fff', border: 'none',
             borderRadius: 12, padding: '14px 28px',
