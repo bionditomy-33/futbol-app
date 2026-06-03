@@ -478,6 +478,18 @@ export function useStore() {
     writeDoc('history', next);
   }, []);
 
+  const setActivityTime = useCallback((dateStr, actType, newTime) => {
+    const timeField = actType === 'gym' ? 'gymTime' : actType === 'indiv' ? 'indivTime' : actType === 'arsenal' ? 'arsenalTime' : 'matchTime';
+    const currentSched = state.schedule[dateStr];
+    const sched = typeof currentSched === 'string'
+      ? { routineId: currentSched }
+      : (currentSched ? { ...currentSched } : {});
+    const nextSched = { ...sched, [timeField]: newTime };
+    const nextSchedule = { ...state.schedule, [dateStr]: nextSched };
+    setState({ schedule: nextSchedule });
+    writeDoc('schedule', nextSchedule);
+  }, []);
+
   // ── Routines ──────────────────────────────────────────────────────────────
   const saveRoutine = useCallback((routine) => {
     const exists = state.routines.find(r => r.id === routine.id);
@@ -839,6 +851,7 @@ export function useStore() {
     uncompleteDay,
     removeActivityFromDay,
     toggleSkipActivity,
+    setActivityTime,
     saveRoutine,
     deleteRoutine,
     duplicateRoutine,

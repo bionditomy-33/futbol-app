@@ -11,7 +11,7 @@ const RESULTS = [
 ];
 
 function emptyForm() {
-  return { date: todayStr(), competition: COMPETITIONS[0], result: 'ganamos', minutes: '', notes: '' };
+  return { date: todayStr(), time: '', competition: COMPETITIONS[0], result: 'ganamos', minutes: '', notes: '' };
 }
 
 function getResultStats(matches) {
@@ -45,6 +45,7 @@ export default function Partidos({ onBack }) {
     setEditingId(match.id);
     setForm({
       date: match.date,
+      time: match.time || '',
       competition: match.competition,
       result: match.result,
       minutes: match.minutes != null ? String(match.minutes) : '',
@@ -64,6 +65,7 @@ export default function Partidos({ onBack }) {
       updated = matches.map(m => m.id === editingId ? {
         ...m,
         date: form.date,
+        time: form.time.trim() || null,
         competition: form.competition,
         result: form.result,
         minutes: form.minutes ? parseInt(form.minutes, 10) : null,
@@ -73,6 +75,7 @@ export default function Partidos({ onBack }) {
       const match = {
         id: `m-${Date.now()}`,
         date: form.date,
+        time: form.time.trim() || null,
         competition: form.competition,
         result: form.result,
         minutes: form.minutes ? parseInt(form.minutes, 10) : null,
@@ -153,6 +156,16 @@ export default function Partidos({ onBack }) {
               style={errors.date ? { borderColor: '#EF5350' } : {}}
             />
             {errors.date && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.date}</div>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Horario <span style={{ color: '#94A3B8', fontWeight: 500 }}>(opcional)</span></label>
+            <input
+              type="time"
+              className="input"
+              value={form.time}
+              onChange={e => updateForm('time', e.target.value)}
+            />
           </div>
 
           <div className="form-group">

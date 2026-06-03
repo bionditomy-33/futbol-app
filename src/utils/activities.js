@@ -22,7 +22,7 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
   if (!suppressed.includes('gym') && (day?.gym || sched.gym || (!suppressTemplate && tmpl.gym))) {
     acts.push({
       type: 'gym',
-      time: tmpl.gymTime || tmpl.time || '07:00',
+      time: sched.gymTime || tmpl.gymTime || tmpl.time || '07:00',
       done: !!day?.gym,
       skipped: !!(day?.skipped?.includes('gym')),
       fromTemplate: !day?.gym && !sched.gym && !!tmpl.gym,
@@ -36,7 +36,7 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
   if (!suppressed.includes('indiv') && (histId || schedId || tmplId)) {
     acts.push({
       type: 'indiv',
-      time: tmpl.indivTime || '08:10',
+      time: sched.indivTime || tmpl.indivTime || '08:10',
       done: !!day?.done,
       skipped: !!(day?.skipped?.includes('indiv')),
       missed: !day?.done && !!schedId && dateStr < today,
@@ -49,7 +49,7 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
   if (!suppressed.includes('arsenal') && (sched.arsenal || (!suppressTemplate && tmpl.arsenal))) {
     acts.push({
       type: 'arsenal',
-      time: tmpl.arsenalTime || '19:30',
+      time: sched.arsenalTime || tmpl.arsenalTime || '19:30',
       done: false,
       fromTemplate: !sched.arsenal,
     });
@@ -60,7 +60,7 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
   const dayMatches = matches.filter(m => m.date === dateStr);
   dayMatches.forEach(m => acts.push({
     type: 'match',
-    time: tmpl.matchTime || defaultMatchTime,
+    time: m.time || sched.matchTime || tmpl.matchTime || defaultMatchTime,
     done: true,
     match: m,
   }));
@@ -69,7 +69,7 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
   if (dayMatches.length === 0 && !suppressed.includes('match') && (sched.match || (!suppressTemplate && tmpl.match))) {
     acts.push({
       type: 'match',
-      time: tmpl.matchTime || defaultMatchTime,
+      time: sched.matchTime || tmpl.matchTime || defaultMatchTime,
       done: false,
       fromTemplate: !sched.match,
     });

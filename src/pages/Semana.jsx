@@ -48,8 +48,9 @@ function ActBlock({ act }) {
 }
 
 // ── Activity row in day detail ─────────────────────────────────────────────────
-function ActivityRow({ act, routines, onToggleSkip, isPastOrToday, onDelete }) {
+function ActivityRow({ act, routines, onToggleSkip, isPastOrToday, onDelete, onSetTime }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingTime, setEditingTime]     = useState(false);
   const c = ACT_COLORS[act.type];
   let title = '', subtitle = '';
 
@@ -79,7 +80,26 @@ function ActivityRow({ act, routines, onToggleSkip, isPastOrToday, onDelete }) {
 
   return (
     <div className="wk2-act-row">
-      <div className="wk2-act-time">{act.time}</div>
+      <div className="wk2-act-time">
+        {editingTime ? (
+          <input
+            type="time"
+            defaultValue={act.time}
+            autoFocus
+            style={{ width: 72, fontSize: 12, border: '1px solid #CBD5E1', borderRadius: 5, padding: '2px 4px', fontFamily: 'inherit', background: 'white' }}
+            onBlur={e => { setEditingTime(false); if (e.target.value) onSetTime?.(act.type, e.target.value); }}
+            onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') { setEditingTime(false); } }}
+            onClick={e => e.stopPropagation()}
+          />
+        ) : (
+          <span
+            onClick={e => { e.stopPropagation(); if (onSetTime) setEditingTime(true); }}
+            style={{ cursor: onSetTime ? 'pointer' : 'default', textDecoration: onSetTime ? 'underline dotted' : 'none', textUnderlineOffset: 2 }}
+          >
+            {act.time}
+          </span>
+        )}
+      </div>
       <div className="wk2-act-pill" style={{ background: c.bg }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
           <div>
@@ -163,7 +183,7 @@ function getDatesBetween(startStr, endStr) {
 }
 
 export default function Semana({ editToday = false, onConsumed }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity, removeActivityFromDay } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity, removeActivityFromDay, setActivityTime } = useStore();
 
   const [weekOffset,      setWeekOffset]      = useState(0);
   const [selectedDateStr, setSelectedDateStr] = useState(TODAY);
@@ -448,6 +468,7 @@ export default function Semana({ editToday = false, onConsumed }) {
                   isPastOrToday={isPastOrToday}
                   onToggleSkip={(actType) => toggleSkipActivity(selectedDateStr, actType)}
                   onDelete={!(act.type === 'match' && act.done) ? () => removeActivityFromDay(selectedDateStr, act.type) : undefined}
+                  onSetTime={!(act.type === 'match' && act.done) ? (actType, t) => setActivityTime(selectedDateStr, actType, t) : undefined}
                 />
               </div>
             );
