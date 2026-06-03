@@ -3,6 +3,24 @@ import { CheckIcon, PlayIcon } from './Icons';
 
 const CAT_COLORS_PALETTE = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316', '#EC4899'];
 
+function ExPills({ series, reps }) {
+  if (!series && !reps) return null;
+  return (
+    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 6 }}>
+      {series && (
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#475569', background: '#F1F5F9', borderRadius: 5, padding: '2px 8px', lineHeight: 1.4 }}>
+          {series}s
+        </span>
+      )}
+      {reps && (
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#1D3461', background: '#E8EDF5', borderRadius: 5, padding: '2px 8px', lineHeight: 1.4 }}>
+          {reps}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function groupByCategory(exercises, catByExId) {
   const groups = [];
   for (const ex of exercises) {
@@ -99,11 +117,7 @@ export default function ExerciseGroupedList({
                       <div style={{ fontSize: 14, color: '#263238', fontWeight: isDone ? 400 : 500, lineHeight: 1.3 }}>
                         {info.name}
                       </div>
-                      {(ex.series || ex.reps) && (
-                        <div style={{ fontSize: 12, color: '#78909C', marginTop: 2 }}>
-                          {ex.series && `${ex.series}s`}{ex.series && ex.reps ? ' · ' : ''}{ex.reps}
-                        </div>
-                      )}
+                      <ExPills series={ex.series} reps={ex.reps} />
                     </div>
                     {info.link && (
                       <a href={info.link} target="_blank" rel="noopener noreferrer" className="video-btn" onClick={e => e.stopPropagation()}>
@@ -122,11 +136,7 @@ export default function ExerciseGroupedList({
                 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, color: '#263238', fontWeight: 500 }}>{info.name}</div>
-                    {(ex.series || ex.reps) && (
-                      <div style={{ fontSize: 12, color: '#78909C', marginTop: 1 }}>
-                        {ex.series ? `${ex.series}s` : ''}{ex.series && ex.reps ? ' · ' : ''}{ex.reps || ''}
-                      </div>
-                    )}
+                    <ExPills series={ex.series} reps={ex.reps} />
                   </div>
                   {info.link && (
                     <a href={info.link} target="_blank" rel="noopener noreferrer" className="video-btn" onClick={e => e.stopPropagation()}>

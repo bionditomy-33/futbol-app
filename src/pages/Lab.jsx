@@ -1,8 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import ExercisePicker from '../components/ExercisePicker';
 import { PlusIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon, XIcon, BodyIcon, BallIcon, FireIcon, GripIcon } from '../components/Icons';
 import { useDragSort } from '../hooks/useDragSort';
+
+const CAT_COLORS_PALETTE = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316', '#EC4899'];
 
 // Fases verdaderamente fijas: no se pueden renombrar ni eliminar
 const TRULY_FIXED = new Set(['Bloque Entrenamiento Principal', 'Calentamiento con pelota']);
@@ -45,23 +47,53 @@ function emptyRoutine() {
   };
 }
 
-// ── Sub-component: exercise list with drag sort ───────────────────────────────
-function PhaseExercises({ exercises, exerciseMap, onReorder, onMove, onRemove, onUpdate }) {
+// ── Sub-component: exercise list with drag sort + category grouping ───────────
+function PhaseExercises({ exercises, exerciseMap, catalog, onReorder, onMove, onRemove, onUpdate }) {
   const { containerRef, displayItems, origIndices, getItemStyle, onHandlePointerDown } =
     useDragSort(exercises, onReorder);
+
+  const catByExId = useMemo(() => {
+    const map = {};
+    for (const [cat, exs] of Object.entries(catalog)) {
+      for (const ex of exs) map[ex.id] = cat;
+    }
+    return map;
+  }, [catalog]);
+
+  const catColorMap = useMemo(() => {
+    const cats = Object.keys(catalog);
+    return Object.fromEntries(cats.map((cat, i) => [cat, CAT_COLORS_PALETTE[i % CAT_COLORS_PALETTE.length]]));
+  }, [catalog]);
 
   return (
     <div ref={containerRef} style={{ marginBottom: 10 }}>
       {displayItems.map((ex, displayIdx) => {
         const ei = origIndices[displayIdx];
         const info = exerciseMap[ex.ref];
+        const cat = catByExId[ex.ref] || 'Sin categoría';
+        const prevCat = displayIdx > 0 ? (catByExId[displayItems[displayIdx - 1].ref] || 'Sin categoría') : null;
+        const isNewGroup = cat !== prevCat;
+        const catColor = catColorMap[cat] || '#94A3B8';
+
         return (
-          <div key={ei} style={{ marginBottom: 6, ...getItemStyle(displayIdx) }}>
+          <div key={ei} style={{ marginBottom: 4, ...getItemStyle(displayIdx) }}>
+            {isNewGroup && (
+              <div style={{
+                fontSize: 10, fontWeight: 700, color: catColor,
+                textTransform: 'uppercase', letterSpacing: '0.07em',
+                padding: displayIdx > 0 ? '10px 4px 3px' : '2px 4px 3px',
+                borderTop: displayIdx > 0 ? '0.5px solid rgba(0,0,0,0.08)' : 'none',
+                marginTop: displayIdx > 0 ? 4 : 0,
+              }}>
+                {cat}
+              </div>
+            )}
             <div style={{
               background: 'rgba(255,255,255,0.75)',
               borderRadius: 8,
               padding: '10px 12px',
-              border: '1px solid rgba(0,0,0,0.07)',
+              border: '1px solid rgba(0,0,0,0.06)',
+              borderLeft: `3px solid ${catColor}`,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
@@ -101,7 +133,7 @@ function PhaseExercises({ exercises, exerciseMap, onReorder, onMove, onRemove, o
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ flex: 1 }}>
-                  <label className="form-label" style={{ fontSize: 9 }}>Series</label>
+                  <label className="form-label">Series</label>
                   <input
                     className="input"
                     style={{ padding: '6px 8px', fontSize: 13 }}
@@ -111,7 +143,7 @@ function PhaseExercises({ exercises, exerciseMap, onReorder, onMove, onRemove, o
                   />
                 </div>
                 <div style={{ flex: 2 }}>
-                  <label className="form-label" style={{ fontSize: 9 }}>Reps / Indicacion</label>
+                  <label className="form-label">Reps / Indicacion</label>
                   <input
                     className="input"
                     style={{ padding: '6px 8px', fontSize: 13 }}
@@ -376,11 +408,12 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                       <input className="input" placeholder="Indicaciones generales..." value={phase.note} onChange={e => updatePhase(pi, 'note', e.target.value)} />
                     </div>
 
-                    {/* Exercises with drag sort */}
+                    {/* Exercises with drag sort + category grouping */}
                     {phase.exercises.length > 0 && (
                       <PhaseExercises
                         exercises={phase.exercises}
                         exerciseMap={exerciseMap}
+                        catalog={catalog}
                         onReorder={newExs => reorderExercises(pi, newExs)}
                         onMove={(ei, dir) => moveExercise(pi, ei, dir)}
                         onRemove={ei => removeExercise(pi, ei)}
