@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useStore } from './store/useStore';
+import { todayStr } from './utils/dates';
 import Hoy from './pages/Hoy';
 import Planes from './pages/Planes';
 import Semana from './pages/Semana';
@@ -10,25 +11,33 @@ import Catalogo from './pages/Catalogo';
 import Partidos from './pages/Partidos';
 import Historial from './pages/Historial';
 import SemanaTipo from './pages/SemanaTipo';
+import PlanDetail from './pages/PlanDetail';
 import {
   HomeIcon, BallIcon, TrophyIcon, MoreHorizIcon,
   ChevronRight, EditIcon, BodyIcon, FireIcon, StarIcon, CalendarIcon,
 } from './components/Icons';
 
+const TODAY = todayStr();
+
 const BOTTOM_TABS = [
-  { id: 'inicio',   label: 'Inicio',   Icon: HomeIcon },
-  { id: 'entreno',  label: 'Entreno',  Icon: BallIcon },
-  { id: 'partidos', label: 'Partidos', Icon: TrophyIcon },
-  { id: 'mas',      label: 'Más',      Icon: MoreHorizIcon },
+  { id: 'inicio',        label: 'Inicio',        Icon: HomeIcon },
+  { id: 'calendario',   label: 'Calendario',    Icon: CalendarIcon },
+  { id: 'entrenamiento', label: 'Entrenamiento', Icon: BallIcon },
+  { id: 'mas',          label: 'Más',           Icon: MoreHorizIcon },
 ];
 
-const ENTRENO_TABS = [
-  { id: 'semana',      label: 'Semana' },
-  { id: 'calendario',  label: 'Calendario' },
-  { id: 'rutinas',     label: 'Rutinas' },
+const CALENDARIO_TABS = [
+  { id: 'semana', label: 'Semana' },
+  { id: 'mes',    label: 'Mes' },
 ];
 
 const MAS_ITEMS = [
+  {
+    id: 'rutinas',
+    icon: <BallIcon size={22} />,
+    title: 'Rutinas',
+    sub: 'Tus rutinas de entrenamiento',
+  },
   {
     id: 'lab',
     icon: <EditIcon size={22} />,
@@ -40,6 +49,12 @@ const MAS_ITEMS = [
     icon: <BodyIcon size={22} />,
     title: 'Catálogo',
     sub: 'Ejercicios y categorías',
+  },
+  {
+    id: 'partidos',
+    icon: <TrophyIcon size={22} />,
+    title: 'Partidos',
+    sub: 'Registro de partidos jugados',
   },
   {
     id: 'historial',
@@ -62,14 +77,14 @@ const MAS_ITEMS = [
 ];
 
 export default function App() {
-  const { isReady, loadError } = useStore();
-  const [mainTab, setMainTab]               = useState('inicio');
-  const [entrenoTab, setEntrenoTab]         = useState('semana');
-  const [masView, setMasView]               = useState(null); // null | 'lab' | 'catalogo' | 'historial' | 'planes' | 'semana-tipo'
-  const [labRoutine, setLabRoutine]         = useState(null);
+  const { isReady, loadError, plans, history, routines } = useStore();
+  const [mainTab, setMainTab]                     = useState('inicio');
+  const [calendarioTab, setCalendarioTab]         = useState('semana');
+  const [masView, setMasView]                     = useState(null);
+  const [labRoutine, setLabRoutine]               = useState(null);
   const [labReturnToRutinas, setLabReturnToRutinas] = useState(false);
-  const [pendingNav, setPendingNav]         = useState(null);
-  const [semanaEditToday, setSemanaEditToday] = useState(false);
+  const [pendingNav, setPendingNav]               = useState(null);
+  const [semanaEditToday, setSemanaEditToday]     = useState(false);
   const labIsDirtyRef = useRef(false);
 
   if (!isReady) {
@@ -101,6 +116,11 @@ export default function App() {
 
   const isInLab = mainTab === 'mas' && masView === 'lab';
 
+  const activePlan = useMemo(
+    () => (plans || []).find(p => p.status !== 'completed' && TODAY >= p.startDate),
+    [plans]
+  );
+
   function goToLab(routine = null, fromRutinas = false) {
     labIsDirtyRef.current = false;
     setLabRoutine(routine);
@@ -112,17 +132,18 @@ export default function App() {
   function labDone() {
     labIsDirtyRef.current = false;
     setLabRoutine(null);
-    setMasView(null);
     if (labReturnToRutinas) {
-      setMainTab('entreno');
-      setEntrenoTab('rutinas');
+      setMainTab('mas');
+      setMasView('rutinas');
+    } else {
+      setMasView(null);
     }
   }
 
   function applyNav({ tab, view = null, subTab = null }) {
     setMainTab(tab);
     setMasView(view);
-    if (subTab) setEntrenoTab(subTab);
+    if (subTab) setCalendarioTab(subTab);
   }
 
   function navigateTo(payload) {
@@ -147,6 +168,72 @@ export default function App() {
     setPendingNav(null);
   }
 
+  function renderEntrenamientoTab() {
+    if (activePlan) {
+      return (
+        <PlanDetail
+          plan={activePlan}
+          history={history}
+          routines={routines}
+          onComplete={() => { /* store handles completion state, screen updates automatically */ }}
+          onEdit={() => { setMainTab('mas'); setMasView('planes'); }}
+        />
+      );
+    }
+
+    return (
+      <div className="page-content">
+        <div className="page-header">
+          <h1 className="page-title">Entrenamiento</h1>
+        </div>
+        <div style={{ padding: '0 16px 24px' }}>
+          <div style={{
+            background: 'white', border: '1px solid #E8ECEB', borderRadius: 16,
+            padding: 24, textAlign: 'center', marginBottom: 16,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🏃</div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: '#263238', marginBottom: 8 }}>
+              No tenés un plan activo
+            </div>
+            <div style={{ fontSize: 13, color: '#78909C', marginBottom: 20, lineHeight: 1.5 }}>
+              Creá un plan para hacer seguimiento de tu progreso semanal.
+            </div>
+            <button
+              className="btn btn-primary"
+              onClick={() => { setMainTab('mas'); setMasView('planes'); }}
+            >
+              Crear plan
+            </button>
+          </div>
+
+          {(routines || []).length > 0 && (
+            <div style={{ background: 'white', border: '1px solid #E8ECEB', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid #F0F4F3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 700, fontSize: 14, color: '#263238' }}>Mis rutinas</span>
+                <button
+                  style={{ background: 'none', border: 'none', fontSize: 12, color: '#1D3461', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                  onClick={() => { setMainTab('mas'); setMasView('rutinas'); }}
+                >
+                  Ver todas
+                </button>
+              </div>
+              {(routines || []).slice(0, 4).map(r => (
+                <div
+                  key={r.id}
+                  style={{ padding: '12px 16px', borderBottom: '1px solid #F0F4F3', display: 'flex', alignItems: 'center', gap: 10 }}
+                >
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#1D3461', flexShrink: 0 }} />
+                  <span style={{ fontSize: 14, color: '#263238', fontWeight: 500 }}>{r.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   function renderMasMenu() {
     return (
       <div className="page-content">
@@ -159,7 +246,7 @@ export default function App() {
               key={item.id}
               onClick={() => {
                 if (item.id === 'lab') goToLab(null, false);
-                else setMasView(item.id); // 'catalogo' | 'historial' | 'planes'
+                else setMasView(item.id);
               }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 14,
@@ -196,48 +283,50 @@ export default function App() {
       {mainTab === 'inicio' && (
         <Hoy
           onGoToDesafios={() => { setMainTab('mas'); setMasView('planes'); }}
-          onGoToEntreno={() => { setSemanaEditToday(true); setMainTab('entreno'); setEntrenoTab('semana'); }}
+          onGoToEntreno={() => { setSemanaEditToday(true); setMainTab('calendario'); setCalendarioTab('semana'); }}
         />
       )}
 
-      {mainTab === 'entreno' && (
+      {mainTab === 'calendario' && (
         <div>
           <div className="sub-tabs-bar">
-            {ENTRENO_TABS.map(t => (
+            {CALENDARIO_TABS.map(t => (
               <div
                 key={t.id}
-                className={`sub-tab-item${entrenoTab === t.id ? ' active' : ''}`}
-                onClick={() => setEntrenoTab(t.id)}
+                className={`sub-tab-item${calendarioTab === t.id ? ' active' : ''}`}
+                onClick={() => setCalendarioTab(t.id)}
               >
                 {t.label}
               </div>
             ))}
           </div>
-          {entrenoTab === 'semana'     && <Semana editToday={semanaEditToday} onConsumed={() => setSemanaEditToday(false)} />}
-          {entrenoTab === 'calendario' && <Calendario />}
-          {entrenoTab === 'rutinas'    && (
-            <Rutinas
-              onEdit={(routine) => goToLab(routine, true)}
-              onNew={() => goToLab(null, true)}
-            />
-          )}
+          {calendarioTab === 'semana' && <Semana editToday={semanaEditToday} onConsumed={() => setSemanaEditToday(false)} />}
+          {calendarioTab === 'mes'    && <Calendario />}
         </div>
       )}
 
-      {mainTab === 'partidos' && <Partidos />}
+      {mainTab === 'entrenamiento' && renderEntrenamientoTab()}
 
-      {mainTab === 'mas' && masView === null     && renderMasMenu()}
-      {mainTab === 'mas' && masView === 'lab'     && (
+      {mainTab === 'mas' && masView === null        && renderMasMenu()}
+      {mainTab === 'mas' && masView === 'lab'       && (
         <Lab
           routine={labRoutine}
           onDone={labDone}
           onDirtyChange={(dirty) => { labIsDirtyRef.current = dirty; }}
         />
       )}
-      {mainTab === 'mas' && masView === 'catalogo'  && <Catalogo onBack={() => setMasView(null)} />}
-      {mainTab === 'mas' && masView === 'historial'  && <Historial onBack={() => setMasView(null)} />}
-      {mainTab === 'mas' && masView === 'planes'        && <Planes      onBack={() => setMasView(null)} />}
-      {mainTab === 'mas' && masView === 'semana-tipo'  && <SemanaTipo  onBack={() => setMasView(null)} />}
+      {mainTab === 'mas' && masView === 'rutinas'   && (
+        <Rutinas
+          onEdit={(routine) => goToLab(routine, true)}
+          onNew={() => goToLab(null, true)}
+          onBack={() => setMasView(null)}
+        />
+      )}
+      {mainTab === 'mas' && masView === 'catalogo'  && <Catalogo   onBack={() => setMasView(null)} />}
+      {mainTab === 'mas' && masView === 'partidos'  && <Partidos   onBack={() => setMasView(null)} />}
+      {mainTab === 'mas' && masView === 'historial' && <Historial  onBack={() => setMasView(null)} />}
+      {mainTab === 'mas' && masView === 'planes'    && <Planes     onBack={() => setMasView(null)} />}
+      {mainTab === 'mas' && masView === 'semana-tipo' && <SemanaTipo onBack={() => setMasView(null)} />}
 
       {/* Bottom navigation */}
       <nav className="bottom-nav">

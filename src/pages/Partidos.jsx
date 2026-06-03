@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr, formatDate, getDayName } from '../utils/dates';
-import { PlusIcon, EditIcon, TrashIcon } from '../components/Icons';
+import { PlusIcon, EditIcon, TrashIcon, ChevronLeft } from '../components/Icons';
 
 const COMPETITIONS = ['Arsenal Liga', 'Premier', 'Otro'];
 const RESULTS = [
@@ -21,7 +21,7 @@ function getResultStats(matches) {
   return { wins, losses, draws, total: matches.length };
 }
 
-export default function Partidos() {
+export default function Partidos({ onBack }) {
   const { matches, setMatches } = useStore();
   const [showForm, setShowForm]               = useState(false);
   const [editingId, setEditingId]             = useState(null);
@@ -105,6 +105,11 @@ export default function Partidos() {
   return (
     <div className="page-content">
       <div className="page-header">
+        {onBack && (
+          <button className="btn btn-ghost" style={{ padding: '6px 8px', marginRight: 4 }} onClick={onBack}>
+            <ChevronLeft size={18} />
+          </button>
+        )}
         <h1 className="page-title">Partidos</h1>
         {!showForm && (
           <button className="btn btn-primary btn-sm" onClick={openNew}>

@@ -145,7 +145,7 @@ function RutinaDetail({ routine, exerciseMap, catalog, catLinks, onClose }) {
   );
 }
 
-export default function Rutinas({ onEdit, onNew }) {
+export default function Rutinas({ onEdit, onNew, onBack }) {
   const { routines, catalog, catLinks, exerciseMap, deleteRoutine, duplicateRoutine } = useStore();
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [viewing, setViewing] = useState(null);
@@ -174,6 +174,11 @@ export default function Rutinas({ onEdit, onNew }) {
   return (
     <div className="page-content">
       <div className="page-header">
+        {onBack && (
+          <button className="btn btn-ghost" style={{ padding: '6px 8px', marginRight: 4 }} onClick={onBack}>
+            <ChevronLeft size={18} />
+          </button>
+        )}
         <h1 className="page-title">Rutinas</h1>
         <button className="btn btn-primary btn-sm" onClick={onNew}>
           <PlusIcon size={12} /> Nueva

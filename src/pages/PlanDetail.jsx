@@ -305,7 +305,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
           plan={plan}
           progress={progress}
           weeks={weeks}
-          onClose={(rating, notes) => { onComplete(plan.id, rating, notes); onBack(); }}
+          onClose={(rating, notes) => { onComplete(plan.id, rating, notes); onBack?.(); }}
           onCancel={() => setShowCloseForm(false)}
         />
       </div>
@@ -319,9 +319,11 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
 
       {/* ── Header ── */}
       <div className="page-header">
-        <button className="btn btn-ghost" style={{ padding: '6px 8px', marginRight: 4 }} onClick={onBack}>
-          <ChevronLeft size={18} />
-        </button>
+        {onBack && (
+          <button className="btn btn-ghost" style={{ padding: '6px 8px', marginRight: 4 }} onClick={onBack}>
+            <ChevronLeft size={18} />
+          </button>
+        )}
         <h1 className="page-title" style={{ flex: 1 }}>{plan.name}</h1>
       </div>
 
