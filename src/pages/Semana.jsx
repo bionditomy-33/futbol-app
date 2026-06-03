@@ -50,7 +50,6 @@ function ActBlock({ act }) {
 // ── Activity row in day detail ─────────────────────────────────────────────────
 function ActivityRow({ act, routines, onToggleSkip, isPastOrToday, onDelete, onSetTime }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [editingTime, setEditingTime]     = useState(false);
   const c = ACT_COLORS[act.type];
   let title = '', subtitle = '';
 
@@ -81,24 +80,17 @@ function ActivityRow({ act, routines, onToggleSkip, isPastOrToday, onDelete, onS
   return (
     <div className="wk2-act-row">
       <div className="wk2-act-time">
-        {editingTime ? (
+        {onSetTime ? (
           <input
             type="time"
-            defaultValue={act.time}
-            autoFocus
-            style={{ width: 72, fontSize: 12, border: '1px solid #CBD5E1', borderRadius: 5, padding: '2px 4px', fontFamily: 'inherit', background: 'white' }}
-            onBlur={e => { setEditingTime(false); if (e.target.value) onSetTime?.(act.type, e.target.value); }}
-            onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') { setEditingTime(false); } }}
+            value={act.time || ''}
+            onChange={e => { if (e.target.value) onSetTime(act.type, e.target.value); }}
             onClick={e => e.stopPropagation()}
+            style={{ width: 56, fontSize: 11, fontWeight: 600, color: '#475569', border: '1px solid #E2E8F0', borderRadius: 5, padding: '2px 3px', fontFamily: 'inherit', background: 'white', cursor: 'pointer' }}
           />
         ) : (
           <>
-            <span
-              onClick={e => { e.stopPropagation(); if (onSetTime) setEditingTime(true); }}
-              style={{ cursor: onSetTime ? 'pointer' : 'default', textDecoration: onSetTime ? 'underline dotted' : 'none', textUnderlineOffset: 2 }}
-            >
-              {act.time}
-            </span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8' }}>{act.time}</span>
             {act.type === 'match' && act.match && (
               <span style={{ display: 'block', fontSize: 9, color: '#94A3B8', marginTop: 2, lineHeight: 1.2 }}>
                 Editar en<br />Partidos

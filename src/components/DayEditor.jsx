@@ -173,12 +173,18 @@ export default function DayEditor({ dateStr }) {
     routines, schedule, exerciseMap, catalog, catLinks,
     getDay, updateDay, toggleExercise, completeDay,
     assignRoutine, removeSchedule, updatePhaseObjective,
+    setActivityTime, weekTemplate,
   } = useStore();
 
   const schedVal = schedule[dateStr];
   const assignedId = typeof schedVal === 'string' ? schedVal : schedVal?.routineId;
   const routine = routines.find(r => r.id === assignedId) || null;
   const day = getDay(dateStr);
+
+  const dow = new Date(dateStr + 'T12:00:00').getDay();
+  const tmplDayEntry = weekTemplate?.[dow] || {};
+  const schedEntry = typeof schedVal === 'string' ? { routineId: schedVal } : (schedVal || {});
+  const currentIndivTime = schedEntry.indivTime || tmplDayEntry.indivTime || '08:10';
   const completed = day.completed || {};
 
   const [showSelector, setShowSelector] = useState(false);
@@ -338,6 +344,15 @@ export default function DayEditor({ dateStr }) {
                 <div style={{ fontSize: 12, color: '#78909C', marginTop: 4 }}>{routine.duration} · {totalEx} ejercicios</div>
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => setShowSelector(true)}>Cambiar</button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: '0.5px solid #F1F5F4' }}>
+              <span style={{ fontSize: 12, color: '#78909C', fontWeight: 600 }}>Horario</span>
+              <input
+                type="time"
+                value={currentIndivTime}
+                onChange={e => { if (e.target.value) setActivityTime(dateStr, 'indiv', e.target.value); }}
+                style={{ fontSize: 12, border: '1px solid #CBD5E1', borderRadius: 6, padding: '3px 6px', fontFamily: 'inherit', background: 'white', color: '#263238' }}
+              />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: 13, color: '#78909C' }}>Progreso</span>
