@@ -1197,6 +1197,97 @@ select.input {
   margin: 4px 16px 8px;
 }
 
+/* Collapsible section header (Entrenamiento) */
+.plan-section-hdr {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.plan-section-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: #263238;
+  flex: 1;
+  text-align: left;
+}
+.plan-section-chevron {
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+.plan-section-chevron.open { transform: rotate(180deg); }
+.plan-section-body { margin-top: 12px; animation: fadeIn 0.18s ease; }
+
+/* Compensation projection preview */
+.comp-preview {
+  margin: 0 16px 12px;
+  background: var(--amber-100);
+  border: 1px solid rgba(217,119,6,0.35);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-xs);
+}
+.comp-preview-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--amber-800);
+  margin-bottom: 8px;
+}
+.comp-preview-row {
+  font-size: 13px;
+  color: #7C4A07;
+  margin-bottom: 3px;
+  line-height: 1.4;
+}
+.comp-preview-row:last-child { margin-bottom: 0; }
+.comp-preview-row strong { color: #5C3604; font-weight: 800; }
+
+/* Urgency alert banners */
+.plan-alerts { padding-top: 12px; }
+.plan-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 16px 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  animation: fadeIn 0.2s ease;
+}
+.plan-alert-yellow { background: var(--amber-100); border: 1px solid rgba(217,119,6,0.4); }
+.plan-alert-red    { background: var(--red-100);   border: 1px solid rgba(220,38,38,0.35); }
+.plan-alert-icon { flex-shrink: 0; margin-top: 1px; display: flex; }
+.plan-alert-yellow .plan-alert-icon { color: var(--amber-600); }
+.plan-alert-red .plan-alert-icon { color: var(--red-600); }
+.plan-alert-text { flex: 1; font-size: 13px; line-height: 1.4; font-weight: 600; }
+.plan-alert-yellow .plan-alert-text { color: #92400E; }
+.plan-alert-red .plan-alert-text { color: #991B1B; }
+.plan-alert-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  flex-shrink: 0;
+  opacity: 0.55;
+  display: flex;
+  line-height: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.plan-alert-yellow .plan-alert-close { color: #92400E; }
+.plan-alert-red .plan-alert-close { color: #991B1B; }
+.plan-alert-close:active { opacity: 1; }
+
 /* ──────────────────────────────────────────
    NEXT TRAINING
 ────────────────────────────────────────── */

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { getPlanProgress, computePlanWeeklyLog, useStore } from '../store/useStore';
 import { toDateStr, todayStr } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
-import { ChevronLeft, CheckCircleIcon } from '../components/Icons';
+import { ChevronLeft, ChevronDown, CheckCircleIcon, XIcon } from '../components/Icons';
 import { ActivityList, RoutinePreviewModal } from '../components/DayActivities';
 
 const TODAY = todayStr();
@@ -11,6 +11,45 @@ const DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 function dateShort(dateStr) {
   const [, m, d] = dateStr.split('-').map(Number);
   return `${d}/${m}`;
+}
+
+// ─── Sección colapsable ────────────────────────────────────────────────────────
+
+function Section({ title, badge, open, onToggle, children }) {
+  return (
+    <div className="card">
+      <button type="button" className="plan-section-hdr" onClick={onToggle} aria-expanded={open}>
+        <span className="plan-section-title">{title}</span>
+        {badge}
+        <span className={`plan-section-chevron${open ? ' open' : ''}`}><ChevronDown size={16} /></span>
+      </button>
+      {open && <div className="plan-section-body">{children}</div>}
+    </div>
+  );
+}
+
+// ─── Banner de alerta (warning / urgente) ──────────────────────────────────────
+
+function AlertTriangle({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 2L15 14H1L8 2Z" />
+      <line x1="8" y1="6.5" x2="8" y2="9.5" />
+      <circle cx="8" cy="11.6" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function AlertBanner({ level, text, onClose }) {
+  return (
+    <div className={`plan-alert plan-alert-${level}`}>
+      <span className="plan-alert-icon"><AlertTriangle size={17} /></span>
+      <div className="plan-alert-text">{text}</div>
+      <button className="plan-alert-close" onClick={onClose} aria-label="Descartar">
+        <XIcon size={15} />
+      </button>
+    </div>
+  );
 }
 
 // ─── SVG circular progress ────────────────────────────────────────────────────
@@ -273,6 +312,87 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
     ? (progress.completedSessions > (progress.effTotal * (progress.currentWeekNum / progress.totalWeeks)) + 0.5 ? 'ahead' : 'ontrack')
     : 'behind';
 
+  // ── Secciones colapsables (cerradas por defecto) ───────────────────────────
+  const [openSections, setOpenSections] = useState({});
+  const toggleSection = (key) => setOpenSections(s => ({ ...s, [key]: !s[key] }));
+
+  // ── Contexto temporal de la semana actual del plan ─────────────────────────
+  const isFirstWeek = progress.currentWeekNum <= 1;
+  const todayDow = new Date(TODAY + 'T12:00:00').getDay(); // 0=Dom .. 6=Sáb
+  const lateWeek = todayDow === 0 || todayDow >= 3;         // miércoles a domingo
+  const daysLeftInWeek = currentWeek
+    ? Math.max(0, Math.round((new Date(currentWeek.endDate + 'T12:00:00') - new Date(TODAY + 'T12:00:00')) / 86400000) + 1)
+    : 0;
+
+  // ── CAMBIO 2: proyección de compensación para la semana que viene ──────────
+  // base + lo que va a faltar esta semana (tope: base + 2). Sólo desde el miércoles.
+  const compPreview = (() => {
+    if (!currentWeek || isFirstWeek || !lateWeek) return null;
+    if (progress.currentWeekNum >= progress.totalWeeks) return null; // no hay semana siguiente
+    const rows = [];
+    const build = (label, base, done) => {
+      if (!base || base <= 0) return;
+      const maxReachable = done + daysLeftInWeek;          // optimista: 1 sesión por día restante
+      const comp = Math.min(2, Math.max(0, base - maxReachable));
+      if (comp > 0) rows.push({ label, base, comp, total: base + comp });
+    };
+    if (actType === 'gym' || actType === 'both') build('Gym', currentWeek.gymTarget, currentWeek.gym);
+    if (actType === 'individual' || actType === 'both') build('Individual', currentWeek.individualTarget, currentWeek.individual);
+    return rows.length > 0 ? rows : null;
+  })();
+
+  // ── CAMBIO 3: alertas de urgencia ──────────────────────────────────────────
+  const alerts = (() => {
+    if (isFirstWeek || progress.isExpired || progress.isComplete || progress.isPending) return [];
+    const out = [];
+
+    // Nivel semana
+    if (currentWeek) {
+      const weekTarget = (currentWeek.gymEffTarget || 0) + (currentWeek.indivEffTarget || 0);
+      const weekDone   = (currentWeek.gym || 0) + (currentWeek.individual || 0);
+      const missing    = weekTarget - weekDone;
+      if (weekTarget > 0 && missing > 0) {
+        if (missing > daysLeftInWeek) {
+          out.push({
+            id: 'week-red', level: 'red',
+            text: `Si no completás ${missing} ${missing === 1 ? 'sesión' : 'sesiones'} más esta semana, vas a acumular deuda para la próxima.`,
+          });
+        } else if (lateWeek) {
+          out.push({
+            id: 'week-yellow', level: 'yellow',
+            text: `Llevás ${weekDone} ${weekDone === 1 ? 'sesión' : 'sesiones'} de ${weekTarget} esta semana. Te faltan ${missing} para cumplir el objetivo.`,
+          });
+        }
+      }
+    }
+
+    // Nivel plan: ritmo general por debajo del 70% de lo esperado
+    const expected = progress.effTotal * (progress.currentWeekNum / progress.totalWeeks);
+    if (expected > 0 && progress.completedSessions < expected * 0.7) {
+      const weeksLeft = Math.max(1, progress.totalWeeks - progress.currentWeekNum + 1);
+      const perWeek = progress.neededPerWeek;
+      out.push({
+        id: 'plan-red', level: 'red',
+        text: `A este ritmo no vas a completar el plan. Necesitás promediar ${perWeek} ${perWeek === 1 ? 'sesión' : 'sesiones'} por semana en las ${weeksLeft} ${weeksLeft === 1 ? 'semana' : 'semanas'} que quedan.`,
+      });
+    }
+    return out;
+  })();
+
+  // Descarte por día (persistido en localStorage; reaparece al día siguiente)
+  const dismissKey = `planAlertsDismissed:${plan.id}`;
+  const [dismissed, setDismissed] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(dismissKey) || '{}'); } catch { return {}; }
+  });
+  function dismissAlert(id) {
+    setDismissed(prev => {
+      const next = { ...prev, [id]: TODAY };
+      try { localStorage.setItem(dismissKey, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }
+  const visibleAlerts = alerts.filter(a => dismissed[a.id] !== TODAY);
+
   // ── Activity action handlers (mark done / "no hecho") ──────────────────────
   const todayDay = history[TODAY] || {};
   function handleGymDone() {
@@ -389,6 +509,15 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
         </div>
       </div>
 
+      {/* ── Alertas de urgencia ── */}
+      {visibleAlerts.length > 0 && (
+        <div className="plan-alerts">
+          {visibleAlerts.map(a => (
+            <AlertBanner key={a.id} level={a.level} text={a.text} onClose={() => dismissAlert(a.id)} />
+          ))}
+        </div>
+      )}
+
       {/* ── HOY (interactivo) ── */}
       <div className="hoy-acts">
         <div className="hoy-section-label">HOY</div>
@@ -433,6 +562,18 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             })}
           </div>
         </>
+      )}
+
+      {/* ── Proyección de compensación (déficit previsto) ── */}
+      {compPreview && (
+        <div className="comp-preview">
+          <div className="comp-preview-title">Proyección para la semana que viene</div>
+          {compPreview.map(row => (
+            <div key={row.label} className="comp-preview-row">
+              {row.label}: <strong>{row.base} base + {row.comp} compensación = {row.total} sesiones</strong>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* ── Estadísticas detalladas ── */}
@@ -531,16 +672,14 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
 
       {/* ── Detalle de la semana ── */}
       {currentWeek && (
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: '#263238' }}>Detalle de la semana</div>
-            {(currentWeek.gymCompAvail > 0 || currentWeek.indivCompAvail > 0) && (
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: '#FEF3C7', color: '#92400E' }}>
-                +comp
-              </span>
-            )}
-          </div>
-
+        <Section
+          title="Detalle de la semana"
+          open={!!openSections.week}
+          onToggle={() => toggleSection('week')}
+          badge={(currentWeek.gymCompAvail > 0 || currentWeek.indivCompAvail > 0) ? (
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: '#FEF3C7', color: '#92400E' }}>+comp</span>
+          ) : null}
+        >
           {/* Day list */}
           {thisWeekData.map(({ dateStr, acts }, idx) => {
             const d = new Date(dateStr + 'T12:00:00');
@@ -583,13 +722,16 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
               </div>
             );
           })}
-        </div>
+        </Section>
       )}
 
       {/* ── Próximos entrenamientos ── */}
       {upcomingActs.length > 0 && (
-        <div className="card">
-          <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 12 }}>Próximos entrenamientos</div>
+        <Section
+          title="Próximos entrenamientos"
+          open={!!openSections.upcoming}
+          onToggle={() => toggleSection('upcoming')}
+        >
           {upcomingActs.map(({ dateStr, act }, i) => {
             const d = new Date(dateStr + 'T12:00:00');
             const name = act.type === 'gym'
@@ -615,12 +757,15 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
               </div>
             );
           })}
-        </div>
+        </Section>
       )}
 
       {/* ── Historial del plan ── */}
-      <div className="card">
-        <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 12 }}>Historial del plan</div>
+      <Section
+        title="Historial del plan"
+        open={!!openSections.history}
+        onToggle={() => toggleSection('history')}
+      >
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {weeks.map((week, i) => {
             const isLast     = i === weeks.length - 1;
@@ -748,7 +893,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             );
           })}
         </div>
-      </div>
+      </Section>
 
       {/* ── Configuración del plan ── */}
       <div className="card">
