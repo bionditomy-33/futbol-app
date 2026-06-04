@@ -1252,6 +1252,18 @@ select.input {
 }
 .comp-preview-row:last-child { margin-bottom: 0; }
 .comp-preview-row strong { color: #5C3604; font-weight: 800; }
+.comp-preview-row span { color: #92400E; }
+.comp-preview-week-left {
+  font-size: 13px;
+  color: #7C4A07;
+  line-height: 1.4;
+}
+.comp-preview-week-left.has-divider {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(217,119,6,0.25);
+}
+.comp-preview-week-left strong { color: #5C3604; font-weight: 800; }
 
 /* Urgency alert banners */
 .plan-alerts { padding-top: 12px; }

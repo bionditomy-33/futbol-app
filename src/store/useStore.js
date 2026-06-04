@@ -83,12 +83,13 @@ export function getPlanProgress(plan, history) {
   const indLeft = Math.max(0, (effIndTarget || 0) - individualSessions);
   const totalLeft = Math.max(0, effTotal - completedSessions);
 
+  // Las sesiones son números enteros: redondeamos siempre hacia arriba (ceil).
   const neededGymPerWeek = weeksRemaining > 0.5 && effGymTarget
-    ? Math.round((gymLeft / weeksRemaining) * 10) / 10 : gymLeft;
+    ? Math.ceil(gymLeft / weeksRemaining) : gymLeft;
   const neededIndividualPerWeek = weeksRemaining > 0.5 && effIndTarget
-    ? Math.round((indLeft / weeksRemaining) * 10) / 10 : indLeft;
+    ? Math.ceil(indLeft / weeksRemaining) : indLeft;
   const neededPerWeek = weeksRemaining > 0.5
-    ? Math.round((totalLeft / weeksRemaining) * 10) / 10 : totalLeft;
+    ? Math.ceil(totalLeft / weeksRemaining) : totalLeft;
 
   // Current week number within the plan
   const planWeekStart    = getWeekStart(startDate);

@@ -324,22 +324,46 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
     ? Math.max(0, Math.round((new Date(currentWeek.endDate + 'T12:00:00') - new Date(TODAY + 'T12:00:00')) / 86400000) + 1)
     : 0;
 
-  // ── CAMBIO 2: proyección de compensación para la semana que viene ──────────
-  // base + lo que va a faltar esta semana (tope: base + 2). Sólo desde el miércoles.
-  const compPreview = (() => {
-    if (!currentWeek || isFirstWeek || !lateWeek) return null;
-    if (progress.currentWeekNum >= progress.totalWeeks) return null; // no hay semana siguiente
+  // ── Semana que viene + lo que falta esta semana ────────────────────────────
+  const hasNextWeek   = progress.currentWeekNum < progress.totalWeeks;
+  const planActiveNow = !progress.isExpired && !progress.isComplete && !progress.isPending;
+
+  // Compensación proyectada para la semana siguiente (consistente con computePlanWeeklyLog).
+  // Optimista: asume 1 sesión por cada día que queda. Tope de compensación: 2. Devuelve entero.
+  function projectComp(base, done, compAvail, carriedDebt) {
+    if (!base || base <= 0) return 0;
+    const projFinal = done + daysLeftInWeek;
+    const compUsed  = Math.max(0, Math.min(projFinal - base, compAvail || 0));
+    const miss      = Math.max(0, base - projFinal);
+    const debtAfter = Math.max(0, (carriedDebt || 0) - compUsed + miss);
+    return Math.min(2, debtAfter);
+  }
+
+  const nextWeekNeeds = (currentWeek && hasNextWeek && planActiveNow) ? (() => {
     const rows = [];
-    const build = (label, base, done) => {
-      if (!base || base <= 0) return;
-      const maxReachable = done + daysLeftInWeek;          // optimista: 1 sesión por día restante
-      const comp = Math.min(2, Math.max(0, base - maxReachable));
-      if (comp > 0) rows.push({ label, base, comp, total: base + comp });
-    };
-    if (actType === 'gym' || actType === 'both') build('Gym', currentWeek.gymTarget, currentWeek.gym);
-    if (actType === 'individual' || actType === 'both') build('Individual', currentWeek.individualTarget, currentWeek.individual);
+    if (actType === 'gym' || actType === 'both') {
+      const base = currentWeek.gymTarget || 0;
+      if (base > 0) {
+        const comp = projectComp(base, currentWeek.gym, currentWeek.gymCompAvail, gymDebt);
+        rows.push({ label: 'Gym', base, comp, total: base + comp });
+      }
+    }
+    if (actType === 'individual' || actType === 'both') {
+      const base = currentWeek.individualTarget || 0;
+      if (base > 0) {
+        const comp = projectComp(base, currentWeek.individual, currentWeek.indivCompAvail, indivDebt);
+        rows.push({ label: 'Individual', base, comp, total: base + comp });
+      }
+    }
     return rows.length > 0 ? rows : null;
-  })();
+  })() : null;
+
+  // Lo que falta esta semana (sólo a mitad de semana en adelante, cuando ya se puede proyectar).
+  const thisWeekRemaining = (currentWeek && planActiveNow && lateWeek && daysLeftInWeek > 0) ? (() => {
+    const gymMiss = (actType === 'gym' || actType === 'both') ? Math.max(0, (currentWeek.gymEffTarget || 0) - currentWeek.gym) : 0;
+    const indMiss = (actType === 'individual' || actType === 'both') ? Math.max(0, (currentWeek.indivEffTarget || 0) - currentWeek.individual) : 0;
+    return (gymMiss > 0 || indMiss > 0) ? { gymMiss, indMiss } : null;
+  })() : null;
 
   // ── CAMBIO 3: alertas de urgencia ──────────────────────────────────────────
   const alerts = (() => {
@@ -564,15 +588,32 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
         </>
       )}
 
-      {/* ── Proyección de compensación (déficit previsto) ── */}
-      {compPreview && (
+      {/* ── Semana que viene necesitás + lo que falta esta semana ── */}
+      {(nextWeekNeeds || thisWeekRemaining) && (
         <div className="comp-preview">
-          <div className="comp-preview-title">Proyección para la semana que viene</div>
-          {compPreview.map(row => (
-            <div key={row.label} className="comp-preview-row">
-              {row.label}: <strong>{row.base} base + {row.comp} compensación = {row.total} sesiones</strong>
+          {nextWeekNeeds && (
+            <>
+              <div className="comp-preview-title">Semana que viene necesitás</div>
+              {nextWeekNeeds.map(row => (
+                <div key={row.label} className="comp-preview-row">
+                  {row.label}: <strong>{row.total} {row.total === 1 ? 'sesión' : 'sesiones'}</strong>
+                  {row.comp > 0 && <span> ({row.base} base + {row.comp} compensación)</span>}
+                </div>
+              ))}
+            </>
+          )}
+          {thisWeekRemaining && (
+            <div className={`comp-preview-week-left${nextWeekNeeds ? ' has-divider' : ''}`}>
+              Esta semana te faltan:{' '}
+              <strong>
+                {[
+                  thisWeekRemaining.gymMiss > 0 && `${thisWeekRemaining.gymMiss} gym`,
+                  thisWeekRemaining.indMiss > 0 && `${thisWeekRemaining.indMiss} individual`,
+                ].filter(Boolean).join(' y ')}
+              </strong>{' '}
+              en los {daysLeftInWeek} {daysLeftInWeek === 1 ? 'día' : 'días'} que quedan
             </div>
-          ))}
+          )}
         </div>
       )}
 
@@ -657,16 +698,6 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             </div>
           )}
 
-          {!progress.isExpired && progress.remainingDays > 0 && (
-            <div style={{ flex: 1, minWidth: 80, background: '#F8FAFC', borderRadius: 8, padding: '10px 12px' }}>
-              <div style={{ fontSize: 11, color: '#78909C', marginBottom: 2 }}>Para cerrar</div>
-              <div style={{ fontSize: 12, color: '#263238', fontWeight: 600 }}>
-                {actType === 'both'
-                  ? `${progress.neededGymPerWeek}gym + ${progress.neededIndividualPerWeek}ind/sem`
-                  : `${progress.neededPerWeek} ses/sem`}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
