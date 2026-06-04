@@ -192,38 +192,32 @@ export default function App() {
             }, 1800);
           }}
           onEdit={() => { setMainTab('mas'); setMasView('planes'); }}
+          onStartToday={() => { setSemanaEditToday(true); setMainTab('calendario'); setCalendarioTab('semana'); }}
         />
       );
     }
 
     return (
       <div className="page-content">
-        <div className="page-header">
-          <h1 className="page-title">Entrenamiento</h1>
-        </div>
-        <div style={{ padding: '0 16px 24px' }}>
-          <div style={{
-            background: 'white', border: '1px solid #E8ECEB', borderRadius: 16,
-            padding: 24, textAlign: 'center', marginBottom: 16,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-          }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🏃</div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#263238', marginBottom: 8 }}>
-              No tenés un plan activo
-            </div>
-            <div style={{ fontSize: 13, color: '#78909C', marginBottom: 20, lineHeight: 1.5 }}>
-              Creá un plan para hacer seguimiento de tu progreso semanal.
-            </div>
-            <button
-              className="btn btn-primary"
-              onClick={() => { setMainTab('mas'); setMasView('planes'); }}
-            >
-              Crear plan
-            </button>
+        {/* Hero motivante */}
+        <div className="plan-hero" style={{ paddingTop: 28, paddingBottom: 28 }}>
+          <div className="plan-hero-week">Tu camino</div>
+          <div className="plan-hero-name">Empezá un plan</div>
+          <div className="plan-hero-obj" style={{ maxWidth: 300 }}>
+            Marcá un objetivo, seguí tu progreso semana a semana y mirá cuánto avanzás.
           </div>
+          <button
+            className="btn"
+            style={{ marginTop: 18, background: 'white', color: 'var(--navy-800)', fontWeight: 800, padding: '13px 24px', position: 'relative', zIndex: 1 }}
+            onClick={() => { setMainTab('mas'); setMasView('planes'); }}
+          >
+            Crear mi plan
+          </button>
+        </div>
 
+        <div style={{ padding: '16px 16px 24px' }}>
           {(routines || []).length > 0 && (
-            <div style={{ background: 'white', border: '1px solid #E8ECEB', borderRadius: 16, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <div style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
               <div style={{ padding: '14px 16px', borderBottom: '1px solid #F0F4F3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, fontSize: 14, color: '#263238' }}>Mis rutinas</span>
                 <button
@@ -259,6 +253,7 @@ export default function App() {
           {MAS_ITEMS.map(item => (
             <button
               key={item.id}
+              className="press"
               onClick={() => {
                 if (item.id === 'lab') goToLab(null, false);
                 else setMasView(item.id);

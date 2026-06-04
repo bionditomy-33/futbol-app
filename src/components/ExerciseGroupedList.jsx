@@ -107,14 +107,17 @@ export default function ExerciseGroupedList({
               if (mode === 'edit') {
                 const isDone = !!completed[ex.ref];
                 return (
-                  <div key={`${ex.ref}-${ei}`} className={`exercise-item${isDone ? ' done' : ''}`}>
-                    <div onClick={() => onToggle?.(ex.ref)} style={{ cursor: 'pointer' }}>
-                      <div className={`checkbox-custom${isDone ? ' checked' : ''}`}>
-                        {isDone && <CheckIcon size={11} />}
-                      </div>
+                  <div
+                    key={`${ex.ref}-${ei}`}
+                    className={`exercise-item${isDone ? ' done' : ''}`}
+                    onClick={() => onToggle?.(ex.ref)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className={`checkbox-custom checkbox-lg${isDone ? ' checked' : ''}`}>
+                      {isDone && <CheckIcon size={13} />}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, color: '#263238', fontWeight: isDone ? 400 : 500, lineHeight: 1.3 }}>
+                      <div style={{ fontSize: 14.5, color: '#263238', fontWeight: isDone ? 400 : 600, lineHeight: 1.3 }}>
                         {info.name}
                       </div>
                       <ExPills series={ex.series} reps={ex.reps} />

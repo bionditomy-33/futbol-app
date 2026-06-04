@@ -354,11 +354,16 @@ export default function DayEditor({ dateStr }) {
                 style={{ fontSize: 12, border: '1px solid #CBD5E1', borderRadius: 6, padding: '3px 6px', fontFamily: 'inherit', background: 'white', color: '#263238' }}
               />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 13, color: '#78909C' }}>Progreso</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#263238' }}>{doneCount}/{totalEx}</span>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 12, marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Progreso</div>
+                <div style={{ fontSize: 13, color: '#78909C', fontWeight: 600 }}>{doneCount} de {totalEx} ejercicios</div>
+              </div>
+              <div style={{ fontSize: 30, fontWeight: 800, color: progress === 100 ? '#059669' : '#1D3461', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                {progress}%
+              </div>
             </div>
-            <ProgressBar value={progress} />
+            <ProgressBar value={progress} thick />
           </div>
 
           {/* Bloques de fases con diseño de flujo vertical */}

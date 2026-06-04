@@ -3,8 +3,8 @@ import { useStore, getPlanProgress } from '../store/useStore';
 import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
-import { PlayIcon, XIcon, TrashIcon } from '../components/Icons';
-import ExerciseGroupedList from '../components/ExerciseGroupedList';
+import { FireIcon } from '../components/Icons';
+import { ActivityList, RoutinePreviewModal } from '../components/DayActivities';
 
 const TODAY = todayStr();
 const TOMORROW = (() => {
@@ -31,220 +31,19 @@ function getEffectiveTmpl(dateStr, plans, weekTemplates, defaultDays) {
   return defaultDays;
 }
 
-function timeToMins(t) {
-  if (!t) return 0;
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + (m || 0);
-}
-
-function GapIndicator({ gapMins }) {
-  const hrs = (gapMins / 60).toFixed(1).replace('.0', '');
-  return (
-    <div className="hoy-gap">
-      <div className="hoy-gap-line" />
-      <span className="hoy-gap-label">~{hrs} hs</span>
-    </div>
-  );
-}
-
 function PlanBar({ label, value, max, color }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
     <div style={{ flex: 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
         <span style={{ fontSize: 11, color: '#94A3B8' }}>{label}</span>
-        <span style={{ fontSize: 11, fontWeight: 500, color: '#1A2332' }}>{value}/{max}</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: '#1A2332' }}>{value}/{max}</span>
       </div>
       <div style={{ height: 4, background: '#E8ECEB', borderRadius: 99, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 99 }} />
       </div>
     </div>
   );
-}
-
-function GymCard({ act, onToggle, onDelete }) {
-  const [confirmDel, setConfirmDel] = useState(false);
-  const c = ACT_COLORS.gym;
-  return (
-    <div className="hoy-card" style={{ background: c.bg }}>
-      <div className="hoy-card-time">{act.time}</div>
-      <div className="hoy-card-body">
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <div className="hoy-card-title" style={{ color: c.title }}>Gimnasio</div>
-          {onDelete && (
-            <button onClick={() => act.done ? setConfirmDel(true) : onDelete()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '2px 0 2px 4px', lineHeight: 0 }}>
-              <TrashIcon size={13} />
-            </button>
-          )}
-        </div>
-        {confirmDel && (
-          <div style={{ margin: '6px 0', padding: '8px 10px', background: 'rgba(220,38,38,0.07)', borderRadius: 6 }}>
-            <div style={{ fontSize: 12, color: '#DC2626', fontWeight: 600, marginBottom: 6 }}>Actividad completada. ¿Eliminar?</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => setConfirmDel(false)} style={{ flex: 1, fontSize: 11, padding: '4px 0', borderRadius: 5, border: '1px solid #CBD5E1', background: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
-              <button onClick={onDelete} style={{ flex: 1, fontSize: 11, fontWeight: 600, padding: '4px 0', borderRadius: 5, border: 'none', background: '#DC2626', color: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>Eliminar</button>
-            </div>
-          </div>
-        )}
-        <button
-          className="hoy-gym-toggle"
-          style={{
-            borderColor: c.sub,
-            color: act.done ? 'white' : c.sub,
-            background: act.done ? c.sub : 'transparent',
-          }}
-          onClick={onToggle}
-        >
-          {act.done ? '✓ Hecho' : 'Marcar hecho'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function IndivCard({ act, routines, history, onStart, onPreview, onDelete }) {
-  const [confirmDel, setConfirmDel] = useState(false);
-  const c = ACT_COLORS.indiv;
-  const r = routines.find(r => r.id === act.routineId);
-  const title = r ? r.name : 'Entrenamiento individual';
-  const sub = r
-    ? [r.phases?.length > 0 ? `${r.phases.length} fases` : '', r.duration ? `~${r.duration}` : ''].filter(Boolean).join(' · ')
-    : '';
-  const exIds = r ? new Set(r.phases?.flatMap(p => p.exercises?.map(e => e.ref) || []) || []) : new Set();
-  const totalEx = exIds.size;
-  const doneEx = Object.entries(history[TODAY]?.completed || {}).filter(([id, done]) => done && exIds.has(id)).length;
-  const started = doneEx > 0;
-
-  return (
-    <div className="hoy-card" style={{ background: c.bg }}>
-      <div className="hoy-card-time">{act.time}</div>
-      <div className="hoy-card-body">
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <div className="hoy-card-title" style={{ color: c.title }}>{title}</div>
-          {onDelete && (
-            <button onClick={() => act.done ? setConfirmDel(true) : onDelete()} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '2px 0 2px 4px', lineHeight: 0 }}>
-              <TrashIcon size={13} />
-            </button>
-          )}
-        </div>
-        {sub && <div className="hoy-card-sub" style={{ color: c.sub }}>{sub}</div>}
-        {confirmDel && (
-          <div style={{ margin: '6px 0', padding: '8px 10px', background: 'rgba(220,38,38,0.07)', borderRadius: 6 }}>
-            <div style={{ fontSize: 12, color: '#DC2626', fontWeight: 600, marginBottom: 6 }}>Actividad completada. ¿Eliminar?</div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => setConfirmDel(false)} style={{ flex: 1, fontSize: 11, padding: '4px 0', borderRadius: 5, border: '1px solid #CBD5E1', background: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
-              <button onClick={onDelete} style={{ flex: 1, fontSize: 11, fontWeight: 600, padding: '4px 0', borderRadius: 5, border: 'none', background: '#DC2626', color: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>Eliminar</button>
-            </div>
-          </div>
-        )}
-        {totalEx > 0 && (
-          <div className="hoy-progress">
-            <div className="hoy-progress-fill" style={{ width: `${(doneEx / totalEx) * 100}%`, background: c.sub }} />
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
-          {r && (
-            <button
-              style={{ padding: '7px 14px', borderRadius: 8, border: `1.5px solid ${c.sub}`, background: 'transparent', color: c.sub, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}
-              onClick={onPreview}
-            >
-              Ver
-            </button>
-          )}
-          {act.done ? (
-            <div className="hoy-done-badge" style={{ color: c.sub, margin: 0 }}>
-              ✓ Completado{totalEx > 0 ? ` · ${doneEx}/${totalEx}` : ''}
-            </div>
-          ) : (
-            <button className="hoy-start-btn" style={{ background: c.sub, marginTop: 0, flex: 1 }} onClick={onStart}>
-              {started ? 'Continuar' : 'Empezar'}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ArsenalCard({ act, onDelete }) {
-  const c = ACT_COLORS.arsenal;
-  return (
-    <div className="hoy-card" style={{ background: c.bg }}>
-      <div className="hoy-card-time">{act.time}</div>
-      <div className="hoy-card-body">
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <div className="hoy-card-title" style={{ color: c.title }}>Arsenal — Entrenamiento</div>
-          {onDelete && (
-            <button onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '2px 0 2px 4px', lineHeight: 0 }}>
-              <TrashIcon size={13} />
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MatchCard({ act }) {
-  const c = ACT_COLORS.match;
-  const label = act.match?.competition || 'Partido';
-  const opponent = act.match?.opponent ? `vs ${act.match.opponent}` : '';
-  return (
-    <div className="hoy-card" style={{ background: c.bg }}>
-      <div className="hoy-card-time">{act.time}</div>
-      <div className="hoy-card-body">
-        <div className="hoy-card-title" style={{ color: c.title }}>{label}</div>
-        {opponent && <div className="hoy-card-sub" style={{ color: c.sub }}>{opponent}</div>}
-      </div>
-    </div>
-  );
-}
-
-const PHASE_COLORS = ['#1D3461', '#059669', '#D97706', '#64748B'];
-
-function RoutinePreviewModal({ routine, exerciseMap, catalog, catLinks, onClose }) {
-  if (!routine) return null;
-  const totalEx = routine.phases.reduce((s, p) => s + p.exercises.length, 0);
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '20px 20px 28px', maxHeight: '80vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', lineHeight: 1.2 }}>{routine.name}</div>
-            <div style={{ fontSize: 12, color: '#78909C', marginTop: 3 }}>{routine.duration} · {totalEx} ejercicios</div>
-          </div>
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: 4, lineHeight: 0 }}
-          >
-            <XIcon size={18} />
-          </button>
-        </div>
-        {routine.phases.map((phase, i) => (
-          <div key={i} style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: PHASE_COLORS[i] || '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-              {phase.phase}
-            </div>
-            <ExerciseGroupedList
-              exercises={phase.exercises}
-              catalog={catalog}
-              exerciseMap={exerciseMap}
-              catLinks={catLinks}
-              mode="read"
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ActivityCard({ act, routines, history, onGym, onIndiv, onPreview, onDelete }) {
-  if (act.type === 'gym')    return <GymCard    act={act} onToggle={onGym} onDelete={onDelete} />;
-  if (act.type === 'indiv')  return <IndivCard  act={act} routines={routines} history={history} onStart={onIndiv} onPreview={onPreview} onDelete={onDelete} />;
-  if (act.type === 'arsenal') return <ArsenalCard act={act} onDelete={onDelete} />;
-  if (act.type === 'match')  return <MatchCard  act={act} />;
-  return null;
 }
 
 export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
@@ -325,10 +124,27 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     return getDayActivities(TOMORROW, schedule, history, matches, effTmpl);
   }, [schedule, history, matches, weekTemplate, weekTemplates, plans]);
 
-  const todayDate   = new Date(TODAY    + 'T12:00:00');
+  const todayDate    = new Date(TODAY    + 'T12:00:00');
   const tomorrowDate = new Date(TOMORROW + 'T12:00:00');
   const headerDate   = `${DAY_FULL[todayDate.getDay()]} ${todayDate.getDate()} de ${MONTHS[todayDate.getMonth()]}`;
   const tomorrowLabel = `${DAY_FULL[tomorrowDate.getDay()]} ${tomorrowDate.getDate()}`;
+
+  // ── Activity action handlers (mark done / "no hecho") ──────────────────────
+  const todayDay = history[TODAY] || {};
+  function handleGymDone() {
+    const skipped = (todayDay.skipped || []).filter(t => t !== 'gym');
+    updateDay(TODAY, { gym: !todayDay.gym, skipped });
+  }
+  function handleToggleSkip(type) {
+    const cur = todayDay.skipped || [];
+    const isSkipped = cur.includes(type);
+    const patch = { skipped: isSkipped ? cur.filter(t => t !== type) : [...cur, type] };
+    if (!isSkipped) {
+      if (type === 'gym') patch.gym = false;
+      if (type === 'indiv') patch.done = false;
+    }
+    updateDay(TODAY, patch);
+  }
 
   // Template suggestion for plan start day
   const templateSuggestion = (() => {
@@ -349,6 +165,12 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     setTemplateSuggestionDismissed(true);
   }
 
+  // ── Stats presentation ─────────────────────────────────────────────────────
+  const streakHot   = streak >= 5;
+  const weekRatio   = weekStats.planned > 0 ? weekStats.done / weekStats.planned : 0;
+  const weekColor   = weekStats.planned === 0 ? '#94A3B8' : weekRatio >= 1 ? 'var(--emerald-600)' : weekRatio >= 0.5 ? 'var(--text-primary)' : 'var(--red-600)';
+  const monthColor  = monthStats >= 70 ? 'var(--emerald-600)' : monthStats >= 40 ? 'var(--amber-600)' : 'var(--red-600)';
+
   return (
     <div className="page-content">
 
@@ -364,24 +186,17 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
         {todayActs.length === 0 ? (
           <div className="hoy-free-day">Día libre</div>
         ) : (
-          todayActs.map((act, i) => {
-            const prev = todayActs[i - 1];
-            const gapMins = prev ? timeToMins(act.time) - timeToMins(prev.time) : 0;
-            return (
-              <div key={i}>
-                {gapMins > 120 && <GapIndicator gapMins={gapMins} />}
-                <ActivityCard
-                  act={act}
-                  routines={routines}
-                  history={history}
-                  onGym={() => updateDay(TODAY, { gym: !act.done })}
-                  onIndiv={onGoToEntreno}
-                  onPreview={() => setPreviewRoutineId(act.routineId)}
-                  onDelete={!(act.type === 'match' && act.done) ? () => removeActivityFromDay(TODAY, act.type) : undefined}
-                />
-              </div>
-            );
-          })
+          <ActivityList
+            acts={todayActs}
+            routines={routines}
+            history={history}
+            todayKey={TODAY}
+            onGymDone={handleGymDone}
+            onStart={onGoToEntreno}
+            onSkip={handleToggleSkip}
+            onPreview={(routineId) => setPreviewRoutineId(routineId)}
+            onDelete={(type) => removeActivityFromDay(TODAY, type)}
+          />
         )}
       </div>
 
@@ -442,16 +257,20 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
       <div style={{ padding: '0 16px 12px' }}>
         <div className="hoy-section-label">ESTADÍSTICAS</div>
         <div className="metrics-row" style={{ padding: 0 }}>
-          {[
-            { label: 'RACHA',  value: streak },
-            { label: 'SEMANA', value: `${weekStats.done}/${weekStats.planned}` },
-            { label: 'MES',    value: `${monthStats}%` },
-          ].map(s => (
-            <div key={s.label} className="metric-card">
-              <div className="metric-value">{s.value}</div>
-              <div className="metric-label">{s.label}</div>
+          <div className="metric-card" style={streakHot ? { background: 'linear-gradient(150deg, #112040, #1D3461)', borderColor: 'transparent' } : undefined}>
+            <div className="metric-value" style={{ color: streakHot ? '#FCD34D' : streak === 0 ? 'var(--text-light)' : 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {streakHot && <FireIcon size={16} />}{streak}
             </div>
-          ))}
+            <div className="metric-label" style={streakHot ? { color: 'rgba(255,255,255,0.7)' } : undefined}>RACHA</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-value" style={{ color: weekColor }}>{weekStats.done}/{weekStats.planned}</div>
+            <div className="metric-label">SEMANA</div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-value" style={{ color: monthColor }}>{monthStats}%</div>
+            <div className="metric-label">MES</div>
+          </div>
         </div>
       </div>
 
@@ -460,11 +279,11 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
         <div style={{ padding: '0 16px 24px' }}>
           <div className="hoy-section-label">PLAN ACTIVO</div>
           <div
-            style={{ background: 'white', border: '0.5px solid #E2E8F0', borderRadius: 10, padding: '12px 14px', cursor: onGoToDesafios ? 'pointer' : 'default' }}
+            style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px 14px', cursor: onGoToDesafios ? 'pointer' : 'default', boxShadow: 'var(--shadow-xs)' }}
             onClick={onGoToDesafios}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 500, color: '#1A2332' }}>{activePlan.name}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#1A2332' }}>{activePlan.name}</span>
               <span style={{ fontSize: 11, color: '#94A3B8' }}>
                 Sem {planData.prog.currentWeekNum}/{planData.prog.totalWeeks}
               </span>
