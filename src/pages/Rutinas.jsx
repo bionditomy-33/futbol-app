@@ -142,7 +142,6 @@ function RutinaDetail({ routine, exerciseMap, catalog, catLinks, onClose }) {
           Volver a rutinas
         </button>
       </div>
-      {ToastEl}
     </div>
   );
 }
@@ -287,6 +286,7 @@ export default function Rutinas({ onEdit, onNew, onBack }) {
           </div>
         );
       })}
+      {ToastEl}
     </div>
   );
 }
