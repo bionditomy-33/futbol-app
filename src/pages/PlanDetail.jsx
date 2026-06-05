@@ -2,11 +2,26 @@ import { useState, useMemo } from 'react';
 import { getPlanProgress, computePlanWeeklyLog, useStore } from '../store/useStore';
 import { toDateStr, todayStr } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
-import { ChevronLeft, ChevronDown, CheckCircleIcon, XIcon } from '../components/Icons';
+import { ChevronLeft, ChevronDown, CheckCircleIcon, XIcon, PlayIcon } from '../components/Icons';
 import { ActivityList, RoutinePreviewModal } from '../components/DayActivities';
+import AnimatedModal from '../components/AnimatedModal';
 
 const TODAY = todayStr();
 const DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DAY_FULL  = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const CAT_PALETTE = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316', '#EC4899'];
+
+// Conteo de ejercicios por categoría para el preview compacto de una rutina
+function getCategoryCounts(routine, catByExId) {
+  const counts = new Map();
+  for (const ph of routine?.phases || []) {
+    for (const ex of ph.exercises || []) {
+      const cat = catByExId[ex.ref] || 'Sin categoría';
+      counts.set(cat, (counts.get(cat) || 0) + 1);
+    }
+  }
+  return [...counts.entries()];
+}
 
 function dateShort(dateStr) {
   const [, m, d] = dateStr.split('-').map(Number);
@@ -239,8 +254,10 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   const [showCloseForm, setShowCloseForm] = useState(false);
   const [expandedWeeks, setExpandedWeeks] = useState(() => new Set());
   const [previewRoutineId, setPreviewRoutineId] = useState(null);
+  const [pickerTarget, setPickerTarget] = useState(null); // dateStr al que asignar/reemplazar rutina
+  const [editingTime, setEditingTime] = useState(false);
 
-  const { schedule, matches, weekTemplate, weekTemplates, updateDay, removeActivityFromDay, exerciseMap, catalog, catLinks } = useStore();
+  const { schedule, matches, weekTemplate, weekTemplates, updateDay, removeActivityFromDay, assignRoutine, setActivityTime, exerciseMap, catalog, catLinks } = useStore();
 
   const progress = getPlanProgress(plan, history);
   const weeks    = computePlanWeeklyLog(plan, history);
@@ -282,6 +299,45 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
     }
     return out;
   }, [currentWeek, schedule, history, matches, effectiveTmpl, actType, plan.routineIds]);
+
+  // Mapa ejercicio → categoría (para el preview compacto)
+  const catByExId = (() => {
+    const map = {};
+    for (const [cat, exs] of Object.entries(catalog)) {
+      for (const ex of exs) map[ex.id] = cat;
+    }
+    return map;
+  })();
+
+  // "Próximo entrenamiento" — primer día (desde mañana, dentro de la semana) con
+  // entrenamiento individual asignado (o gym si el plan es sólo gym). Captura también
+  // el gym del mismo día. Devuelve null si no queda nada esta semana.
+  const nextTraining = (() => {
+    if (!currentWeek) return null;
+    const end = new Date(currentWeek.endDate + 'T12:00:00');
+    const d = new Date(TODAY + 'T12:00:00');
+    d.setDate(d.getDate() + 1); // desde mañana
+    while (d <= end) {
+      const ds = toDateStr(d);
+      const acts = getDayActivities(ds, schedule, history, matches, effectiveTmpl);
+      const indiv = acts.find(a => a.type === 'indiv' && isRelevantAct(a, actType, plan.routineIds || []));
+      const gym   = acts.find(a => a.type === 'gym');
+      const hasIndiv   = (actType === 'individual' || actType === 'both') && !!indiv;
+      const hasGymOnly = actType === 'gym' && !!gym;
+      if (hasIndiv || hasGymOnly) return { dateStr: ds, indiv: indiv || null, gym: gym || null };
+      d.setDate(d.getDate() + 1);
+    }
+    return null;
+  })();
+
+  // Día objetivo para "Asignar rutina" cuando no queda entrenamiento (mañana, si entra en la semana)
+  const tomorrowInWeek = (() => {
+    if (!currentWeek) return null;
+    const d = new Date(TODAY + 'T12:00:00');
+    d.setDate(d.getDate() + 1);
+    const ds = toDateStr(d);
+    return ds <= currentWeek.endDate ? ds : null;
+  })();
 
   // "Próximos entrenamientos" — next 7 pending plan activities
   const upcomingActs = useMemo(() => {
@@ -434,6 +490,11 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
     updateDay(TODAY, patch);
   }
 
+  function selectRoutineForTarget(routineId) {
+    if (pickerTarget) assignRoutine(pickerTarget, routineId);
+    setPickerTarget(null);
+  }
+
   // Day-by-day breakdown for a week row (computed on demand when expanded)
   function getWeekDayData(week) {
     const out = [];
@@ -559,6 +620,92 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             onPreview={(routineId) => setPreviewRoutineId(routineId)}
             onDelete={(type) => removeActivityFromDay(TODAY, type)}
           />
+        )}
+      </div>
+
+      {/* ── Próximo entrenamiento ── */}
+      <div className="hoy-acts" style={{ paddingTop: 4 }}>
+        <div className="hoy-section-label">PRÓXIMO ENTRENAMIENTO</div>
+        {nextTraining ? (() => {
+          const d = new Date(nextTraining.dateStr + 'T12:00:00');
+          const r = nextTraining.indiv ? routines.find(rr => rr.id === nextTraining.indiv.routineId) : null;
+          const title = r ? r.name : (nextTraining.indiv ? 'Entrenamiento individual' : 'Gimnasio');
+          const primaryAct  = nextTraining.indiv || nextTraining.gym;
+          const primaryType = nextTraining.indiv ? 'indiv' : 'gym';
+          const phases  = r?.phases?.length || 0;
+          const totalEx = r ? r.phases.reduce((s, p) => s + (p.exercises?.length || 0), 0) : 0;
+          const cats    = r ? getCategoryCounts(r, catByExId) : [];
+          const catKeys = Object.keys(catalog);
+          return (
+            <div className="next-train-card">
+              <div className="next-train-date">{DAY_FULL[d.getDay()]} {d.getDate()} — {title}</div>
+
+              {nextTraining.gym && nextTraining.indiv && (
+                <div className="next-train-combo">
+                  Gym a las {nextTraining.gym.time} + {title} a las {nextTraining.indiv.time}
+                </div>
+              )}
+
+              {r && (
+                <div className="next-train-meta">
+                  {phases} {phases === 1 ? 'fase' : 'fases'} · {totalEx} ejercicios{r.duration ? ` · ${r.duration}` : ''}
+                </div>
+              )}
+
+              {cats.length > 0 && (
+                <div className="next-train-cats">
+                  {cats.map(([cat, n]) => {
+                    const idx = catKeys.indexOf(cat);
+                    const color = CAT_PALETTE[(idx >= 0 ? idx : 0) % CAT_PALETTE.length];
+                    return (
+                      <span key={cat} className="next-train-cat">
+                        <span className="next-train-cat-dot" style={{ background: color }} />
+                        {cat} <span className="next-train-cat-n">{n}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+
+              {editingTime && primaryAct && (
+                <div className="next-train-time-edit">
+                  <span>Horario</span>
+                  <input
+                    type="time"
+                    value={primaryAct.time || ''}
+                    onChange={e => { if (e.target.value) setActivityTime(nextTraining.dateStr, primaryType, e.target.value); }}
+                  />
+                </div>
+              )}
+
+              <div className="next-train-actions">
+                {r && (
+                  <button className="next-train-btn primary" onClick={() => setPreviewRoutineId(r.id)}>
+                    <PlayIcon size={10} /> Ver rutina
+                  </button>
+                )}
+                {nextTraining.indiv && (
+                  <button className="next-train-btn" onClick={() => { setEditingTime(false); setPickerTarget(nextTraining.dateStr); }}>
+                    Cambiar rutina
+                  </button>
+                )}
+                {primaryAct && (
+                  <button className="next-train-btn" onClick={() => setEditingTime(v => !v)}>
+                    Cambiar horario
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })() : (
+          <div className="next-train-empty">
+            <div className="next-train-empty-text">No tenés más entrenamientos esta semana</div>
+            {tomorrowInWeek && (
+              <button className="btn btn-primary btn-sm" onClick={() => setPickerTarget(tomorrowInWeek)}>
+                Asignar rutina
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -954,6 +1101,33 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
           onClose={() => setPreviewRoutineId(null)}
         />
       )}
+
+      {/* ── Selector de rutina (cambiar / asignar para un día) ── */}
+      <AnimatedModal open={!!pickerTarget} onClose={() => setPickerTarget(null)} sheetStyle={{ padding: '20px 20px 28px', maxHeight: '80vh', overflowY: 'auto' }}>
+        <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 4 }}>Elegí una rutina</div>
+        {pickerTarget && (() => {
+          const d = new Date(pickerTarget + 'T12:00:00');
+          return <div style={{ fontSize: 13, color: '#78909C', marginBottom: 14 }}>Para el {DAY_FULL[d.getDay()]} {d.getDate()}</div>;
+        })()}
+        {routines.length === 0 ? (
+          <div style={{ fontSize: 13, color: '#78909C', padding: '12px 0' }}>No hay rutinas creadas.</div>
+        ) : routines.map(r => {
+          const totalEx = r.phases.reduce((s, p) => s + (p.exercises?.length || 0), 0);
+          return (
+            <button
+              key={r.id}
+              onClick={() => selectRoutineForTarget(r.id)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 10, padding: '12px 0', borderBottom: '0.5px solid #F1F5F4', background: 'none', border: 'none', borderBottomStyle: 'solid', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#263238' }}>{r.name}</div>
+                <div style={{ fontSize: 12, color: '#78909C' }}>{r.duration ? `${r.duration} · ` : ''}{totalEx} ejercicios</div>
+              </div>
+              <span style={{ color: 'var(--emerald-600)', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>Elegir</span>
+            </button>
+          );
+        })}
+      </AnimatedModal>
 
     </div>
   );

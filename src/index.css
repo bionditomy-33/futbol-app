@@ -1265,6 +1265,118 @@ select.input {
 }
 .comp-preview-week-left strong { color: #5C3604; font-weight: 800; }
 
+/* Próximo entrenamiento */
+.next-train-card {
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  box-shadow: var(--shadow-xs);
+}
+.next-train-date {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+.next-train-combo {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--navy-600);
+  margin-top: 4px;
+}
+.next-train-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.next-train-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.next-train-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 99px;
+  padding: 4px 9px;
+}
+.next-train-cat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.next-train-cat-n { color: #94A3B8; font-weight: 700; }
+.next-train-time-edit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.next-train-time-edit input {
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  border: 1.5px solid var(--border-color);
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: #fff;
+}
+.next-train-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.next-train-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-color);
+  background: #fff;
+  color: var(--navy-700);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.next-train-btn:active { transform: scale(0.97); }
+.next-train-btn.primary {
+  background: var(--navy-800);
+  color: #fff;
+  border-color: var(--navy-800);
+  flex: 1 1 120px;
+  box-shadow: 0 2px 8px rgba(10,22,40,0.16);
+}
+.next-train-empty {
+  background: #fff;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 22px 16px;
+  text-align: center;
+}
+.next-train-empty-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
 /* Urgency alert banners */
 .plan-alerts { padding-top: 12px; }
 .plan-alert {
