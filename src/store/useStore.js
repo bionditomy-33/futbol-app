@@ -491,6 +491,33 @@ export function useStore() {
     writeDoc('schedule', nextSchedule);
   }, []);
 
+  // Add a single activity to one day's schedule entry, merging (no afecta la semana tipo)
+  const addActivityToDay = useCallback((dateStr, actType, { time, routineId } = {}) => {
+    const currentSched = state.schedule[dateStr];
+    const sched = typeof currentSched === 'string'
+      ? { routineId: currentSched }
+      : (currentSched ? { ...currentSched } : {});
+    // Si el tipo había sido eliminado/suprimido, dejar de suprimirlo
+    if (sched.suppressedTypes?.includes(actType)) {
+      const rest = sched.suppressedTypes.filter(t => t !== actType);
+      if (rest.length > 0) sched.suppressedTypes = rest;
+      else delete sched.suppressedTypes;
+    }
+    if (actType === 'gym') {
+      sched.gym = true;
+      if (time) sched.gymTime = time;
+    } else if (actType === 'arsenal') {
+      sched.arsenal = true;
+      if (time) sched.arsenalTime = time;
+    } else if (actType === 'indiv') {
+      if (routineId) sched.routineId = routineId;
+      if (time) sched.indivTime = time;
+    }
+    const nextSchedule = { ...state.schedule, [dateStr]: sched };
+    setState({ schedule: nextSchedule });
+    writeDoc('schedule', nextSchedule);
+  }, []);
+
   // ── Routines ──────────────────────────────────────────────────────────────
   const saveRoutine = useCallback((routine) => {
     const exists = state.routines.find(r => r.id === routine.id);
@@ -853,6 +880,7 @@ export function useStore() {
     removeActivityFromDay,
     toggleSkipActivity,
     setActivityTime,
+    addActivityToDay,
     saveRoutine,
     deleteRoutine,
     duplicateRoutine,

@@ -15,6 +15,8 @@ const DAY_SHORT = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const DAY_FULL  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
 const ACT_SHORT = { gym: 'Gym', indiv: 'Indiv.', arsenal: 'Arsenal', match: 'Partido' };
+const ADD_LABEL = { gym: 'Gimnasio', indiv: 'Entrenamiento individual', arsenal: 'Arsenal' };
+const ADD_DEFAULT_TIME = { gym: '07:00', indiv: '08:10', arsenal: '19:30' };
 
 function getSlot(time) {
   if (!time || time < '13:00') return 'morning';
@@ -182,7 +184,7 @@ function getDatesBetween(startStr, endStr) {
 }
 
 export default function Semana({ editToday = false, onConsumed }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity, removeActivityFromDay, setActivityTime } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity, removeActivityFromDay, setActivityTime, addActivityToDay } = useStore();
 
   const [weekOffset,      setWeekOffset]      = useState(0);
   const [selectedDateStr, setSelectedDateStr] = useState(TODAY);
@@ -201,6 +203,12 @@ export default function Semana({ editToday = false, onConsumed }) {
 
   // Clear modal state
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  // Add-activity modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addStep,      setAddStep]      = useState('choose'); // 'choose' | 'gym' | 'indiv' | 'arsenal'
+  const [addTime,      setAddTime]      = useState('');
+  const [addRoutineId, setAddRoutineId] = useState('');
 
   const baseDate = new Date();
   baseDate.setDate(baseDate.getDate() + weekOffset * 7);
@@ -286,6 +294,26 @@ export default function Semana({ editToday = false, onConsumed }) {
   const selDate       = new Date(selectedDateStr + 'T12:00:00');
   const isSelToday    = selectedDateStr === TODAY;
   const isPastOrToday = selectedDateStr <= TODAY;
+
+  // Tipos que se pueden agregar al día (los que aún no están)
+  const addableTypes = ['gym', 'indiv', 'arsenal'].filter(t => !selActs.some(a => a.type === t));
+
+  function openAddModal() {
+    setAddStep('choose');
+    setAddTime('');
+    setAddRoutineId('');
+    setShowAddModal(true);
+  }
+
+  function confirmAdd() {
+    if (addStep === 'indiv') {
+      if (!addRoutineId) return;
+      addActivityToDay(selectedDateStr, 'indiv', { time: addTime || ADD_DEFAULT_TIME.indiv, routineId: addRoutineId });
+    } else if (addStep === 'gym' || addStep === 'arsenal') {
+      addActivityToDay(selectedDateStr, addStep, { time: addTime || ADD_DEFAULT_TIME[addStep] });
+    }
+    setShowAddModal(false);
+  }
 
   // Edit mode: full-page DayEditor
   if (editing) {
@@ -474,7 +502,12 @@ export default function Semana({ editToday = false, onConsumed }) {
           })
         )}
 
-        <div style={{ marginTop: 14 }}>
+        <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {addableTypes.length > 0 && (
+            <button className="btn btn-secondary btn-full" onClick={openAddModal}>
+              + Agregar actividad
+            </button>
+          )}
           <button className="btn btn-primary btn-full" onClick={() => setEditing(true)}>
             Editar día
           </button>
@@ -594,6 +627,94 @@ export default function Semana({ editToday = false, onConsumed }) {
                 Limpiar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Add activity modal ── */}
+      {showAddModal && (
+        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '20px 20px 28px' }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: '#263238', marginBottom: 4 }}>
+              Agregar actividad
+            </div>
+            <div style={{ fontSize: 13, color: '#78909C', marginBottom: 16 }}>
+              {DAY_FULL[selDate.getDay()]} {selDate.getDate()} de {MONTHS_FULL[selDate.getMonth()]}
+            </div>
+
+            {addStep === 'choose' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {addableTypes.map(t => {
+                  const c = ACT_COLORS[t];
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => { setAddStep(t); setAddTime(ADD_DEFAULT_TIME[t]); setAddRoutineId(''); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', borderRadius: 10, border: '1px solid #E2E8F0', background: c.bg, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                    >
+                      <span style={{ width: 10, height: 10, borderRadius: 3, background: c.sub, flexShrink: 0 }} />
+                      <span style={{ fontSize: 14, fontWeight: 700, color: c.title }}>{ADD_LABEL[t]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {(addStep === 'gym' || addStep === 'arsenal') && (
+              <>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#263238', marginBottom: 12 }}>{ADD_LABEL[addStep]}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+                  <span style={{ fontSize: 13, color: '#64748B', fontWeight: 600 }}>Horario</span>
+                  <input
+                    type="time" value={addTime} onChange={e => setAddTime(e.target.value)}
+                    style={{ fontSize: 14, border: '1.5px solid #CBD5E1', borderRadius: 6, padding: '6px 8px', fontFamily: 'inherit', background: 'white', color: '#263238' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setAddStep('choose')}>Volver</button>
+                  <button className="btn btn-primary" style={{ flex: 2 }} onClick={confirmAdd}>Agregar</button>
+                </div>
+              </>
+            )}
+
+            {addStep === 'indiv' && (
+              <>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#263238', marginBottom: 10 }}>Elegí una rutina</div>
+                {routines.length === 0 ? (
+                  <div style={{ fontSize: 13, color: '#78909C', marginBottom: 14 }}>No hay rutinas creadas.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14, maxHeight: '40vh', overflowY: 'auto' }}>
+                    {routines.map(r => {
+                      const sel = addRoutineId === r.id;
+                      const totalEx = r.phases.reduce((s, p) => s + (p.exercises?.length || 0), 0);
+                      return (
+                        <button
+                          key={r.id} onClick={() => setAddRoutineId(r.id)}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: sel ? '#E8EDF5' : '#F8FAFC', border: `1.5px solid ${sel ? '#1D3461' : 'transparent'}`, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                        >
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#263238' }}>{r.name}</div>
+                            <div style={{ fontSize: 12, color: '#78909C' }}>{r.duration ? `${r.duration} · ` : ''}{totalEx} ejercicios</div>
+                          </div>
+                          {sel && <span style={{ color: 'var(--emerald-600)', fontWeight: 800, fontSize: 14, flexShrink: 0 }}>✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+                  <span style={{ fontSize: 13, color: '#64748B', fontWeight: 600 }}>Horario</span>
+                  <input
+                    type="time" value={addTime} onChange={e => setAddTime(e.target.value)}
+                    style={{ fontSize: 14, border: '1.5px solid #CBD5E1', borderRadius: 6, padding: '6px 8px', fontFamily: 'inherit', background: 'white', color: '#263238' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setAddStep('choose')}>Volver</button>
+                  <button className="btn btn-primary" style={{ flex: 2 }} onClick={confirmAdd} disabled={!addRoutineId}>Agregar</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
