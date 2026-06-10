@@ -793,14 +793,28 @@ export function useStore() {
     const newSchedule = { ...state.schedule };
     dateStrs.forEach(dateStr => {
       const dow = new Date(dateStr + 'T12:00:00').getDay();
-      const dayTmpl = tmpl[dow];
-      if (!dayTmpl) return;
+      const dayTmpl = tmpl[dow] || {};
       const entry = {};
-      if (dayTmpl.routineId) entry.routineId = dayTmpl.routineId;
-      if (dayTmpl.gym)       entry.gym = true;
-      if (dayTmpl.arsenal)   entry.arsenal = true;
-      if (dayTmpl.match)     entry.match = true;
+      if (dayTmpl.routineId) {
+        entry.routineId = dayTmpl.routineId;
+        if (dayTmpl.indivTime) entry.indivTime = dayTmpl.indivTime;
+      }
+      if (dayTmpl.gym) {
+        entry.gym = true;
+        if (dayTmpl.gymTime) entry.gymTime = dayTmpl.gymTime;
+      }
+      if (dayTmpl.arsenal) {
+        entry.arsenal = true;
+        if (dayTmpl.arsenalTime) entry.arsenalTime = dayTmpl.arsenalTime;
+      }
+      if (dayTmpl.match) {
+        entry.match = true;
+        if (dayTmpl.matchTime) entry.matchTime = dayTmpl.matchTime;
+      }
+      // Reemplazo real: el schedule del período queda exactamente como el template
+      // (los días que el template deja vacíos quedan libres).
       if (Object.keys(entry).length > 0) newSchedule[dateStr] = entry;
+      else delete newSchedule[dateStr];
     });
     setState({ schedule: newSchedule });
     writeDoc('schedule', newSchedule);
@@ -834,8 +848,11 @@ export function useStore() {
     dateStrs.forEach(ds => {
       const day = nextHistory[ds];
       const hasRealData = day && (day.done || day.gym || day.notes?.trim());
-      if (!hasRealData) {
-        nextHistory[ds] = { done: false, routineId: null, completed: {}, gym: false, notes: '', cleared: true };
+      if (!hasRealData && !day?.cleared) {
+        // Merge en vez de pisar: preserva progreso parcial (completed, rating, skipped)
+        nextHistory[ds] = day
+          ? { ...day, cleared: true }
+          : { done: false, routineId: null, completed: {}, gym: false, notes: '', cleared: true };
         changed = true;
       }
     });
