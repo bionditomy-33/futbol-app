@@ -366,7 +366,7 @@ export default function Calendario() {
       </div>
 
       {/* Legend */}
-      <div className="wk-legend" style={{ borderTop: '1px solid var(--border-color)', marginTop: 0 }}>
+      <div className="wk-legend">
         {[
           { color: C.indiv,   label: 'Individual' },
           { color: C.gym,     label: 'Gym' },

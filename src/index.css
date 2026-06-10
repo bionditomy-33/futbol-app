@@ -2092,9 +2092,9 @@ select.input {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 8px 14px 10px;
-  background: white;
-  border-top: 1px solid var(--border-color);
+  justify-content: center;
+  padding: 10px 14px 4px;
+  background: transparent;
 }
 .wk-legend-item {
   display: flex;
@@ -2239,8 +2239,12 @@ select.input {
   border-bottom: 1px solid var(--border-color);
 }
 .cal-grid-wrap {
-  padding: 8px 8px 4px;
-  background: white;
+  margin: 10px 12px 0;
+  padding: 12px 8px 8px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 .cal-grid-headers {
   display: grid;
@@ -2276,10 +2280,12 @@ select.input {
 }
 .cal-cell-new:hover { background: var(--bg-subtle); }
 .cal-cell-today {
-  border-color: var(--navy-800);
+  border-color: transparent;
   background: var(--bg-selected);
+  box-shadow: inset 0 0 0 1.5px var(--navy-600);
 }
-.cal-cell-out { opacity: 0.22; pointer-events: none; }
+/* Días de otros meses: atenuados pero clickeables (navegan al mes) */
+.cal-cell-out { opacity: 0.35; }
 .cal-cell-num {
   font-size: 12px;
   font-weight: 700;
@@ -2311,9 +2317,12 @@ select.input {
 }
 /* Month summary */
 .cal-summary {
-  padding: 14px 16px;
-  background: white;
-  margin-top: 8px;
+  padding: 16px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin: 12px 12px 0;
 }
 .cal-summary-title {
   font-size: var(--fs-section);
@@ -2442,9 +2451,14 @@ select.input {
   border-radius: 6px;
 }
 
-/* Grid wrapper */
+/* Grid wrapper — card flotante tipo calendario premium */
 .wk2-grid-wrap {
-  padding: 8px 12px 0;
+  margin: 8px 12px 0;
+  padding: 12px 10px 8px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 /* 7-column CSS grid */
@@ -2471,23 +2485,27 @@ select.input {
   letter-spacing: 0.03em;
 }
 .wk2-day-circle {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
+/* Hoy: anillo fino que se nota sin gritar */
 .wk2-day-circle.wk2-day-tod {
   color: var(--navy-600);
   font-weight: 800;
+  box-shadow: inset 0 0 0 1.5px var(--navy-600);
 }
 .wk2-day-circle.wk2-day-sel {
   background: var(--navy-800);
   color: white;
+  box-shadow: var(--shadow-primary);
 }
 
 /* Franja label — spans full 7 columns */
@@ -2511,12 +2529,13 @@ select.input {
   flex-direction: column;
   gap: 2px;
   min-height: 36px;
-  padding: 2px 1px;
-  border-radius: 6px;
+  padding: 2px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
 }
 .wk2-franja-cell.wk2-franja-cell-sel {
-  background: var(--bg-subtle);
+  background: var(--bg-selected);
 }
 
 /* Empty cell placeholder */
@@ -2530,23 +2549,24 @@ select.input {
   min-height: 32px;
 }
 
-/* Tiny activity block inside grid */
+/* Tiny activity block inside grid — pill compacta y legible */
 .wk2-block {
-  border-radius: 4px;
-  padding: 2px 3px;
+  border-radius: 6px;
+  padding: 3px 4px;
   display: flex;
   flex-direction: column;
   gap: 1px;
+  border: 1px solid rgba(10,22,40,0.05);
 }
 .wk2-block-name {
   font-size: 10px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 .wk2-block-time {
   font-size: 10px;
   font-weight: 500;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
 /* Legend */
