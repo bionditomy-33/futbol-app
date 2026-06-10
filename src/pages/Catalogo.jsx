@@ -5,11 +5,7 @@ import {
   PlayIcon, EditIcon, TrashIcon, PlusIcon, XIcon,
   ChevronDown, ChevronLeft, MoreHorizIcon, SearchIcon,
 } from '../components/Icons';
-
-const CAT_COLORS = [
-  '#10B981', '#3B82F6', '#F59E0B', '#EF4444',
-  '#8B5CF6', '#06B6D4', '#F97316', '#EC4899',
-];
+import { CAT_PALETTE as CAT_COLORS } from '../utils/colors';
 
 function generateId(category) {
   return `custom-${category.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;

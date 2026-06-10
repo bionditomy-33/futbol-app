@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useStore, getPlanProgress } from '../store/useStore';
 import { toDateStr, addDays, getWeekDays } from '../utils/dates';
-import { getDayActivities } from '../utils/activities';
+import { getDayActivities, getEffectiveTemplateDays as getEffectiveTmpl, buildGymTogglePatch, buildToggleSkipPatch } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
 import { FireIcon } from '../components/Icons';
 import { ActivityList, RoutinePreviewModal } from '../components/DayActivities';
@@ -13,17 +13,6 @@ const MONTHS = [
 ];
 const DAY_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 const ACT_LABEL = { gym: 'Gym', indiv: 'Individual', arsenal: 'Arsenal', match: 'Partido' };
-
-function getEffectiveTmpl(dateStr, plans, weekTemplates, defaultDays) {
-  const plan = (plans || []).find(p =>
-    p.status !== 'completed' && p.weekTemplateId && p.startDate <= dateStr && p.endDate >= dateStr
-  );
-  if (plan) {
-    const tmpl = (weekTemplates || []).find(t => t.id === plan.weekTemplateId);
-    if (tmpl) return tmpl.days;
-  }
-  return defaultDays;
-}
 
 function PlanBar({ label, value, max, color }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
@@ -136,20 +125,8 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
 
   // ── Activity action handlers (mark done / "no hecho") ──────────────────────
   const todayDay = history[TODAY] || {};
-  function handleGymDone() {
-    const skipped = (todayDay.skipped || []).filter(t => t !== 'gym');
-    updateDay(TODAY, { gym: !todayDay.gym, skipped });
-  }
-  function handleToggleSkip(type) {
-    const cur = todayDay.skipped || [];
-    const isSkipped = cur.includes(type);
-    const patch = { skipped: isSkipped ? cur.filter(t => t !== type) : [...cur, type] };
-    if (!isSkipped) {
-      if (type === 'gym') patch.gym = false;
-      if (type === 'indiv') patch.done = false;
-    }
-    updateDay(TODAY, patch);
-  }
+  const handleGymDone = () => updateDay(TODAY, buildGymTogglePatch(todayDay));
+  const handleToggleSkip = (type) => updateDay(TODAY, buildToggleSkipPatch(todayDay, type));
 
   // Template suggestion for plan start day
   const templateSuggestion = (() => {

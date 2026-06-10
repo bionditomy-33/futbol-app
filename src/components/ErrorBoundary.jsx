@@ -25,10 +25,10 @@ export default class ErrorBoundary extends Component {
           Algo salió mal
         </div>
         <div style={{ fontSize: 14, color: '#78909C', marginBottom: 32, maxWidth: 300, lineHeight: 1.5 }}>
-          La app encontró un error inesperado. Podés resetear los datos para volver a usarla.
+          La app encontró un error inesperado. Recargala para continuar; tus datos están guardados en la nube.
         </div>
         <button
-          onClick={() => { try { localStorage.clear(); } catch { /* nada */ } window.location.reload(); }}
+          onClick={() => window.location.reload()}
           style={{
             background: 'var(--emerald-800)', color: '#fff', border: 'none',
             borderRadius: 'var(--radius-md)', padding: '14px 28px',
@@ -36,11 +36,8 @@ export default class ErrorBoundary extends Component {
             cursor: 'pointer', letterSpacing: '-0.01em',
           }}
         >
-          Resetear app
+          Recargar app
         </button>
-        <div style={{ fontSize: 12, color: '#B0BEC5', marginTop: 12 }}>
-          Esto borrará todos los datos locales
-        </div>
       </div>
     );
   }

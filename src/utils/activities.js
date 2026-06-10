@@ -20,6 +20,23 @@ export function getEffectiveTemplateDays(dateStr, plans, weekTemplates, defaultD
   return defaultDays;
 }
 
+// Patch de history para alternar el gym de un día (al marcarlo hecho deja de estar salteado)
+export function buildGymTogglePatch(day) {
+  return { gym: !day.gym, skipped: (day.skipped || []).filter(t => t !== 'gym') };
+}
+
+// Patch de history para alternar "no hice" de un tipo de actividad
+export function buildToggleSkipPatch(day, type) {
+  const cur = day.skipped || [];
+  const isSkipped = cur.includes(type);
+  const patch = { skipped: isSkipped ? cur.filter(t => t !== type) : [...cur, type] };
+  if (!isSkipped) {
+    if (type === 'gym') patch.gym = false;
+    if (type === 'indiv') patch.done = false;
+  }
+  return patch;
+}
+
 export function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
   const today = todayStr();
   const dow   = new Date(dateStr + 'T12:00:00').getDay();

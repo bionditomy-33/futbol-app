@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { doc, setDoc, onSnapshot, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { INITIAL_CATALOG, INITIAL_ROUTINES } from '../data/initialData';
-import { todayStr, toDateStr, addDays, getWeekStart } from '../utils/dates';
+import { todayStr, addDays, getWeekStart } from '../utils/dates';
 
 // ─── Plan progress (pure computation, exported for use in pages) ──────────────
 
@@ -445,14 +445,6 @@ export function useStore() {
     writeDoc('history', next);
   }, []);
 
-  const uncompleteDay = useCallback((dateStr) => {
-    const day = state.history[dateStr];
-    if (!day) return;
-    const next = { ...state.history, [dateStr]: { ...day, done: false } };
-    setState({ history: next });
-    writeDoc('history', next);
-  }, []);
-
   const removeActivityFromDay = useCallback((dateStr, actType) => {
     // Suppress via schedule entry (prevents template/schedule from re-showing)
     const currentSched = state.schedule[dateStr];
@@ -781,21 +773,6 @@ export function useStore() {
     writeDoc('weekTemplates', next);
   }, []);
 
-  // Backward-compat shim: updates the default template's days
-  const saveWeekTemplate = useCallback((days) => {
-    const defIdx = state.weekTemplates.findIndex(t => t.isDefault);
-    if (defIdx >= 0) {
-      const next = state.weekTemplates.map(t => t.isDefault ? { ...t, days } : t);
-      setState({ weekTemplates: next });
-      writeDoc('weekTemplates', next);
-    } else {
-      const tmpl = { id: `wt-${Date.now()}`, name: 'Mi semana tipo', days, isDefault: true };
-      const next = [...state.weekTemplates, tmpl];
-      setState({ weekTemplates: next });
-      writeDoc('weekTemplates', next);
-    }
-  }, []);
-
   // Apply a template's days to a set of date strings (persists full day config)
   const applyWeekTemplate = useCallback((dateStrs, days = null) => {
     const tmpl = days || state.weekTemplates.find(t => t.isDefault)?.days;
@@ -921,7 +898,6 @@ export function useStore() {
     updateDay,
     toggleExercise,
     completeDay,
-    uncompleteDay,
     removeActivityFromDay,
     toggleSkipActivity,
     setActivityTime,
@@ -939,7 +915,6 @@ export function useStore() {
     moveLinkToCategory,
     isExerciseUsed,
     setMatches,
-    saveWeekTemplate,     // backward compat shim
     createWeekTemplate,
     updateWeekTemplate,
     deleteWeekTemplate,

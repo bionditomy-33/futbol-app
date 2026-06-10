@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useStore, computePlanWeeklyLog } from '../store/useStore';
-import { toDateStr, getWeekDays } from '../utils/dates';
-import { getDayActivities } from '../utils/activities';
+import { toDateStr, getWeekDays, getWeekStart } from '../utils/dates';
+import { getDatesBetween } from '../utils/plans';
+import { getDayActivities, getEffectiveTemplateDays } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
 import { ChevronLeft, TrashIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
@@ -164,24 +165,6 @@ function GapIndicator({ gapMins }) {
 }
 
 // ── Main Semana component ──────────────────────────────────────────────────────
-function getWeekMondayStr(dateStr) {
-  const d = new Date(dateStr + 'T12:00:00');
-  const dow = d.getDay();
-  d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
-  return toDateStr(d);
-}
-
-function getDatesBetween(startStr, endStr) {
-  const dates = [];
-  const d = new Date(startStr + 'T12:00:00');
-  const end = new Date(endStr + 'T12:00:00');
-  while (d <= end) {
-    dates.push(toDateStr(d));
-    d.setDate(d.getDate() + 1);
-  }
-  return dates;
-}
-
 export default function Semana({ editToday = false, onConsumed }) {
   const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity, removeActivityFromDay, setActivityTime, addActivityToDay } = useStore();
 
@@ -225,13 +208,7 @@ export default function Semana({ editToday = false, onConsumed }) {
   const dayActs = useMemo(() => {
     const map = {};
     weekDateStrs.forEach(ds => {
-      // Use the active plan's template for this date if available, else the default template
-      const planForDay = plans.find(p =>
-        p.status !== 'completed' && p.weekTemplateId && p.startDate <= ds && p.endDate >= ds
-      );
-      const effTmpl = planForDay
-        ? (weekTemplates.find(t => t.id === planForDay.weekTemplateId)?.days || weekTemplate)
-        : weekTemplate;
+      const effTmpl = getEffectiveTemplateDays(ds, plans, weekTemplates, weekTemplate);
       map[ds] = getDayActivities(ds, schedule, history, matches, effTmpl);
     });
     return map;
@@ -247,7 +224,7 @@ export default function Semana({ editToday = false, onConsumed }) {
     const conflict = withTemplate.length > 1 && new Set(withTemplate.map(p => p.weekTemplateId)).size > 1;
     let weekNum = null, totalWeeks = null;
     if (primary) {
-      const planMon = getWeekMondayStr(primary.startDate);
+      const planMon = getWeekStart(primary.startDate);
       totalWeeks = Math.max(1, Math.ceil(
         (new Date(primary.endDate + 'T12:00:00') - new Date(primary.startDate + 'T12:00:00')) / (7 * 86400000)
       ));

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { toDateStr } from '../utils/dates';
-import { getDayActivities, getScheduleEntry } from '../utils/activities';
+import { getDayActivities, getScheduleEntry, getEffectiveTemplateDays as getEffectiveTmpl } from '../utils/activities';
 import { ACT_DOT_COLORS as C } from '../utils/colors';
 import { TrophyIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
@@ -46,20 +46,7 @@ function SmallBall({ size = 8 }) {
   );
 }
 
-// Returns the effective template days for a date: the active plan's template if one covers
-// this date, otherwise the default weekTemplate.
-function getEffectiveTmpl(dateStr, plans, weekTemplates, defaultDays) {
-  const plan = (plans || []).find(p =>
-    p.status !== 'completed' && p.weekTemplateId && p.startDate <= dateStr && p.endDate >= dateStr
-  );
-  if (plan) {
-    const tmpl = (weekTemplates || []).find(t => t.id === plan.weekTemplateId);
-    if (tmpl) return tmpl.days;
-  }
-  return defaultDays;
-}
-
-function CalDayBars({ acts, isToday }) {
+function CalDayBars({ acts }) {
   if (acts.length === 0) return null;
 
   const gymAct     = acts.find(a => a.type === 'gym');
@@ -354,7 +341,6 @@ export default function Calendario() {
         <div className="cal-grid">
           {calDays.map(({ dateStr, inMonth, dayNum }) => {
             const isToday    = dateStr === TODAY;
-            const isFuture   = dateStr > TODAY;
             const effTmpl    = getEffectiveTmpl(dateStr, plans, weekTemplates, weekTemplate);
             const acts       = getDayActivities(dateStr, schedule, history, matches, effTmpl);
 
@@ -365,7 +351,7 @@ export default function Calendario() {
                 onClick={() => inMonth && setSelectedDay(dateStr)}
               >
                 <div className="cal-cell-num">{dayNum}</div>
-                <CalDayBars acts={acts} isToday={isToday} />
+                <CalDayBars acts={acts} />
               </div>
             );
           })}

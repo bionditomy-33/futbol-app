@@ -1,20 +1,13 @@
 import { useState, useRef } from 'react';
 import { useStore, getState } from '../store/useStore';
 import { INITIAL_CATALOG } from '../data/initialData';
-import { todayStr, formatDate, getDayName } from '../utils/dates';
+import { todayStr, formatDate, getDayName, getWeekStart } from '../utils/dates';
 import { GymIcon, ChevronLeft } from '../components/Icons';
 import ProgressBar from '../components/ProgressBar';
 import { useToday } from '../hooks/useToday';
 
 const RATING_COLORS = ['', '#EF5350', '#FF7043', '#FFC107', '#66BB6A', '#2E7D32'];
 const RATING_LABELS = ['', 'Muy mal', 'Mal', 'Regular', 'Bien', 'Excelente'];
-
-function weekStartStr(dateStr) {
-  const d = new Date(dateStr + 'T12:00:00');
-  const dow = d.getDay();
-  d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
 
 
 function exportData() {
@@ -84,11 +77,11 @@ export default function Historial({ onBack } = {}) {
     const routineWeeks = {};
     for (const [dateStr, day] of Object.entries(history)) {
       if (!day.done || !day.routineId) continue;
-      const ws = weekStartStr(dateStr);
+      const ws = getWeekStart(dateStr);
       if (!routineWeeks[day.routineId]) routineWeeks[day.routineId] = new Set();
       routineWeeks[day.routineId].add(ws);
     }
-    const currentWS = weekStartStr(TODAY);
+    const currentWS = getWeekStart(TODAY);
     return Object.entries(routineWeeks).map(([routineId, weeks]) => {
       const r = routines.find(r => r.id === routineId);
       const name = r ? r.name : 'Rutina eliminada';

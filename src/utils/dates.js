@@ -39,7 +39,6 @@ export function getWeekDays(date) {
 }
 
 const DAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
-const DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
@@ -49,23 +48,8 @@ export function formatDate(dateStr) {
   return `${DAY_NAMES[date.getDay()]}, ${d} de ${MONTH_NAMES[m - 1]} ${y}`;
 }
 
-export function formatDateShort(dateStr) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  return `${DAY_SHORT[date.getDay()]} ${d}/${m}`;
-}
-
 export function getDayName(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const date = new Date(y, m - 1, d);
   return DAY_NAMES[date.getDay()];
-}
-
-export function getMonthYear(dateStr) {
-  const [y, m] = dateStr.split('-').map(Number);
-  return `${MONTH_NAMES[m - 1]} ${y}`;
-}
-
-export function daysInMonth(year, month) {
-  return new Date(year, month, 0).getDate();
 }

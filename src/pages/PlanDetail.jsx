@@ -1,15 +1,15 @@
 import { useState, useMemo } from 'react';
 import { getPlanProgress, computePlanWeeklyLog, useStore } from '../store/useStore';
 import { toDateStr } from '../utils/dates';
-import { getDayActivities } from '../utils/activities';
+import { getDayActivities, buildGymTogglePatch, buildToggleSkipPatch } from '../utils/activities';
 import { ChevronLeft, ChevronDown, CheckCircleIcon, XIcon, PlayIcon } from '../components/Icons';
 import { ActivityList, RoutinePreviewModal } from '../components/DayActivities';
 import AnimatedModal from '../components/AnimatedModal';
 import { useToday } from '../hooks/useToday';
+import { CAT_PALETTE } from '../utils/colors';
 
 const DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const DAY_FULL  = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-const CAT_PALETTE = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316', '#EC4899'];
 
 // Conteo de ejercicios por categoría para el preview compacto de una rutina
 function getCategoryCounts(routine, catByExId) {
@@ -476,20 +476,8 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
 
   // ── Activity action handlers (mark done / "no hecho") ──────────────────────
   const todayDay = history[TODAY] || {};
-  function handleGymDone() {
-    const skipped = (todayDay.skipped || []).filter(t => t !== 'gym');
-    updateDay(TODAY, { gym: !todayDay.gym, skipped });
-  }
-  function handleToggleSkip(type) {
-    const cur = todayDay.skipped || [];
-    const isSkipped = cur.includes(type);
-    const patch = { skipped: isSkipped ? cur.filter(t => t !== type) : [...cur, type] };
-    if (!isSkipped) {
-      if (type === 'gym') patch.gym = false;
-      if (type === 'indiv') patch.done = false;
-    }
-    updateDay(TODAY, patch);
-  }
+  const handleGymDone = () => updateDay(TODAY, buildGymTogglePatch(todayDay));
+  const handleToggleSkip = (type) => updateDay(TODAY, buildToggleSkipPatch(todayDay, type));
 
   function selectRoutineForTarget(routineId) {
     if (pickerTarget) assignRoutine(pickerTarget, routineId);
