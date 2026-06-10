@@ -846,15 +846,31 @@ export function useStore() {
   }, []);
 
   // ── Import ────────────────────────────────────────────────────────────────
-  const importData = useCallback(async ({ catalog: cat, routines: rts, schedule: sch, history: hist }) => {
+  // matches/plans/weekTemplates/catLinks son opcionales: backups viejos no los
+  // incluían y en ese caso se preservan los datos actuales.
+  const importData = useCallback(async ({
+    catalog: cat, routines: rts, schedule: sch, history: hist,
+    matches: mts, plans: pls, weekTemplates: wts, catLinks: lnk,
+  }) => {
     const migratedRts = migrateRoutines(rts);
-    setState({ catalog: cat, routines: migratedRts, schedule: sch, history: hist });
-    await Promise.all([
-      setDoc(doc(db, 'app', 'catalog'),  { data: cat }),
+    const links = lnk !== undefined ? lnk : state.catLinks;
+    const rawCatalog = Object.keys(links || {}).length > 0
+      ? { ...cat, __catLinks: links }
+      : cat;
+
+    const partial = { catalog: cat, catLinks: links || {}, routines: migratedRts, schedule: sch, history: hist };
+    const writes = [
+      setDoc(doc(db, 'app', 'catalog'),  { data: stripUndefined(rawCatalog) }),
       setDoc(doc(db, 'app', 'routines'), { data: migratedRts }),
       setDoc(doc(db, 'app', 'schedule'), { data: sch }),
       setDoc(doc(db, 'app', 'history'),  { data: hist }),
-    ]);
+    ];
+    if (mts !== undefined) { partial.matches = mts;       writes.push(setDoc(doc(db, 'app', 'matches'),       { data: mts })); }
+    if (pls !== undefined) { partial.plans = pls;         writes.push(setDoc(doc(db, 'app', 'plans'),         { data: pls })); }
+    if (wts !== undefined) { partial.weekTemplates = wts; writes.push(setDoc(doc(db, 'app', 'weekTemplates'), { data: wts })); }
+
+    setState(partial);
+    await Promise.all(writes);
   }, []);
 
   const { plans } = state;

@@ -20,10 +20,14 @@ function weekStartStr(dateStr) {
 function exportData() {
   const s = getState();
   const data = {
-    catalog:  s.catalog,
-    routines: s.routines,
-    schedule: s.schedule,
-    history:  s.history,
+    catalog:       s.catalog,
+    catLinks:      s.catLinks,
+    routines:      s.routines,
+    schedule:      s.schedule,
+    history:       s.history,
+    matches:       s.matches,
+    plans:         s.plans,
+    weekTemplates: s.weekTemplates,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
@@ -119,6 +123,10 @@ export default function Historial({ onBack } = {}) {
       throw new Error('El campo "schedule" tiene formato incorrecto.');
     if (data.history === null || typeof data.history !== 'object' || Array.isArray(data.history))
       throw new Error('El campo "history" tiene formato incorrecto.');
+    for (const key of ['matches', 'plans', 'weekTemplates']) {
+      if (key in data && !Array.isArray(data[key]))
+        throw new Error(`El campo "${key}" debe ser un array.`);
+    }
     const catalog = (data.catalog && typeof data.catalog === 'object' && !Array.isArray(data.catalog))
       ? data.catalog
       : INITIAL_CATALOG;
@@ -147,7 +155,11 @@ export default function Historial({ onBack } = {}) {
   async function confirmImport() {
     if (!pendingData) return;
     const s = getState();
-    preImportRef.current = { catalog: s.catalog, routines: s.routines, schedule: s.schedule, history: s.history };
+    preImportRef.current = {
+      catalog: s.catalog, catLinks: s.catLinks, routines: s.routines,
+      schedule: s.schedule, history: s.history,
+      matches: s.matches, plans: s.plans, weekTemplates: s.weekTemplates,
+    };
     setImporting(true);
     setImportConfirm(false);
     try {
@@ -384,7 +396,7 @@ export default function Historial({ onBack } = {}) {
               ¿Importar datos?
             </div>
             <div style={{ fontSize: 14, color: '#64748B', marginBottom: 24, lineHeight: 1.5 }}>
-              Esto va a reemplazar <strong>todos tus datos actuales</strong> (rutinas, catálogo, historial, planificación).
+              Esto va a reemplazar <strong>todos tus datos actuales</strong> (rutinas, catálogo, historial, planificación, partidos, planes y semanas tipo).
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setImportConfirm(false)}>
