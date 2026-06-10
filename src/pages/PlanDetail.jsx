@@ -397,18 +397,21 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   }
 
   const nextWeekNeeds = (currentWeek && hasNextWeek && planActiveNow) ? (() => {
+    // La proyección usa el target de ESTA semana (puede estar prorrateado si es
+    // parcial); la base mostrada es el target de la semana SIGUIENTE.
+    const nextWeek = weeks.find(w => w.num === currentWeek.num + 1) || null;
     const rows = [];
     if (actType === 'gym' || actType === 'both') {
-      const base = currentWeek.gymTarget || 0;
+      const base = nextWeek ? nextWeek.gymTarget : (currentWeek.gymTarget || 0);
       if (base > 0) {
-        const comp = projectComp(base, currentWeek.gym, currentWeek.gymCompAvail, gymDebt);
+        const comp = projectComp(currentWeek.gymTarget || 0, currentWeek.gym, currentWeek.gymCompAvail, gymDebt);
         rows.push({ label: 'Gym', base, comp, total: base + comp });
       }
     }
     if (actType === 'individual' || actType === 'both') {
-      const base = currentWeek.individualTarget || 0;
+      const base = nextWeek ? nextWeek.individualTarget : (currentWeek.individualTarget || 0);
       if (base > 0) {
-        const comp = projectComp(base, currentWeek.individual, currentWeek.indivCompAvail, indivDebt);
+        const comp = projectComp(currentWeek.individualTarget || 0, currentWeek.individual, currentWeek.indivCompAvail, indivDebt);
         rows.push({ label: 'Individual', base, comp, total: base + comp });
       }
     }
