@@ -6,10 +6,12 @@ export function daysUntil(dateStr) {
   return Math.round((targetMs - nowMs) / 86400000);
 }
 
+// Mismo criterio que getPlanProgress.totalWeeks: ceil de los días / 7
 export function weeksBetween(startDate, endDate) {
   const startMs = new Date(startDate + 'T12:00:00').getTime();
   const endMs   = new Date(endDate   + 'T12:00:00').getTime();
-  return Math.round((endMs - startMs) / (7 * 86400000));
+  const days    = Math.round((endMs - startMs) / 86400000);
+  return Math.max(1, Math.ceil(days / 7));
 }
 
 export function getDatesBetween(startStr, endStr) {

@@ -248,12 +248,13 @@ export default function Semana({ editToday = false, onConsumed }) {
     let weekNum = null, totalWeeks = null;
     if (primary) {
       const planMon = getWeekMondayStr(primary.startDate);
-      weekNum = Math.max(1, Math.round(
-        (new Date(mon + 'T12:00:00') - new Date(planMon + 'T12:00:00')) / (7 * 86400000)
-      ) + 1);
       totalWeeks = Math.max(1, Math.ceil(
         (new Date(primary.endDate + 'T12:00:00') - new Date(primary.startDate + 'T12:00:00')) / (7 * 86400000)
       ));
+      // Clamp igual que getPlanProgress (evita mostrar Sem 7/6 en semanas parciales)
+      weekNum = Math.min(totalWeeks, Math.max(1, Math.round(
+        (new Date(mon + 'T12:00:00') - new Date(planMon + 'T12:00:00')) / (7 * 86400000)
+      ) + 1));
     }
     // Which week template drives this week?
     let templateInfo = null;
