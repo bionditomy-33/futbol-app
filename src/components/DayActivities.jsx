@@ -1,7 +1,22 @@
 ﻿import { useState } from 'react';
 import { ACT_COLORS } from '../utils/colors';
-import { XIcon, TrashIcon, CheckIcon, PlayIcon } from './Icons';
+import { XIcon, TrashIcon, CheckIcon, PlayIcon, GymIcon, BallIcon, ShieldIcon, TrophyIcon } from './Icons';
 import ExerciseGroupedList from './ExerciseGroupedList';
+
+const ACT_ICONS = { gym: GymIcon, indiv: BallIcon, arsenal: ShieldIcon, match: TrophyIcon };
+
+// Columna izquierda de la card: icono de actividad en círculo + horario fuerte
+function CardLeft({ type, time, c }) {
+  const Icon = ACT_ICONS[type];
+  return (
+    <div className="hoy-card-left">
+      <div className="hoy-card-icon" style={{ background: c.sub }}>
+        <Icon size={17} />
+      </div>
+      <div className="hoy-card-time" style={{ color: c.title }}>{time}</div>
+    </div>
+  );
+}
 
 const PHASE_COLORS = ['var(--navy-600)', 'var(--emerald-600)', 'var(--amber-600)', 'var(--gray-mid)'];
 
@@ -65,7 +80,7 @@ function GymCard({ act, onDone, onSkip, onDelete }) {
   const skipped = act.skipped && !act.done;
   return (
     <div className={`hoy-card${skipped ? ' is-skipped' : ''}`} style={{ background: c.bg }}>
-      <div className="hoy-card-time">{act.time}</div>
+      <CardLeft type="gym" time={act.time} c={c} />
       <div className="hoy-card-body">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div className="hoy-card-title" style={{ color: c.title }}>Gimnasio</div>
@@ -109,7 +124,7 @@ function IndivCard({ act, routines, history, todayKey, onStart, onSkip, onPrevie
 
   return (
     <div className={`hoy-card${skipped ? ' is-skipped' : ''}`} style={{ background: c.bg }}>
-      <div className="hoy-card-time">{act.time}</div>
+      <CardLeft type="indiv" time={act.time} c={c} />
       <div className="hoy-card-body">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div className="hoy-card-title" style={{ color: c.title }}>{title}</div>
@@ -154,7 +169,7 @@ function ArsenalCard({ act, onDelete }) {
   const c = ACT_COLORS.arsenal;
   return (
     <div className="hoy-card" style={{ background: c.bg }}>
-      <div className="hoy-card-time">{act.time}</div>
+      <CardLeft type="arsenal" time={act.time} c={c} />
       <div className="hoy-card-body">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div className="hoy-card-title" style={{ color: c.title }}>Arsenal — Entrenamiento</div>
@@ -175,7 +190,7 @@ function MatchCard({ act }) {
   const opponent = act.match?.opponent ? `vs ${act.match.opponent}` : '';
   return (
     <div className="hoy-card" style={{ background: c.bg }}>
-      <div className="hoy-card-time">{act.time}</div>
+      <CardLeft type="match" time={act.time} c={c} />
       <div className="hoy-card-body">
         <div className="hoy-card-title" style={{ color: c.title }}>{label}</div>
         {opponent && <div className="hoy-card-sub" style={{ color: c.sub }}>{opponent}</div>}

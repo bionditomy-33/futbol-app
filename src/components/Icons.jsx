@@ -239,3 +239,11 @@ export function SearchIcon({ size = 15 }) {
     </svg>
   );
 }
+
+export function ShieldIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7 1L2 3.5V7C2 10 4.5 12.5 7 13C9.5 12.5 12 10 12 7V3.5L7 1Z" />
+    </svg>
+  );
+}

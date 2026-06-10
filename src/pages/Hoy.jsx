@@ -210,7 +210,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
       )}
 
       {/* ── Mañana ── */}
-      <div style={{ padding: '0 16px 12px' }}>
+      <div style={{ padding: '0 16px 24px' }}>
         <div className="hoy-section-label">MAÑANA — {tomorrowLabel}</div>
         {tomorrowActs.length === 0 ? (
           <div className="hoy-free-day">Descanso</div>
@@ -237,7 +237,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
       </div>
 
       {/* ── Stats ── */}
-      <div style={{ padding: '0 16px 12px' }}>
+      <div style={{ padding: '0 16px 24px' }}>
         <div className="hoy-section-label">ESTADÍSTICAS</div>
         <div className="metrics-row" style={{ padding: 0 }}>
           <div className="metric-card" style={streakHot ? { background: 'linear-gradient(150deg, var(--navy-700), var(--navy-600))', borderColor: 'transparent' } : undefined}>
