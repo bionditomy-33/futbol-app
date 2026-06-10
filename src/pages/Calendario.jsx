@@ -116,7 +116,7 @@ function CalDayBars({ acts, isToday }) {
 }
 
 // ── Month summary by week ────────────────────────────────────────────────────
-function MonthSummary({ year, month, schedule, history, weekTemplate, weekTemplates, plans, TODAY }) {
+function MonthSummary({ year, month, schedule, history, matches, weekTemplate, weekTemplates, plans, TODAY }) {
   const weeks = useMemo(() => {
     const first    = new Date(year, month, 1);
     const firstDow = first.getDay();
@@ -133,16 +133,10 @@ function MonthSummary({ year, month, schedule, history, weekTemplate, weekTempla
         const date = new Date(start);
         date.setDate(start.getDate() + w * 7 + d);
         const ds  = toDateStr(date);
-        const dow = date.getDay();
+        // Mismo criterio que las métricas de Inicio: día con actividad individual
         const effDays = getEffectiveTmpl(ds, plans, weekTemplates, weekTemplate);
-        const tmpl = effDays?.[dow];
-        const day = history[ds];
-        const suppressTemplate = !!(day?.cleared && !day?.done && !day?.gym);
-        const hasSchedule = !!schedule[ds];
-        const hasTmpl     = !suppressTemplate && !!tmpl?.routineId;
-
-        if (hasSchedule || hasTmpl) planned++;
-        if (history[ds]?.done) done++;
+        const indiv = getDayActivities(ds, schedule, history, matches, effDays).find(a => a.type === 'indiv');
+        if (indiv) { planned++; if (indiv.done) done++; }
         if (ds === TODAY) isCurrentWeek = true;
       }
       const weekStart = new Date(start);
@@ -158,7 +152,7 @@ function MonthSummary({ year, month, schedule, history, weekTemplate, weekTempla
       result.push({ planned, done, isCurrentWeek, weekStart, weekEnd, primaryPlan });
     }
     return result;
-  }, [year, month, schedule, history, weekTemplate, weekTemplates, plans, TODAY]);
+  }, [year, month, schedule, history, matches, weekTemplate, weekTemplates, plans, TODAY]);
 
   return (
     <div className="cal-summary">
@@ -399,6 +393,7 @@ export default function Calendario() {
         month={month}
         schedule={schedule}
         history={history}
+        matches={matches}
         weekTemplate={weekTemplate}
         weekTemplates={weekTemplates}
         plans={plans}

@@ -121,6 +121,7 @@ export function getPlanWeeks(plan, history) {
     gymWeeklyFrequency = 0, individualWeeklyFrequency = 0,
   } = plan;
   const today = todayStr();
+  const MS_DAY = 86400000;
   const weeks = [];
   let weekStart = getWeekStart(startDate);
 
@@ -136,18 +137,27 @@ export function getPlanWeeks(plan, history) {
           && (routineIds.length === 0 || routineIds.includes(day.routineId))) individual++;
     }
 
+    const effectiveStart = weekStart > startDate ? weekStart : startDate;
     const effectiveEnd   = weekEnd < endDate ? weekEnd : endDate;
     const isPast         = effectiveEnd < today;
-    const isCurrent      = weekStart <= today && today <= effectiveEnd;
-    const isFuture       = weekStart > today;
-    const gymTarget      = gymWeeklyFrequency || 0;
-    const individualTarget = individualWeeklyFrequency || 0;
+    const isCurrent      = effectiveStart <= today && today <= effectiveEnd;
+    const isFuture       = effectiveStart > today;
+
+    // Semanas parciales (primera/última): target prorrateado por días disponibles
+    const daysInWeek = Math.round(
+      (new Date(effectiveEnd + 'T12:00:00') - new Date(effectiveStart + 'T12:00:00')) / MS_DAY
+    ) + 1;
+    const prorate = base => (base <= 0 || daysInWeek >= 7)
+      ? base
+      : Math.min(base, Math.ceil(base * daysInWeek / 7));
+    const gymTarget        = prorate(gymWeeklyFrequency || 0);
+    const individualTarget = prorate(individualWeeklyFrequency || 0);
     const gymMet         = gymTarget === 0 || gym >= gymTarget;
     const individualMet  = individualTarget === 0 || individual >= individualTarget;
 
     weeks.push({
       num: weeks.length + 1,
-      startDate: weekStart,
+      startDate: effectiveStart,
       endDate: effectiveEnd,
       gym, individual,
       gymTarget, individualTarget,
@@ -170,20 +180,21 @@ export function computePlanWeeklyLog(plan, history) {
   let accIndiv = 0;
 
   return weeks.map(week => {
+    // Usa el target prorrateado de la semana (semanas parciales no generan deuda injusta)
     const gymCompAvail  = gymBase  > 0 ? Math.min(accGym,   2) : 0;
     const indivCompAvail = indivBase > 0 ? Math.min(accIndiv, 2) : 0;
-    const gymEffTarget  = gymBase  + gymCompAvail;
-    const indivEffTarget = indivBase + indivCompAvail;
+    const gymEffTarget  = week.gymTarget        + gymCompAvail;
+    const indivEffTarget = week.individualTarget + indivCompAvail;
 
     if (week.isPast) {
       if (gymBase > 0) {
-        const comp = Math.max(0, Math.min(week.gym - gymBase, gymCompAvail));
-        const miss = Math.max(0, gymBase - week.gym);
+        const comp = Math.max(0, Math.min(week.gym - week.gymTarget, gymCompAvail));
+        const miss = Math.max(0, week.gymTarget - week.gym);
         accGym = Math.max(0, accGym - comp + miss);
       }
       if (indivBase > 0) {
-        const comp = Math.max(0, Math.min(week.individual - indivBase, indivCompAvail));
-        const miss = Math.max(0, indivBase - week.individual);
+        const comp = Math.max(0, Math.min(week.individual - week.individualTarget, indivCompAvail));
+        const miss = Math.max(0, week.individualTarget - week.individual);
         accIndiv = Math.max(0, accIndiv - comp + miss);
       }
     }

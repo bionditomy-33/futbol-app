@@ -65,26 +65,34 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     return s;
   }, [history, TODAY]);
 
+  // Día con entrenamiento individual (mismo criterio que las cards: template
+  // efectivo del plan, respeta actividades eliminadas y días limpiados)
+  const indivOfDay = (ds) => {
+    const effTmpl = getEffectiveTmpl(ds, plans, weekTemplates, weekTemplate);
+    return getDayActivities(ds, schedule, history, matches, effTmpl).find(a => a.type === 'indiv');
+  };
+
   const weekStats = useMemo(() => {
-    const done = weekDateStrs.filter(d => history[d]?.done).length;
-    const planned = weekDateStrs.filter(ds => {
-      if (schedule[ds]) return true;
-      const dow = new Date(ds + 'T12:00:00').getDay();
-      return !!weekTemplate?.[dow]?.routineId;
-    }).length;
+    let done = 0, planned = 0;
+    weekDateStrs.forEach(ds => {
+      const indiv = indivOfDay(ds);
+      if (indiv) { planned++; if (indiv.done) done++; }
+    });
     return { done, planned };
-  }, [weekDateStrs, schedule, history, weekTemplate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekDateStrs, schedule, history, matches, weekTemplate, weekTemplates, plans]);
 
   const monthStats = useMemo(() => {
     const [yr, mo, todayDay] = TODAY.split('-').map(Number);
     let planned = 0, done = 0;
     for (let d = 1; d <= todayDay; d++) {
       const ds = `${yr}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      if (schedule[ds]) planned++;
-      if (history[ds]?.done) done++;
+      const indiv = indivOfDay(ds);
+      if (indiv) { planned++; if (indiv.done) done++; }
     }
     return planned > 0 ? Math.round((done / planned) * 100) : 0;
-  }, [schedule, history, TODAY]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schedule, history, matches, weekTemplate, weekTemplates, plans, TODAY]);
 
   const activePlan = useMemo(
     () => plans.find(p => p.status !== 'completed' && TODAY >= p.startDate && TODAY <= p.endDate),
