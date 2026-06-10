@@ -7,6 +7,19 @@ export function getScheduleEntry(schedule, dateStr) {
   return typeof val === 'string' ? { routineId: val } : val;
 }
 
+// Effective template days for a date: the active plan's template if one covers
+// this date, otherwise the default template's days.
+export function getEffectiveTemplateDays(dateStr, plans, weekTemplates, defaultDays) {
+  const plan = (plans || []).find(p =>
+    p.status !== 'completed' && p.weekTemplateId && p.startDate <= dateStr && p.endDate >= dateStr
+  );
+  if (plan) {
+    const tmpl = (weekTemplates || []).find(t => t.id === plan.weekTemplateId);
+    if (tmpl) return tmpl.days;
+  }
+  return defaultDays;
+}
+
 export function getDayActivities(dateStr, schedule, history, matches, weekTemplate) {
   const today = todayStr();
   const dow   = new Date(dateStr + 'T12:00:00').getDay();

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
+import { getScheduleEntry, getEffectiveTemplateDays } from '../utils/activities';
 import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, GripIcon } from './Icons';
 import { useDragSort } from '../hooks/useDragSort';
 import ExerciseGroupedList from './ExerciseGroupedList';
@@ -169,18 +170,25 @@ export default function DayEditor({ dateStr }) {
   const {
     routines, schedule, exerciseMap, catalog, catLinks,
     getDay, updateDay, toggleExercise, completeDay,
-    assignRoutine, removeSchedule, updatePhaseObjective,
-    setActivityTime, weekTemplate,
+    assignRoutine, removeActivityFromDay, updatePhaseObjective,
+    setActivityTime, weekTemplate, weekTemplates, plans,
   } = useStore();
 
-  const schedVal = schedule[dateStr];
-  const assignedId = typeof schedVal === 'string' ? schedVal : schedVal?.routineId;
-  const routine = routines.find(r => r.id === assignedId) || null;
   const day = getDay(dateStr);
+  const schedEntry = getScheduleEntry(schedule, dateStr);
 
+  // Misma lógica de visibilidad que getDayActivities: tipos suprimidos y días limpiados
+  // no muestran la rutina (ni la del schedule ni la de la semana tipo).
   const dow = new Date(dateStr + 'T12:00:00').getDay();
-  const tmplDayEntry = weekTemplate?.[dow] || {};
-  const schedEntry = typeof schedVal === 'string' ? { routineId: schedVal } : (schedVal || {});
+  const effDays = getEffectiveTemplateDays(dateStr, plans, weekTemplates, weekTemplate);
+  const tmplDayEntry = effDays?.[dow] || {};
+  const suppressed = schedEntry.suppressedTypes || [];
+  const suppressTemplate = !!(day.cleared && !day.done && !day.gym);
+  const assignedId = suppressed.includes('indiv')
+    ? null
+    : (schedEntry.routineId || (!suppressTemplate ? tmplDayEntry.routineId : null) || null);
+  const routine = routines.find(r => r.id === assignedId) || null;
+
   const currentIndivTime = schedEntry.indivTime || tmplDayEntry.indivTime || '08:10';
   const completed = day.completed || {};
 
@@ -223,7 +231,8 @@ export default function DayEditor({ dateStr }) {
   }
 
   function handleClear() {
-    removeSchedule(dateStr);
+    // Suprime el tipo 'indiv' (cubre tanto rutina del schedule como de la semana tipo)
+    removeActivityFromDay(dateStr, 'indiv');
     setShowSelector(false);
   }
 

@@ -393,14 +393,16 @@ export function useStore() {
 
   // ── Schedule ──────────────────────────────────────────────────────────────
   const assignRoutine = useCallback((dateStr, routineId) => {
-    const next = { ...state.schedule, [dateStr]: routineId };
-    setState({ schedule: next });
-    writeDoc('schedule', next);
-  }, []);
-
-  const removeSchedule = useCallback((dateStr) => {
-    const next = { ...state.schedule };
-    delete next[dateStr];
+    // Merge con la entrada existente (preserva gym/arsenal/horarios) y des-suprime 'indiv'
+    const cur = state.schedule[dateStr];
+    const sched = typeof cur === 'string' ? {} : (cur ? { ...cur } : {});
+    sched.routineId = routineId;
+    if (sched.suppressedTypes?.includes('indiv')) {
+      const rest = sched.suppressedTypes.filter(t => t !== 'indiv');
+      if (rest.length > 0) sched.suppressedTypes = rest;
+      else delete sched.suppressedTypes;
+    }
+    const next = { ...state.schedule, [dateStr]: sched };
     setState({ schedule: next });
     writeDoc('schedule', next);
   }, []);
@@ -871,7 +873,6 @@ export function useStore() {
     loadError,
     exerciseMap,
     assignRoutine,
-    removeSchedule,
     getDay,
     updateDay,
     toggleExercise,
