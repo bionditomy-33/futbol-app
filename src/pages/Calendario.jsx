@@ -348,7 +348,14 @@ export default function Calendario() {
               <div
                 key={dateStr}
                 className={`cal-cell-new${isToday ? ' cal-cell-today' : ''}${!inMonth ? ' cal-cell-out' : ''}`}
-                onClick={() => inMonth && setSelectedDay(dateStr)}
+                onClick={() => {
+                  // Día de otro mes: navegar a ese mes y abrir el día igual
+                  if (!inMonth) {
+                    const [y, m] = dateStr.split('-').map(Number);
+                    setViewDate(new Date(y, m - 1, 1));
+                  }
+                  setSelectedDay(dateStr);
+                }}
               >
                 <div className="cal-cell-num">{dayNum}</div>
                 <CalDayBars acts={acts} />
