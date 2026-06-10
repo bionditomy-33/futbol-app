@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+﻿import { useState, useMemo, useId } from 'react';
 import { getPlanProgress, computePlanWeeklyLog, useStore } from '../store/useStore';
 import { toDateStr } from '../utils/dates';
 import { getDayActivities, buildGymTogglePatch, buildToggleSkipPatch } from '../utils/activities';
@@ -69,19 +69,31 @@ function AlertBanner({ level, text, onClose }) {
 
 // ─── SVG circular progress ────────────────────────────────────────────────────
 
-function CircularProgress({ pct, size = 136, strokeWidth = 11, color = 'var(--navy-600)', bg = 'var(--navy-100)' }) {
+// gradient: [colorInicio, colorFin] opcional — pinta el stroke con gradiente.
+// El anillo anima su entrada (de 0 al valor) vía la keyframe CSS ringIn.
+function CircularProgress({ pct, size = 136, strokeWidth = 11, color = 'var(--navy-600)', bg = 'var(--navy-100)', gradient = null }) {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const r = (size - strokeWidth) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - Math.min(100, Math.max(0, pct)) / 100);
   return (
     <svg width={size} height={size} style={{ display: 'block', transform: 'rotate(-90deg)' }}>
+      {gradient && (
+        <defs>
+          <linearGradient id={`rg-${uid}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{ stopColor: gradient[0] }} />
+            <stop offset="100%" style={{ stopColor: gradient[1] }} />
+          </linearGradient>
+        </defs>
+      )}
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={bg} strokeWidth={strokeWidth} />
       <circle
         cx={size / 2} cy={size / 2} r={r}
-        fill="none" stroke={color} strokeWidth={strokeWidth}
+        fill="none" stroke={gradient ? `url(#rg-${uid})` : color} strokeWidth={strokeWidth}
         strokeDasharray={circ} strokeDashoffset={offset}
         strokeLinecap="round"
-        style={{ transition: 'stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)' }}
+        className="ring-anim"
+        style={{ '--ring-circ': circ, transition: 'stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)' }}
       />
     </svg>
   );
@@ -563,10 +575,13 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
 
         <div className="plan-hero-body">
           <div className="plan-hero-ring">
-            <CircularProgress pct={progress.pct} size={104} strokeWidth={9} color="#FFFFFF" bg="rgba(255,255,255,0.16)" />
+            <CircularProgress
+              pct={progress.pct} size={118} strokeWidth={11}
+              gradient={['#34D399', '#FFFFFF']} bg="rgba(255,255,255,0.14)"
+            />
             <div className="plan-hero-ring-pct">
-              <div style={{ fontSize: 24, fontWeight: 800, color: 'white', lineHeight: 1 }}>{progress.pct}%</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', marginTop: 2, letterSpacing: '0.04em' }}>COMPLETADO</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: 'white', lineHeight: 1, letterSpacing: '-0.02em' }}>{progress.pct}%</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 3, letterSpacing: '0.06em', fontWeight: 600 }}>COMPLETADO</div>
             </div>
           </div>
           <div className="plan-hero-meta">
@@ -795,10 +810,10 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
             <div style={{ position: 'relative', flexShrink: 0 }}>
-              <CircularProgress pct={progress.pct} size={100} strokeWidth={9} />
+              <CircularProgress pct={progress.pct} size={100} strokeWidth={10} gradient={['var(--navy-600)', 'var(--navy-400)']} />
               <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy-600)', lineHeight: 1 }}>{progress.pct}%</div>
-                <div style={{ fontSize: 9, color: 'var(--text-light)', marginTop: 2 }}>completado</div>
+                <div style={{ fontSize: 10, color: 'var(--text-light)', marginTop: 2 }}>completado</div>
               </div>
             </div>
             <div style={{ flex: 1 }}>

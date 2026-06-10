@@ -74,7 +74,7 @@ export default function ExerciseGroupedList({
         const done = mode === 'edit' ? catExs.filter(ex => !!completed[ex.ref]).length : 0;
 
         return (
-          <div key={idx} style={{ marginBottom: 4, borderLeft: `3px solid ${catColor}`, paddingLeft: 8, marginLeft: 4 }}>
+          <div key={idx} style={{ marginBottom: 6, borderLeft: `4px solid ${catColor}`, paddingLeft: 10, marginLeft: 2 }}>
             <div
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0 5px', cursor: 'pointer', borderBottom: '0.5px solid var(--divider)' }}
               onClick={() => setExpandedGroups(prev => ({ ...prev, [idx]: !isExpanded }))}
@@ -91,7 +91,7 @@ export default function ExerciseGroupedList({
                     <PlayIcon size={9} />
                   </a>
                 )}
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{cat}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{cat}</span>
                 <span style={{ fontSize: 12, color: 'var(--text-light)' }}>
                   {mode === 'edit' ? `(${done}/${total})` : `(${total})`}
                 </span>
@@ -116,7 +116,7 @@ export default function ExerciseGroupedList({
                       {isDone && <CheckIcon size={13} />}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14.5, color: 'var(--text-primary)', fontWeight: isDone ? 400 : 600, lineHeight: 1.3 }}>
+                      <div style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: isDone ? 400 : 600, lineHeight: 1.3 }}>
                         {info.name}
                       </div>
                       <ExPills series={ex.series} reps={ex.reps} />

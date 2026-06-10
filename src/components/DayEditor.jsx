@@ -13,12 +13,6 @@ function getPhaseColor(displayIdx) {
   return 'var(--text-secondary)'; // slate
 }
 
-function getPhaseBg(displayIdx) {
-  if (displayIdx === 0) return '#EDF1F9';
-  if (displayIdx === 1) return '#ECFDF5';
-  if (displayIdx === 2) return 'var(--amber-50)';
-  return 'var(--bg-subtle)';
-}
 
 const RATING_COLORS = ['', 'var(--red-600)', 'var(--amber-800)', 'var(--amber-600)', 'var(--emerald-400)', 'var(--emerald-600)'];
 const RATING_LABELS = ['', 'Muy mal', 'Mal', 'Regular', 'Bien', 'Excelente'];
@@ -307,6 +301,13 @@ export default function DayEditor({ dateStr }) {
 
   return (
     <div>
+      {/* Progreso siempre visible durante el entrenamiento */}
+      {routine && !showSelector && totalEx > 0 && (
+        <div className="de-sticky-progress">
+          <div className="de-sticky-fill" style={{ width: `${progress}%` }} />
+        </div>
+      )}
+
       {/* Rutina eliminada — assignedId existe pero el routines array no la tiene */}
       {assignedId && !routine && !showSelector && (
         <div className="card" style={{ textAlign: 'center', padding: '20px 16px', borderColor: 'var(--red-300)' }}>
@@ -380,12 +381,13 @@ export default function DayEditor({ dateStr }) {
               const isLast = displayIdx === displayPhases.length - 1;
               return (
                 <div key={phase.phase} style={getPhaseItemStyle(displayIdx)}>
-                  {/* Tarjeta del bloque */}
+                  {/* Tarjeta del bloque: blanca con acento lateral grueso del color de la fase */}
                   <div style={{
-                    background: getPhaseBg(displayIdx),
-                    borderRadius: 10,
+                    background: 'var(--bg-main)',
+                    borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border-color)',
-                    borderLeft: `4px solid ${color}`,
+                    borderLeft: `5px solid ${color}`,
+                    boxShadow: 'var(--shadow-xs)',
                     overflow: 'hidden',
                   }}>
                     {/* Header del bloque */}
