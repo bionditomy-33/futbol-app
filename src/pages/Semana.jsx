@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useStore, computePlanWeeklyLog } from '../store/useStore';
 import { toDateStr, getWeekDays, getWeekStart } from '../utils/dates';
 import { getDatesBetween } from '../utils/plans';
-import { getDayActivities, getEffectiveTemplateDays } from '../utils/activities';
+import { getDayActivities, getEffectiveTemplateDays, buildGymTogglePatch } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
 import { ChevronLeft, TrashIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
@@ -50,7 +50,7 @@ function ActBlock({ act }) {
 }
 
 // ── Activity row in day detail ─────────────────────────────────────────────────
-function ActivityRow({ act, routines, onToggleSkip, isPastOrToday, onDelete, onSetTime }) {
+function ActivityRow({ act, routines, onToggleSkip, onMarkDone, isPastOrToday, onDelete, onSetTime }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const c = ACT_COLORS[act.type];
   let title = '', subtitle = '';
@@ -77,7 +77,7 @@ function ActivityRow({ act, routines, onToggleSkip, isPastOrToday, onDelete, onS
     }
   }
 
-  const canSkip = isPastOrToday && !act.done && (act.type === 'gym' || act.type === 'indiv');
+  const canAct = isPastOrToday && (act.type === 'gym' || act.type === 'indiv');
 
   return (
     <div className="wk2-act-row">
@@ -134,20 +134,46 @@ function ActivityRow({ act, routines, onToggleSkip, isPastOrToday, onDelete, onS
             </div>
           </div>
         )}
-        {canSkip && !confirmDelete && (
-          <button
-            onClick={e => { e.stopPropagation(); onToggleSkip?.(act.type); }}
-            style={{
-              marginTop: 6, fontSize: 11, fontWeight: 600,
-              padding: '3px 8px', borderRadius: 5, cursor: 'pointer',
-              border: act.skipped ? '1px solid #CBD5E1' : '1px solid #FCA5A5',
-              background: act.skipped ? '#F1F5F9' : '#FEF2F2',
-              color: act.skipped ? '#64748B' : '#DC2626',
-              display: 'block',
-            }}
-          >
-            {act.skipped ? 'Restablecer' : 'No hecho'}
-          </button>
+        {canAct && !confirmDelete && (
+          act.done ? (
+            <button
+              onClick={e => { e.stopPropagation(); onMarkDone?.(act); }}
+              style={{
+                marginTop: 6, fontSize: 11, fontWeight: 700,
+                padding: '3px 8px', borderRadius: 5, cursor: 'pointer',
+                border: 'none', background: c.sub, color: 'white',
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+              }}
+            >
+              ✓ Hecho <span style={{ fontWeight: 400, opacity: 0.8 }}>· deshacer</span>
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+              {!act.skipped && (
+                <button
+                  onClick={e => { e.stopPropagation(); onMarkDone?.(act); }}
+                  style={{
+                    fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 5,
+                    cursor: 'pointer', border: 'none', background: c.sub, color: 'white',
+                  }}
+                >
+                  Marcar hecho
+                </button>
+              )}
+              <button
+                onClick={e => { e.stopPropagation(); onToggleSkip?.(act.type); }}
+                style={{
+                  fontSize: 11, fontWeight: 600,
+                  padding: '3px 8px', borderRadius: 5, cursor: 'pointer',
+                  border: act.skipped ? '1px solid #CBD5E1' : '1px solid #FCA5A5',
+                  background: act.skipped ? '#F1F5F9' : '#FEF2F2',
+                  color: act.skipped ? '#64748B' : '#DC2626',
+                }}
+              >
+                {act.skipped ? 'Restablecer' : 'No hecho'}
+              </button>
+            </div>
+          )
         )}
       </div>
     </div>
@@ -166,7 +192,7 @@ function GapIndicator({ gapMins }) {
 
 // ── Main Semana component ──────────────────────────────────────────────────────
 export default function Semana({ editToday = false, onConsumed }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity, removeActivityFromDay, setActivityTime, addActivityToDay } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity, removeActivityFromDay, setActivityTime, addActivityToDay, updateDay } = useStore();
 
   const TODAY = useToday();
   const [weekOffset,      setWeekOffset]      = useState(0);
@@ -275,6 +301,24 @@ export default function Semana({ editToday = false, onConsumed }) {
 
   // Tipos que se pueden agregar al día (los que aún no están)
   const addableTypes = ['gym', 'indiv', 'arsenal'].filter(t => !selActs.some(a => a.type === t));
+
+  // Marcar hecho / deshacer (misma semántica que Inicio)
+  function handleMarkDone(act) {
+    const day = history[selectedDateStr] || {};
+    if (act.type === 'gym') {
+      updateDay(selectedDateStr, buildGymTogglePatch(day));
+    } else if (act.type === 'indiv') {
+      if (act.done) {
+        updateDay(selectedDateStr, { done: false });
+      } else {
+        updateDay(selectedDateStr, {
+          done: true,
+          routineId: act.routineId || day.routineId || null,
+          skipped: (day.skipped || []).filter(t => t !== 'indiv'),
+        });
+      }
+    }
+  }
 
   function openAddModal() {
     setAddStep('choose');
@@ -471,6 +515,7 @@ export default function Semana({ editToday = false, onConsumed }) {
                   act={act}
                   routines={routines}
                   isPastOrToday={isPastOrToday}
+                  onMarkDone={handleMarkDone}
                   onToggleSkip={(actType) => toggleSkipActivity(selectedDateStr, actType)}
                   onDelete={!(act.type === 'match' && act.done) ? () => removeActivityFromDay(selectedDateStr, act.type) : undefined}
                   onSetTime={!(act.type === 'match' && act.done) ? (actType, t) => setActivityTime(selectedDateStr, actType, t) : undefined}
