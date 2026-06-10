@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { getScheduleEntry, getEffectiveTemplateDays } from '../utils/activities';
 import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, GripIcon } from './Icons';
@@ -7,17 +7,17 @@ import ExerciseGroupedList from './ExerciseGroupedList';
 import ProgressBar from './ProgressBar';
 
 function getPhaseColor(displayIdx) {
-  if (displayIdx === 0) return '#1D3461'; // navy
-  if (displayIdx === 1) return '#059669'; // emerald
-  if (displayIdx === 2) return '#D97706'; // amber
-  return '#475569'; // slate
+  if (displayIdx === 0) return 'var(--navy-600)'; // navy
+  if (displayIdx === 1) return 'var(--emerald-600)'; // emerald
+  if (displayIdx === 2) return 'var(--amber-600)'; // amber
+  return 'var(--text-secondary)'; // slate
 }
 
 function getPhaseBg(displayIdx) {
   if (displayIdx === 0) return '#EDF1F9';
   if (displayIdx === 1) return '#ECFDF5';
-  if (displayIdx === 2) return '#FFFBEB';
-  return '#F8FAFC';
+  if (displayIdx === 2) return 'var(--amber-50)';
+  return 'var(--bg-subtle)';
 }
 
 const RATING_COLORS = ['', 'var(--red-600)', 'var(--amber-800)', 'var(--amber-600)', 'var(--emerald-400)', 'var(--emerald-600)'];
@@ -30,10 +30,10 @@ function RatingModal({ onSave, onSkip }) {
   return (
     <div className="modal-overlay">
       <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
-        <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 4 }}>
+        <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', marginBottom: 4 }}>
           ¿Cómo estuvo la sesión?
         </div>
-        <div style={{ fontSize: 13, color: '#78909C', marginBottom: 20 }}>
+        <div style={{ fontSize: 13, color: 'var(--gray-mid)', marginBottom: 20 }}>
           Evaluá tu entrenamiento de hoy
         </div>
 
@@ -46,8 +46,8 @@ function RatingModal({ onSave, onSkip }) {
               style={{
                 width: 48, height: 48, borderRadius: '50%', border: 'none', cursor: 'pointer',
                 fontFamily: 'inherit', fontWeight: 800, fontSize: 18,
-                background: rating === n ? RATING_COLORS[n] : '#F1F5F4',
-                color: rating === n ? 'white' : '#78909C',
+                background: rating === n ? RATING_COLORS[n] : 'var(--divider)',
+                color: rating === n ? 'white' : 'var(--gray-mid)',
                 transition: 'all 0.15s',
                 transform: rating === n ? 'scale(1.15)' : 'scale(1)',
               }}
@@ -65,7 +65,7 @@ function RatingModal({ onSave, onSkip }) {
 
         {/* Ejercicio más difícil */}
         <div className="form-group" style={{ marginBottom: 24 }}>
-          <label className="form-label">¿Qué ejercicio te costó más? <span style={{ color: '#B0BEC5' }}>(opcional)</span></label>
+          <label className="form-label">¿Qué ejercicio te costó más? <span style={{ color: 'var(--text-light)' }}>(opcional)</span></label>
           <input
             className="input"
             placeholder="ej: Rondos, Sprint 1v1..."
@@ -99,10 +99,10 @@ function RatingDisplay({ rating, hardestExercise }) {
         {[1,2,3,4,5].map(n => (
           <div key={n} style={{
             width: 26, height: 26, borderRadius: '50%',
-            background: n <= rating ? RATING_COLORS[rating] : '#E8ECEB',
+            background: n <= rating ? RATING_COLORS[rating] : 'var(--divider)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 11, fontWeight: 700,
-            color: n <= rating ? 'white' : '#B0BEC5',
+            color: n <= rating ? 'white' : 'var(--text-light)',
           }}>
             {n}
           </div>
@@ -112,8 +112,8 @@ function RatingDisplay({ rating, hardestExercise }) {
         </span>
       </div>
       {hardestExercise && (
-        <div style={{ fontSize: 12, color: '#78909C', textAlign: 'center' }}>
-          Más difícil: <span style={{ color: '#37474F', fontWeight: 600 }}>{hardestExercise}</span>
+        <div style={{ fontSize: 12, color: 'var(--gray-mid)', textAlign: 'center' }}>
+          Más difícil: <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{hardestExercise}</span>
         </div>
       )}
     </div>
@@ -128,30 +128,30 @@ function countExercises(routine) {
 function RoutineSelector({ routines, onSelect, onClear, onCancel, showCancel }) {
   return (
     <div className="card" style={{ marginTop: 0 }}>
-      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#263238' }}>
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)' }}>
         Seleccionar rutina
       </div>
       <div
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '0.5px solid #F1F5F4', cursor: 'pointer' }}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '0.5px solid var(--divider)', cursor: 'pointer' }}
         onClick={onClear}
       >
         <div>
-          <div style={{ fontWeight: 600, fontSize: 14, color: '#263238' }}>Sin rutina / Descanso</div>
-          <div style={{ fontSize: 12, color: '#78909C' }}>Quitar la rutina asignada</div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>Sin rutina / Descanso</div>
+          <div style={{ fontSize: 12, color: 'var(--gray-mid)' }}>Quitar la rutina asignada</div>
         </div>
-        <span style={{ color: '#78909C', fontWeight: 700, fontSize: 13 }}>Limpiar</span>
+        <span style={{ color: 'var(--gray-mid)', fontWeight: 700, fontSize: 13 }}>Limpiar</span>
       </div>
       {routines.length === 0 ? (
-        <div style={{ color: '#78909C', fontSize: 13, padding: '10px 0' }}>No hay rutinas creadas.</div>
+        <div style={{ color: 'var(--gray-mid)', fontSize: 13, padding: '10px 0' }}>No hay rutinas creadas.</div>
       ) : (
         routines.map(r => (
           <div key={r.id}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '0.5px solid #F1F5F4', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '0.5px solid var(--divider)', cursor: 'pointer' }}
             onClick={() => onSelect(r.id)}
           >
             <div>
-              <div style={{ fontWeight: 600, fontSize: 14, color: '#263238' }}>{r.name}</div>
-              <div style={{ fontSize: 12, color: '#78909C' }}>{r.duration} · {countExercises(r)} ejercicios</div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>{r.name}</div>
+              <div style={{ fontSize: 12, color: 'var(--gray-mid)' }}>{r.duration} · {countExercises(r)} ejercicios</div>
             </div>
             <span style={{ color: 'var(--emerald-600)', fontWeight: 700, fontSize: 14 }}>Elegir</span>
           </div>
@@ -266,21 +266,21 @@ export default function DayEditor({ dateStr }) {
     return (
       <div>
         <div className="completed-banner">
-          <div style={{ color: '#059669', marginBottom: 8 }}>
+          <div style={{ color: 'var(--emerald-600)', marginBottom: 8 }}>
             <CheckCircleIcon size={36} />
           </div>
-          <div style={{ fontWeight: 800, fontSize: 18, color: '#064E3B', marginBottom: 4 }}>
+          <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--emerald-800)', marginBottom: 4 }}>
             Entrenamiento completado
           </div>
-          {r && <div style={{ fontSize: 14, color: '#37474F', marginBottom: 6 }}>{r.name}</div>}
-          <div style={{ fontSize: 13, color: '#78909C', marginBottom: 12 }}>
+          {r && <div style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 6 }}>{r.name}</div>}
+          <div style={{ fontSize: 13, color: 'var(--gray-mid)', marginBottom: 12 }}>
             {doneCount}/{totalEx} ejercicios{day.gym ? ' · Gym ✓' : ''}
           </div>
 
           <RatingDisplay rating={day.rating} hardestExercise={day.hardestExercise} />
 
           {day.notes && (
-            <div style={{ fontSize: 13, color: '#37474F', background: 'white', borderRadius: 8, padding: '8px 12px', textAlign: 'left', marginBottom: 16 }}>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)', background: 'white', borderRadius: 8, padding: '8px 12px', textAlign: 'left', marginBottom: 16 }}>
               {day.notes}
             </div>
           )}
@@ -292,7 +292,7 @@ export default function DayEditor({ dateStr }) {
         <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <GymIcon size={16} />
-            <span style={{ fontSize: 14, fontWeight: 500, color: '#263238' }}>Fui al gimnasio</span>
+            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>Fui al gimnasio</span>
           </div>
           <div
             className={`checkbox-custom${day.gym ? ' checked' : ''}`}
@@ -309,10 +309,10 @@ export default function DayEditor({ dateStr }) {
     <div>
       {/* Rutina eliminada — assignedId existe pero el routines array no la tiene */}
       {assignedId && !routine && !showSelector && (
-        <div className="card" style={{ textAlign: 'center', padding: '20px 16px', borderColor: '#FCA5A5' }}>
+        <div className="card" style={{ textAlign: 'center', padding: '20px 16px', borderColor: 'var(--red-300)' }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>⚠️</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#B91C1C', marginBottom: 4 }}>Esta rutina ya no existe</div>
-          <div style={{ fontSize: 13, color: '#78909C', marginBottom: 16 }}>La rutina asignada fue eliminada. Podés asignar otra o dejar el día como descanso.</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--red-800)', marginBottom: 4 }}>Esta rutina ya no existe</div>
+          <div style={{ fontSize: 13, color: 'var(--gray-mid)', marginBottom: 16 }}>La rutina asignada fue eliminada. Podés asignar otra o dejar el día como descanso.</div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
             <button className="btn btn-secondary" onClick={() => { handleClear(); }}>Quitar asignación</button>
             <button className="btn btn-primary" onClick={() => setShowSelector(true)}>Asignar otra</button>
@@ -324,8 +324,8 @@ export default function DayEditor({ dateStr }) {
       {!assignedId && !routine && !showSelector && (
         <div className="card" style={{ textAlign: 'center', padding: '20px 16px' }}>
           <div style={{ fontSize: 28, marginBottom: 8 }}>⚽</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#263238', marginBottom: 4 }}>Sin rutina asignada</div>
-          <div style={{ fontSize: 13, color: '#78909C', marginBottom: 16 }}>Elegí una rutina o dejá el dia como descanso</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Sin rutina asignada</div>
+          <div style={{ fontSize: 13, color: 'var(--gray-mid)', marginBottom: 16 }}>Elegí una rutina o dejá el dia como descanso</div>
           <button className="btn btn-primary" onClick={() => setShowSelector(true)}>Asignar rutina</button>
         </div>
       )}
@@ -345,27 +345,27 @@ export default function DayEditor({ dateStr }) {
           <div className="card" style={{ padding: '14px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', letterSpacing: '-0.01em' }}>{routine.name}</div>
-                {routine.subtitle && <div style={{ fontSize: 13, color: '#78909C', marginTop: 2 }}>{routine.subtitle}</div>}
-                <div style={{ fontSize: 12, color: '#78909C', marginTop: 4 }}>{routine.duration} · {totalEx} ejercicios</div>
+                <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{routine.name}</div>
+                {routine.subtitle && <div style={{ fontSize: 13, color: 'var(--gray-mid)', marginTop: 2 }}>{routine.subtitle}</div>}
+                <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginTop: 4 }}>{routine.duration} · {totalEx} ejercicios</div>
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => setShowSelector(true)}>Cambiar</button>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: '0.5px solid #F1F5F4' }}>
-              <span style={{ fontSize: 12, color: '#78909C', fontWeight: 600 }}>Horario</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: '0.5px solid var(--divider)' }}>
+              <span style={{ fontSize: 12, color: 'var(--gray-mid)', fontWeight: 600 }}>Horario</span>
               <input
                 type="time"
                 value={currentIndivTime}
                 onChange={e => { if (e.target.value) setActivityTime(dateStr, 'indiv', e.target.value); }}
-                style={{ fontSize: 12, border: '1px solid #CBD5E1', borderRadius: 6, padding: '3px 6px', fontFamily: 'inherit', background: 'white', color: '#263238' }}
+                style={{ fontSize: 12, border: '1px solid var(--border-strong)', borderRadius: 6, padding: '3px 6px', fontFamily: 'inherit', background: 'white', color: 'var(--text-primary)' }}
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 12, marginBottom: 8 }}>
               <div>
-                <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Progreso</div>
-                <div style={{ fontSize: 13, color: '#78909C', fontWeight: 600 }}>{doneCount} de {totalEx} ejercicios</div>
+                <div style={{ fontSize: 11, color: 'var(--text-light)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Progreso</div>
+                <div style={{ fontSize: 13, color: 'var(--gray-mid)', fontWeight: 600 }}>{doneCount} de {totalEx} ejercicios</div>
               </div>
-              <div style={{ fontSize: 30, fontWeight: 800, color: progress === 100 ? '#059669' : '#1D3461', letterSpacing: '-0.03em', lineHeight: 1 }}>
+              <div style={{ fontSize: 30, fontWeight: 800, color: progress === 100 ? 'var(--emerald-600)' : 'var(--navy-600)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                 {progress}%
               </div>
             </div>
@@ -384,16 +384,16 @@ export default function DayEditor({ dateStr }) {
                   <div style={{
                     background: getPhaseBg(displayIdx),
                     borderRadius: 10,
-                    border: '1px solid #DDE3EE',
+                    border: '1px solid var(--border-color)',
                     borderLeft: `4px solid ${color}`,
                     overflow: 'hidden',
                   }}>
                     {/* Header del bloque */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px 8px', borderBottom: '0.5px solid #F1F5F4' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px 8px', borderBottom: '0.5px solid var(--divider)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div
                           onPointerDown={e => onPhaseHandleDown(e, displayIdx)}
-                          style={{ cursor: 'grab', color: '#C8D8CC', padding: '3px 2px', touchAction: 'none', flexShrink: 0 }}
+                          style={{ cursor: 'grab', color: 'var(--border-strong)', padding: '3px 2px', touchAction: 'none', flexShrink: 0 }}
                         >
                           <GripIcon size={12} />
                         </div>
@@ -402,7 +402,7 @@ export default function DayEditor({ dateStr }) {
                         </span>
                       </div>
                       {phase.time && (
-                        <span style={{ fontSize: 11, color: '#B0BEC5', fontWeight: 600 }}>{phase.time}</span>
+                        <span style={{ fontSize: 11, color: 'var(--text-light)', fontWeight: 600 }}>{phase.time}</span>
                       )}
                     </div>
 
@@ -430,13 +430,13 @@ export default function DayEditor({ dateStr }) {
 
                       {/* Nota de la fase */}
                       {phase.note && (
-                        <div style={{ fontSize: 12, color: '#78909C', background: '#F5F7F5', borderRadius: 6, padding: '6px 10px', marginBottom: 8 }}>
+                        <div style={{ fontSize: 12, color: 'var(--gray-mid)', background: 'var(--bg-subtle)', borderRadius: 6, padding: '6px 10px', marginBottom: 8 }}>
                           {phase.note}
                         </div>
                       )}
 
                       {phase.exercises.length === 0 && !phase.note && (
-                        <div style={{ fontSize: 13, color: '#B0BEC5' }}>Sin ejercicios asignados</div>
+                        <div style={{ fontSize: 13, color: 'var(--text-light)' }}>Sin ejercicios asignados</div>
                       )}
 
                       <ExerciseGroupedList
@@ -455,8 +455,8 @@ export default function DayEditor({ dateStr }) {
                   {!isLast && (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <div style={{ width: 2, height: 10, background: '#C8E6C9' }} />
-                        <div style={{ fontSize: 9, color: '#A5D6A7', lineHeight: 1 }}>▼</div>
+                        <div style={{ width: 2, height: 10, background: 'var(--border-strong)' }} />
+                        <div style={{ fontSize: 9, color: 'var(--text-light)', lineHeight: 1 }}>▼</div>
                       </div>
                     </div>
                   )}
@@ -471,7 +471,7 @@ export default function DayEditor({ dateStr }) {
         <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <GymIcon size={16} />
-            <span style={{ fontSize: 14, fontWeight: 500, color: '#263238' }}>Fui al gimnasio</span>
+            <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>Fui al gimnasio</span>
           </div>
           <div
             className={`checkbox-custom${day.gym ? ' checked' : ''}`}

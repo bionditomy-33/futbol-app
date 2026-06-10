@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { useToast } from '../components/useToast';
 import { EditIcon, CopyIcon, TrashIcon, PlusIcon, EyeIcon, ChevronLeft, PlayIcon, BodyIcon, BallIcon, FireIcon } from '../components/Icons';
@@ -37,17 +37,17 @@ function getPhaseIcon(pi) {
 }
 
 function getPhaseAccentColor(pi) {
-  if (pi === 0) return '#1D3461'; // navy
-  if (pi === 1) return '#059669'; // emerald
-  if (pi === 2) return '#D97706'; // amber
-  return '#475569'; // slate
+  if (pi === 0) return 'var(--navy-600)'; // navy
+  if (pi === 1) return 'var(--emerald-600)'; // emerald
+  if (pi === 2) return 'var(--amber-600)'; // amber
+  return 'var(--text-secondary)'; // slate
 }
 
 function getPhaseChipStyle(pi) {
-  if (pi === 0) return { background: '#E8EDF5', color: '#1D3461' };
-  if (pi === 1) return { background: '#D1FAE5', color: '#065F46' };
-  if (pi === 2) return { background: '#FEF3C7', color: '#92400E' };
-  return { background: '#F1F5F9', color: '#475569' };
+  if (pi === 0) return { background: 'var(--navy-100)', color: 'var(--navy-600)' };
+  if (pi === 1) return { background: 'var(--emerald-100)', color: 'var(--emerald-800)' };
+  if (pi === 2) return { background: 'var(--amber-100)', color: 'var(--amber-800)' };
+  return { background: 'var(--divider)', color: 'var(--text-secondary)' };
 }
 
 function RutinaDetail({ routine, exerciseMap, catalog, catLinks, onClose }) {
@@ -59,17 +59,17 @@ function RutinaDetail({ routine, exerciseMap, catalog, catLinks, onClose }) {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '14px 16px', background: 'white',
-        borderBottom: '1px solid #E2E8F0',
+        borderBottom: '1px solid var(--border-color)',
       }}>
         <button className="btn btn-ghost" style={{ padding: '6px 8px' }} onClick={onClose}>
           <ChevronLeft size={18} />
         </button>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#1A2332', letterSpacing: '-0.03em', lineHeight: 1.2 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1.2 }}>
             {routine.name}
           </div>
           {routine.subtitle && (
-            <div style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>{routine.subtitle}</div>
+            <div style={{ fontSize: 13, color: 'var(--gray-mid)', marginTop: 2 }}>{routine.subtitle}</div>
           )}
         </div>
       </div>
@@ -101,7 +101,7 @@ function RutinaDetail({ routine, exerciseMap, catalog, catLinks, onClose }) {
                     {phase.phase}
                   </div>
                   {phase.time && (
-                    <div style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>{phase.time}</div>
+                    <div style={{ fontSize: 11, color: 'var(--gray-mid)', marginTop: 1 }}>{phase.time}</div>
                   )}
                 </div>
                 {phase.exercises.length > 0 && (
@@ -114,7 +114,7 @@ function RutinaDetail({ routine, exerciseMap, catalog, catLinks, onClose }) {
               <div style={{ padding: '8px 14px 12px' }}>
                 {phase.note && (
                   <div style={{
-                    fontSize: 12, color: '#64748B',
+                    fontSize: 12, color: 'var(--gray-mid)',
                     background: 'rgba(255,255,255,0.7)',
                     borderRadius: 8, padding: '7px 10px', marginBottom: 8,
                   }}>
@@ -122,7 +122,7 @@ function RutinaDetail({ routine, exerciseMap, catalog, catLinks, onClose }) {
                   </div>
                 )}
                 {phase.exercises.length === 0 && !phase.note && (
-                  <div style={{ fontSize: 13, color: '#94A3B8', padding: '4px 0' }}>Sin ejercicios</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-light)', padding: '4px 0' }}>Sin ejercicios</div>
                 )}
                 <ExerciseGroupedList
                   exercises={phase.exercises}
@@ -208,13 +208,13 @@ export default function Rutinas({ onEdit, onNew, onBack }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
-                    fontWeight: 800, fontSize: 16, color: '#1A2332',
+                    fontWeight: 800, fontSize: 16, color: 'var(--text-primary)',
                     letterSpacing: '-0.02em', lineHeight: 1.2,
                   }}>
                     {routine.name}
                   </div>
                   {routine.subtitle && (
-                    <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{routine.subtitle}</div>
+                    <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginTop: 2 }}>{routine.subtitle}</div>
                   )}
                 </div>
                 {routine.duration && (
@@ -226,7 +226,7 @@ export default function Rutinas({ onEdit, onNew, onBack }) {
 
               {/* Stats row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-                <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
+                <span style={{ fontSize: 12, color: 'var(--gray-mid)', fontWeight: 600 }}>
                   {totalEx} ejercicios
                 </span>
                 {cats.slice(0, 3).map(cat => (

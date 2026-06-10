@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+﻿import { useState, useMemo, useEffect } from 'react';
 import { useStore, computePlanWeeklyLog } from '../store/useStore';
 import { toDateStr, getWeekDays, getWeekStart } from '../utils/dates';
 import { getDatesBetween } from '../utils/plans';
@@ -42,7 +42,7 @@ function ActBlock({ act }) {
       <span className="wk2-block-name" style={{ color: c.title, textDecoration: act.skipped ? 'line-through' : 'none' }}>
         {ACT_SHORT[act.type]}
       </span>
-      <span className="wk2-block-time" style={{ color: act.skipped ? '#DC2626' : c.sub }}>
+      <span className="wk2-block-time" style={{ color: act.skipped ? 'var(--red-600)' : c.sub }}>
         {act.skipped ? '✗' : act.time}
       </span>
     </div>
@@ -88,13 +88,13 @@ function ActivityRow({ act, routines, onToggleSkip, onMarkDone, isPastOrToday, o
             value={act.time || ''}
             onChange={e => { if (e.target.value) onSetTime(act.type, e.target.value); }}
             onClick={e => e.stopPropagation()}
-            style={{ width: 56, fontSize: 11, fontWeight: 600, color: '#475569', border: '1px solid #E2E8F0', borderRadius: 5, padding: '2px 3px', fontFamily: 'inherit', background: 'white', cursor: 'pointer' }}
+            style={{ width: 56, fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', border: '1px solid var(--border-color)', borderRadius: 5, padding: '2px 3px', fontFamily: 'inherit', background: 'white', cursor: 'pointer' }}
           />
         ) : (
           <>
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8' }}>{act.time}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-light)' }}>{act.time}</span>
             {act.type === 'match' && act.match && (
-              <span style={{ display: 'block', fontSize: 9, color: '#94A3B8', marginTop: 2, lineHeight: 1.2 }}>
+              <span style={{ display: 'block', fontSize: 9, color: 'var(--text-light)', marginTop: 2, lineHeight: 1.2 }}>
                 Editar en<br />Partidos
               </span>
             )}
@@ -110,25 +110,25 @@ function ActivityRow({ act, routines, onToggleSkip, onMarkDone, isPastOrToday, o
           {onDelete && (
             <button
               onClick={e => { e.stopPropagation(); act.done ? setConfirmDelete(true) : onDelete(); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', padding: '2px 0 2px 4px', lineHeight: 0, flexShrink: 0 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-light)', padding: '2px 0 2px 4px', lineHeight: 0, flexShrink: 0 }}
             >
               <TrashIcon size={13} />
             </button>
           )}
         </div>
         {act.skipped && (
-          <div style={{ fontSize: 11, color: '#DC2626', fontWeight: 700, marginTop: 4 }}>No realizado</div>
+          <div style={{ fontSize: 11, color: 'var(--red-600)', fontWeight: 700, marginTop: 4 }}>No realizado</div>
         )}
         {confirmDelete && (
           <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(220,38,38,0.07)', borderRadius: 6 }}>
-            <div style={{ fontSize: 12, color: '#DC2626', fontWeight: 600, marginBottom: 6 }}>
+            <div style={{ fontSize: 12, color: 'var(--red-600)', fontWeight: 600, marginBottom: 6 }}>
               Actividad completada. ¿Eliminarla igual?
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, fontSize: 11, padding: '4px 0', borderRadius: 5, border: '1px solid #CBD5E1', background: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, fontSize: 11, padding: '4px 0', borderRadius: 5, border: '1px solid var(--border-strong)', background: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
                 Cancelar
               </button>
-              <button onClick={() => { setConfirmDelete(false); onDelete(); }} style={{ flex: 1, fontSize: 11, fontWeight: 600, padding: '4px 0', borderRadius: 5, border: 'none', background: '#DC2626', color: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={() => { setConfirmDelete(false); onDelete(); }} style={{ flex: 1, fontSize: 11, fontWeight: 600, padding: '4px 0', borderRadius: 5, border: 'none', background: 'var(--red-600)', color: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
                 Eliminar
               </button>
             </div>
@@ -165,9 +165,9 @@ function ActivityRow({ act, routines, onToggleSkip, onMarkDone, isPastOrToday, o
                 style={{
                   fontSize: 11, fontWeight: 600,
                   padding: '3px 8px', borderRadius: 5, cursor: 'pointer',
-                  border: act.skipped ? '1px solid #CBD5E1' : '1px solid #FCA5A5',
-                  background: act.skipped ? '#F1F5F9' : '#FEF2F2',
-                  color: act.skipped ? '#64748B' : '#DC2626',
+                  border: act.skipped ? '1px solid var(--border-strong)' : '1px solid var(--red-300)',
+                  background: act.skipped ? 'var(--divider)' : 'var(--red-100)',
+                  color: act.skipped ? 'var(--gray-mid)' : 'var(--red-600)',
                 }}
               >
                 {act.skipped ? 'Restablecer' : 'No hecho'}
@@ -378,14 +378,14 @@ export default function Semana({ editToday = false, onConsumed }) {
       {/* ── Template + plan banner ── */}
       <div style={{ padding: '3px 12px 5px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         {weekPlanInfo.templateInfo ? (
-          <span style={{ fontSize: 11, color: '#475569' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
             Semana tipo:{' '}
-            <strong style={{ color: '#1D3461' }}>{weekPlanInfo.templateInfo.name}</strong>
-            {weekPlanInfo.templateInfo.isDefault && <span style={{ color: '#94A3B8' }}> (predeterminada)</span>}
-            {weekPlanInfo.templateInfo.fromPlan && <span style={{ color: '#64748B' }}> — {weekPlanInfo.templateInfo.fromPlan}</span>}
+            <strong style={{ color: 'var(--navy-600)' }}>{weekPlanInfo.templateInfo.name}</strong>
+            {weekPlanInfo.templateInfo.isDefault && <span style={{ color: 'var(--text-light)' }}> (predeterminada)</span>}
+            {weekPlanInfo.templateInfo.fromPlan && <span style={{ color: 'var(--gray-mid)' }}> — {weekPlanInfo.templateInfo.fromPlan}</span>}
           </span>
         ) : (
-          <span style={{ fontSize: 11, color: '#94A3B8' }}>Sin semana tipo aplicada</span>
+          <span style={{ fontSize: 11, color: 'var(--text-light)' }}>Sin semana tipo aplicada</span>
         )}
         {weekPlanInfo.primary && (
           <span style={{
@@ -398,7 +398,7 @@ export default function Semana({ editToday = false, onConsumed }) {
         {compensationInfo && (
           <span style={{
             fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99,
-            background: '#FEF3C7', color: '#92400E',
+            background: 'var(--amber-100)', color: 'var(--amber-800)',
           }}>
             Comp:{' '}
             {[
@@ -408,7 +408,7 @@ export default function Semana({ editToday = false, onConsumed }) {
           </span>
         )}
         {weekPlanInfo.conflict && (
-          <span style={{ fontSize: 10, fontWeight: 600, color: '#DC2626' }}>⚠ Conflicto</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--red-600)' }}>⚠ Conflicto</span>
         )}
       </div>
 
@@ -417,13 +417,13 @@ export default function Semana({ editToday = false, onConsumed }) {
         <div style={{ display: 'flex', gap: 8, padding: '6px 12px 2px' }}>
           <button
             onClick={() => { setApplyTmplId(weekTemplates.find(t => t.isDefault)?.id || weekTemplates[0]?.id || ''); setApplyRange('week'); setApplyUntilDate(''); setShowApplyModal(true); }}
-            style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: '1px solid #CBD5E1', background: 'white', fontSize: 12, fontWeight: 600, color: '#334155', cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: '1px solid var(--border-strong)', background: 'white', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit' }}
           >
             Aplicar semana tipo
           </button>
           <button
             onClick={() => setShowClearConfirm(true)}
-            style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: '1px solid #CBD5E1', background: 'white', fontSize: 12, fontWeight: 600, color: '#EF5350', cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: '1px solid var(--border-strong)', background: 'white', fontSize: 12, fontWeight: 600, color: 'var(--red-600)', cursor: 'pointer', fontFamily: 'inherit' }}
           >
             Limpiar semana
           </button>
@@ -571,24 +571,24 @@ export default function Semana({ editToday = false, onConsumed }) {
         return (
           <div className="modal-overlay" onClick={() => { setShowApplyModal(false); setApplyConfirm(false); }}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '20px 20px 28px' }}>
-              <div style={{ fontWeight: 800, fontSize: 16, color: '#263238', marginBottom: 14 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)', marginBottom: 14 }}>
                 Aplicar semana tipo
               </div>
 
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
                 Semana tipo
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
                 {weekTemplates.map(t => (
-                  <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: applyTmplId === t.id ? '#E8EDF5' : '#F8FAFC', border: `1.5px solid ${applyTmplId === t.id ? '#1D3461' : 'transparent'}`, cursor: 'pointer' }}>
-                    <input type="radio" name="tmpl" value={t.id} checked={applyTmplId === t.id} onChange={() => setApplyTmplId(t.id)} style={{ accentColor: '#1D3461' }} />
-                    <span style={{ fontSize: 13, fontWeight: applyTmplId === t.id ? 700 : 400, color: '#263238' }}>{t.name}</span>
-                    {t.isDefault && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 99, background: '#1D3461', color: 'white', marginLeft: 'auto' }}>DEFAULT</span>}
+                  <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: applyTmplId === t.id ? 'var(--navy-100)' : 'var(--bg-subtle)', border: `1.5px solid ${applyTmplId === t.id ? 'var(--navy-600)' : 'transparent'}`, cursor: 'pointer' }}>
+                    <input type="radio" name="tmpl" value={t.id} checked={applyTmplId === t.id} onChange={() => setApplyTmplId(t.id)} style={{ accentColor: 'var(--navy-600)' }} />
+                    <span style={{ fontSize: 13, fontWeight: applyTmplId === t.id ? 700 : 400, color: 'var(--text-primary)' }}>{t.name}</span>
+                    {t.isDefault && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 99, background: 'var(--navy-600)', color: 'white', marginLeft: 'auto' }}>DEFAULT</span>}
                   </label>
                 ))}
               </div>
 
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
                 Rango
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
@@ -598,8 +598,8 @@ export default function Semana({ editToday = false, onConsumed }) {
                   { id: 'all', label: 'Las próximas 12 semanas' },
                 ].map(opt => (
                   <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                    <input type="radio" name="range" value={opt.id} checked={applyRange === opt.id} onChange={() => setApplyRange(opt.id)} style={{ accentColor: '#1D3461' }} />
-                    <span style={{ fontSize: 13, color: '#263238' }}>{opt.label}</span>
+                    <input type="radio" name="range" value={opt.id} checked={applyRange === opt.id} onChange={() => setApplyRange(opt.id)} style={{ accentColor: 'var(--navy-600)' }} />
+                    <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{opt.label}</span>
                   </label>
                 ))}
                 {applyRange === 'until' && (
@@ -609,8 +609,8 @@ export default function Semana({ editToday = false, onConsumed }) {
               </div>
 
               {applyConfirm ? (
-                <div style={{ background: '#FEF3C7', borderRadius: 10, padding: '12px', marginBottom: 14 }}>
-                  <div style={{ fontSize: 13, color: '#92400E', fontWeight: 600, marginBottom: 10 }}>
+                <div style={{ background: 'var(--amber-100)', borderRadius: 10, padding: '12px', marginBottom: 14 }}>
+                  <div style={{ fontSize: 13, color: 'var(--amber-800)', fontWeight: 600, marginBottom: 10 }}>
                     Esto va a reemplazar las rutinas de {affectedWeeks} semana{affectedWeeks !== 1 ? 's' : ''}. ¿Continuar?
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -639,13 +639,13 @@ export default function Semana({ editToday = false, onConsumed }) {
       {showClearConfirm && (
         <div className="modal-overlay" onClick={() => setShowClearConfirm(false)}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
-            <div style={{ fontWeight: 800, fontSize: 16, color: '#263238', marginBottom: 10 }}>Limpiar semana</div>
-            <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)', marginBottom: 10 }}>Limpiar semana</div>
+            <div style={{ fontSize: 14, color: 'var(--gray-mid)', marginBottom: 24, lineHeight: 1.5 }}>
               Se van a borrar todas las rutinas asignadas a esta semana. ¿Continuar?
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowClearConfirm(false)}>Cancelar</button>
-              <button className="btn btn-primary" style={{ flex: 1, background: '#EF5350', borderColor: '#EF5350' }}
+              <button className="btn btn-primary" style={{ flex: 1, background: 'var(--red-600)', borderColor: 'var(--red-600)' }}
                 onClick={() => { clearWeekSchedule(weekDateStrs); setShowClearConfirm(false); }}>
                 Limpiar
               </button>
@@ -658,10 +658,10 @@ export default function Semana({ editToday = false, onConsumed }) {
       {showAddModal && (
         <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '20px 20px 28px' }}>
-            <div style={{ fontWeight: 800, fontSize: 16, color: '#263238', marginBottom: 4 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)', marginBottom: 4 }}>
               Agregar actividad
             </div>
-            <div style={{ fontSize: 13, color: '#78909C', marginBottom: 16 }}>
+            <div style={{ fontSize: 13, color: 'var(--gray-mid)', marginBottom: 16 }}>
               {DAY_FULL[selDate.getDay()]} {selDate.getDate()} de {MONTHS_FULL[selDate.getMonth()]}
             </div>
 
@@ -673,7 +673,7 @@ export default function Semana({ editToday = false, onConsumed }) {
                     <button
                       key={t}
                       onClick={() => { setAddStep(t); setAddTime(ADD_DEFAULT_TIME[t]); setAddRoutineId(''); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', borderRadius: 10, border: '1px solid #E2E8F0', background: c.bg, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', borderRadius: 10, border: '1px solid var(--border-color)', background: c.bg, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
                     >
                       <span style={{ width: 10, height: 10, borderRadius: 3, background: c.sub, flexShrink: 0 }} />
                       <span style={{ fontSize: 14, fontWeight: 700, color: c.title }}>{ADD_LABEL[t]}</span>
@@ -685,12 +685,12 @@ export default function Semana({ editToday = false, onConsumed }) {
 
             {(addStep === 'gym' || addStep === 'arsenal') && (
               <>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#263238', marginBottom: 12 }}>{ADD_LABEL[addStep]}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>{ADD_LABEL[addStep]}</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-                  <span style={{ fontSize: 13, color: '#64748B', fontWeight: 600 }}>Horario</span>
+                  <span style={{ fontSize: 13, color: 'var(--gray-mid)', fontWeight: 600 }}>Horario</span>
                   <input
                     type="time" value={addTime} onChange={e => setAddTime(e.target.value)}
-                    style={{ fontSize: 14, border: '1.5px solid #CBD5E1', borderRadius: 6, padding: '6px 8px', fontFamily: 'inherit', background: 'white', color: '#263238' }}
+                    style={{ fontSize: 14, border: '1.5px solid var(--border-strong)', borderRadius: 6, padding: '6px 8px', fontFamily: 'inherit', background: 'white', color: 'var(--text-primary)' }}
                   />
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
@@ -702,9 +702,9 @@ export default function Semana({ editToday = false, onConsumed }) {
 
             {addStep === 'indiv' && (
               <>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#263238', marginBottom: 10 }}>Elegí una rutina</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Elegí una rutina</div>
                 {routines.length === 0 ? (
-                  <div style={{ fontSize: 13, color: '#78909C', marginBottom: 14 }}>No hay rutinas creadas.</div>
+                  <div style={{ fontSize: 13, color: 'var(--gray-mid)', marginBottom: 14 }}>No hay rutinas creadas.</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14, maxHeight: '40vh', overflowY: 'auto' }}>
                     {routines.map(r => {
@@ -713,11 +713,11 @@ export default function Semana({ editToday = false, onConsumed }) {
                       return (
                         <button
                           key={r.id} onClick={() => setAddRoutineId(r.id)}
-                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: sel ? '#E8EDF5' : '#F8FAFC', border: `1.5px solid ${sel ? '#1D3461' : 'transparent'}`, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: sel ? 'var(--navy-100)' : 'var(--bg-subtle)', border: `1.5px solid ${sel ? 'var(--navy-600)' : 'transparent'}`, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
                         >
                           <div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: '#263238' }}>{r.name}</div>
-                            <div style={{ fontSize: 12, color: '#78909C' }}>{r.duration ? `${r.duration} · ` : ''}{totalEx} ejercicios</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{r.name}</div>
+                            <div style={{ fontSize: 12, color: 'var(--gray-mid)' }}>{r.duration ? `${r.duration} · ` : ''}{totalEx} ejercicios</div>
                           </div>
                           {sel && <span style={{ color: 'var(--emerald-600)', fontWeight: 800, fontSize: 14, flexShrink: 0 }}>✓</span>}
                         </button>
@@ -726,10 +726,10 @@ export default function Semana({ editToday = false, onConsumed }) {
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-                  <span style={{ fontSize: 13, color: '#64748B', fontWeight: 600 }}>Horario</span>
+                  <span style={{ fontSize: 13, color: 'var(--gray-mid)', fontWeight: 600 }}>Horario</span>
                   <input
                     type="time" value={addTime} onChange={e => setAddTime(e.target.value)}
-                    style={{ fontSize: 14, border: '1.5px solid #CBD5E1', borderRadius: 6, padding: '6px 8px', fontFamily: 'inherit', background: 'white', color: '#263238' }}
+                    style={{ fontSize: 14, border: '1.5px solid var(--border-strong)', borderRadius: 6, padding: '6px 8px', fontFamily: 'inherit', background: 'white', color: 'var(--text-primary)' }}
                   />
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>

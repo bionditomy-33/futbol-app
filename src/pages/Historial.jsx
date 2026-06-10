@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+﻿import { useState, useRef } from 'react';
 import { useStore, getState } from '../store/useStore';
 import { INITIAL_CATALOG } from '../data/initialData';
 import { todayStr, formatDate, getDayName, getWeekStart } from '../utils/dates';
@@ -6,7 +6,7 @@ import { GymIcon, ChevronLeft } from '../components/Icons';
 import ProgressBar from '../components/ProgressBar';
 import { useToday } from '../hooks/useToday';
 
-const RATING_COLORS = ['', '#EF5350', '#FF7043', '#FFC107', '#66BB6A', '#2E7D32'];
+const RATING_COLORS = ['', 'var(--red-600)', '#FF7043', '#FFC107', '#66BB6A', '#2E7D32'];
 const RATING_LABELS = ['', 'Muy mal', 'Mal', 'Regular', 'Bien', 'Excelente'];
 
 
@@ -191,7 +191,7 @@ export default function Historial({ onBack } = {}) {
           <div className="metric-label">Entrenos</div>
         </div>
         <div className="metric-card">
-          <div className="metric-value" style={{ color: monthGym > 0 ? '#1565C0' : undefined }}>{monthGym}</div>
+          <div className="metric-value" style={{ color: monthGym > 0 ? 'var(--blue-800)' : undefined }}>{monthGym}</div>
           <div className="metric-label">Días gym</div>
         </div>
       </div>
@@ -203,8 +203,8 @@ export default function Historial({ onBack } = {}) {
           {sessionsByType.map(({ name, count }) => (
             <div key={name} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 13, color: '#1A2332', fontWeight: 500 }}>{name}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#0A1628' }}>
+                <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{name}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy-800)' }}>
                   {count} {count === 1 ? 'vez' : 'veces'}
                 </span>
               </div>
@@ -223,10 +223,10 @@ export default function Historial({ onBack } = {}) {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               paddingBottom: i < streaksByType.length - 1 ? 10 : 0,
               marginBottom: i < streaksByType.length - 1 ? 10 : 0,
-              borderBottom: i < streaksByType.length - 1 ? '1px solid #F1F5F4' : 'none',
+              borderBottom: i < streaksByType.length - 1 ? '1px solid var(--divider)' : 'none',
             }}>
-              <span style={{ fontSize: 13, color: '#1A2332', flex: 1, marginRight: 10 }}>{name}</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: streak > 0 ? '#0A1628' : '#94A3B8' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-primary)', flex: 1, marginRight: 10 }}>{name}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: streak > 0 ? 'var(--navy-800)' : 'var(--text-light)' }}>
                 {streak > 0
                   ? `${streak} sem. ${streak !== 1 ? 'consecutivas' : 'consecutiva'}`
                   : lastWeeksAgo
@@ -259,27 +259,27 @@ export default function Historial({ onBack } = {}) {
             return (
               <div key={dateStr} style={{
                 display: 'flex', gap: 12, padding: '13px 16px',
-                borderBottom: isLast ? 'none' : '1px solid #F1F5F4',
+                borderBottom: isLast ? 'none' : '1px solid var(--divider)',
               }}>
                 {/* Dot + line */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
                   <div style={{
                     width: 10, height: 10, borderRadius: '50',
-                    background: isTraining ? '#059669' : '#2563EB',
+                    background: isTraining ? 'var(--emerald-600)' : 'var(--blue-600)',
                     marginTop: 4, borderRadius: '50%',
                   }} />
                   {!isLast && (
-                    <div style={{ width: 2, flex: 1, background: '#F1F5F4', marginTop: 4 }} />
+                    <div style={{ width: 2, flex: 1, background: 'var(--divider)', marginTop: 4 }} />
                   )}
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: '#1A2332', lineHeight: 1.3 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.3 }}>
                         {isTraining ? (routine?.name || 'Rutina eliminada') : 'Solo gimnasio'}
                       </div>
-                      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 2 }}>
                         {getDayName(dateStr)} · {formatDate(dateStr)}
                       </div>
                     </div>
@@ -294,7 +294,7 @@ export default function Historial({ onBack } = {}) {
                   </div>
 
                   {isTraining && (
-                    <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
+                    <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginTop: 4 }}>
                       {doneCount} ejercicios completados
                       {day.rating && (
                         <span style={{ marginLeft: 8, fontWeight: 700, color: RATING_COLORS[day.rating] }}>
@@ -305,17 +305,17 @@ export default function Historial({ onBack } = {}) {
                   )}
 
                   {day.hardestExercise && (
-                    <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
-                      Más difícil: <span style={{ color: '#475569', fontWeight: 600 }}>{day.hardestExercise}</span>
+                    <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 2 }}>
+                      Más difícil: <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{day.hardestExercise}</span>
                     </div>
                   )}
 
                   {day.notes && (
                     <div style={{
-                      fontSize: 12, color: '#475569',
-                      background: '#F8FAFC', borderRadius: 7,
+                      fontSize: 12, color: 'var(--text-secondary)',
+                      background: 'var(--bg-subtle)', borderRadius: 7,
                       padding: '7px 10px', marginTop: 6,
-                      borderLeft: '2px solid #E2E8F0',
+                      borderLeft: '2px solid var(--border-color)',
                       lineHeight: 1.5,
                     }}>
                       {day.notes}
@@ -332,14 +332,14 @@ export default function Historial({ onBack } = {}) {
       <div style={{
         margin: '8px 16px 0',
         padding: '18px 16px',
-        background: '#F8FAFC',
+        background: 'var(--bg-subtle)',
         borderRadius: 14,
-        border: '1px solid #E2E8F0',
+        border: '1px solid var(--border-color)',
       }}>
-        <div style={{ fontWeight: 800, fontSize: 14, color: '#1A2332', marginBottom: 3, letterSpacing: '-0.01em' }}>
+        <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', marginBottom: 3, letterSpacing: '-0.01em' }}>
           Tus datos
         </div>
-        <div style={{ fontSize: 13, color: '#64748B', marginBottom: 14, lineHeight: 1.4 }}>
+        <div style={{ fontSize: 13, color: 'var(--gray-mid)', marginBottom: 14, lineHeight: 1.4 }}>
           Exportá un backup o importá datos desde un archivo previo.
         </div>
 
@@ -385,10 +385,10 @@ export default function Historial({ onBack } = {}) {
         <div className="modal-overlay" onClick={() => setImportConfirm(false)}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
             <div className="modal-drag-handle" />
-            <div style={{ fontWeight: 800, fontSize: 17, color: '#1A2332', marginBottom: 10 }}>
+            <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', marginBottom: 10 }}>
               ¿Importar datos?
             </div>
-            <div style={{ fontSize: 14, color: '#64748B', marginBottom: 24, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: 'var(--gray-mid)', marginBottom: 24, lineHeight: 1.5 }}>
               Esto va a reemplazar <strong>todos tus datos actuales</strong> (rutinas, catálogo, historial, planificación, partidos, planes y semanas tipo).
             </div>
             <div style={{ display: 'flex', gap: 10 }}>

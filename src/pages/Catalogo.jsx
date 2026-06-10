@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { useToast } from '../components/useToast';
 import { useStore } from '../store/useStore';
 import {
@@ -145,7 +145,7 @@ export default function Catalogo({ onBack } = {}) {
         {showAddEx && (
           <div className="card" style={{ marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <span style={{ fontWeight: 800, fontSize: 15, color: '#1A2332' }}>Nuevo ejercicio</span>
+              <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)' }}>Nuevo ejercicio</span>
               <button className="btn btn-ghost" style={{ padding: 4 }} onClick={() => { setShowAddEx(false); setIsNewCat(false); }}>
                 <XIcon size={15} />
               </button>
@@ -174,7 +174,7 @@ export default function Catalogo({ onBack } = {}) {
               )}
             </div>
             <div className="form-group" style={{ marginBottom: 14 }}>
-              <label className="form-label">Link de video <span style={{ color: '#94A3B8', fontWeight: 500 }}>(opcional)</span></label>
+              <label className="form-label">Link de video <span style={{ color: 'var(--text-light)', fontWeight: 500 }}>(opcional)</span></label>
               <input className="input" placeholder="https://..." value={newEx.link} onChange={e => setNewEx(n => ({ ...n, link: e.target.value }))} />
             </div>
             <button
@@ -215,7 +215,7 @@ export default function Catalogo({ onBack } = {}) {
 
         {/* ── Category cards ── */}
         {visibleCats.map(({ cat, exercises }) => {
-          const color = colorMap[cat] || '#64748B';
+          const color = colorMap[cat] || 'var(--gray-mid)';
           const isOpen = open[cat] || !!q;
           const catTotal = catalog[cat];
           const isEmpty = catTotal.length === 0;
@@ -286,7 +286,7 @@ export default function Catalogo({ onBack } = {}) {
                   </div>
                   <div className="form-group" style={{ marginBottom: moveLinkSuggestion(exercises, catLinks, cat, catEditForm) ? 10 : 14 }}>
                     <label className="form-label">
-                      Video de la categoría <span style={{ color: '#94A3B8', fontWeight: 500 }}>(opcional)</span>
+                      Video de la categoría <span style={{ color: 'var(--text-light)', fontWeight: 500 }}>(opcional)</span>
                     </label>
                     <input
                       className="input"

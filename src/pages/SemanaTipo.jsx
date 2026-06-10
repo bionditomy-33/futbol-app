@@ -1,7 +1,8 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr, formatDate } from '../utils/dates';
 import { ChevronLeft, GymIcon, BallIcon, TrophyIcon, PlusIcon, EditIcon, TrashIcon } from '../components/Icons';
+import { ACT_COLORS, ACT_DOT_COLORS } from '../utils/colors';
 
 const WEEK_DAYS = [
   { dow: 1, label: 'Lunes' },
@@ -42,7 +43,7 @@ function MiniPreview({ days }) {
         if (d.match)     dots.push('var(--amber-600)');
         return (
           <div key={dow} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <div style={{ fontSize: 8, color: '#94A3B8', fontWeight: 600 }}>{DAY_SHORT[dow]}</div>
+            <div style={{ fontSize: 8, color: 'var(--text-light)', fontWeight: 600 }}>{DAY_SHORT[dow]}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {dots.length > 0
                 ? dots.map((c, i) => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: c }} />)
@@ -73,18 +74,18 @@ function TemplateCard({ tmpl, onEdit, onDuplicate, onDelete, onSetDefault, plans
   return (
     <div style={{
       background: 'white',
-      border: `1.5px solid ${activePlan ? '#059669' : tmpl.isDefault ? '#1D3461' : 'var(--border-color)'}`,
+      border: `1.5px solid ${activePlan ? 'var(--emerald-600)' : tmpl.isDefault ? 'var(--navy-600)' : 'var(--border-color)'}`,
       borderRadius: 12,
       padding: '14px 14px 12px',
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#1A2332' }}>{tmpl.name}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{tmpl.name}</span>
             {tmpl.isDefault && (
               <span style={{
                 fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 99,
-                background: '#1D3461', color: 'white', textTransform: 'uppercase', letterSpacing: '0.05em',
+                background: 'var(--navy-600)', color: 'white', textTransform: 'uppercase', letterSpacing: '0.05em',
               }}>
                 Predeterminada
               </span>
@@ -92,14 +93,14 @@ function TemplateCard({ tmpl, onEdit, onDuplicate, onDelete, onSetDefault, plans
             {activePlan && (
               <span style={{
                 fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 99,
-                background: '#D1FAE5', color: 'var(--emerald-800)', textTransform: 'uppercase', letterSpacing: '0.05em',
+                background: 'var(--emerald-100)', color: 'var(--emerald-800)', textTransform: 'uppercase', letterSpacing: '0.05em',
               }}>
                 ACTIVA
               </span>
             )}
           </div>
           {activePlan && (
-            <div style={{ fontSize: 11, color: '#059669', marginTop: 3 }}>
+            <div style={{ fontSize: 11, color: 'var(--emerald-600)', marginTop: 3 }}>
               {activePlan.name} · {formatDate(activePlan.startDate)} al {formatDate(activePlan.endDate)}
             </div>
           )}
@@ -140,8 +141,8 @@ function TemplateCard({ tmpl, onEdit, onDuplicate, onDelete, onSetDefault, plans
           onClick={() => onSetDefault(tmpl.id)}
           style={{
             marginTop: 10, width: '100%', padding: '7px', borderRadius: 8,
-            border: '1px solid var(--border-color)', background: '#F8FAFC',
-            fontSize: 12, fontWeight: 600, color: '#475569', cursor: 'pointer', fontFamily: 'inherit',
+            border: '1px solid var(--border-color)', background: 'var(--bg-subtle)',
+            fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
           Marcar como predeterminada
@@ -185,7 +186,7 @@ function DayRow({ dow, label, day, onChange }) {
 
       {/* Rutina individual */}
       <div className="wt-row">
-        <div className="wt-row-icon" style={{ background: '#E8F5EE', color: '#3E7A5C' }}>
+        <div className="wt-row-icon" style={{ background: ACT_COLORS.indiv.bg, color: ACT_DOT_COLORS.indiv }}>
           <BallIcon size={14} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -195,7 +196,7 @@ function DayRow({ dow, label, day, onChange }) {
 
       {/* Gym */}
       <div className="wt-row">
-        <div className="wt-row-icon" style={{ background: '#E8EDF5', color: '#2D3E50' }}>
+        <div className="wt-row-icon" style={{ background: 'var(--navy-100)', color: ACT_DOT_COLORS.gym }}>
           <GymIcon size={14} />
         </div>
         <label style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
@@ -210,7 +211,7 @@ function DayRow({ dow, label, day, onChange }) {
 
       {/* Arsenal */}
       <div className="wt-row">
-        <div className="wt-row-icon" style={{ background: '#F5EDE8', color: '#8B4513' }}>
+        <div className="wt-row-icon" style={{ background: ACT_COLORS.arsenal.bg, color: ACT_DOT_COLORS.arsenal }}>
           <ShieldIcon size={14} />
         </div>
         <label style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
@@ -225,7 +226,7 @@ function DayRow({ dow, label, day, onChange }) {
 
       {/* Partido */}
       <div className="wt-row">
-        <div className="wt-row-icon" style={{ background: '#FDF4E3', color: '#C17817' }}>
+        <div className="wt-row-icon" style={{ background: ACT_COLORS.match.bg, color: ACT_DOT_COLORS.match }}>
           <TrophyIcon size={14} />
         </div>
         <label style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
@@ -268,7 +269,7 @@ function TemplateEditor({ initial, routines, onSave, onCancel }) {
     <div>
       {/* Name field */}
       <div style={{ padding: '0 16px 12px' }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-light)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
           Nombre de la semana tipo
         </div>
         <input
@@ -297,7 +298,7 @@ function TemplateEditor({ initial, routines, onSave, onCancel }) {
 
               {/* Rutina individual */}
               <div className="wt-row">
-                <div className="wt-row-icon" style={{ background: '#E8F5EE', color: '#3E7A5C' }}>
+                <div className="wt-row-icon" style={{ background: ACT_COLORS.indiv.bg, color: ACT_DOT_COLORS.indiv }}>
                   <BallIcon size={14} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -318,7 +319,7 @@ function TemplateEditor({ initial, routines, onSave, onCancel }) {
 
               {/* Gym */}
               <div className="wt-row">
-                <div className="wt-row-icon" style={{ background: '#E8EDF5', color: '#2D3E50' }}>
+                <div className="wt-row-icon" style={{ background: 'var(--navy-100)', color: ACT_DOT_COLORS.gym }}>
                   <GymIcon size={14} />
                 </div>
                 <label style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
@@ -333,7 +334,7 @@ function TemplateEditor({ initial, routines, onSave, onCancel }) {
 
               {/* Arsenal */}
               <div className="wt-row">
-                <div className="wt-row-icon" style={{ background: '#F5EDE8', color: '#8B4513' }}>
+                <div className="wt-row-icon" style={{ background: ACT_COLORS.arsenal.bg, color: ACT_DOT_COLORS.arsenal }}>
                   <ShieldIcon size={14} />
                 </div>
                 <label style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
@@ -348,7 +349,7 @@ function TemplateEditor({ initial, routines, onSave, onCancel }) {
 
               {/* Partido */}
               <div className="wt-row">
-                <div className="wt-row-icon" style={{ background: '#FDF4E3', color: '#C17817' }}>
+                <div className="wt-row-icon" style={{ background: ACT_COLORS.match.bg, color: ACT_DOT_COLORS.match }}>
                   <TrophyIcon size={14} />
                 </div>
                 <label style={{ flex: 1, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>

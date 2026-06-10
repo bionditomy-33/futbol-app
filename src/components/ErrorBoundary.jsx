@@ -1,4 +1,4 @@
-import { Component } from 'react';
+﻿import { Component } from 'react';
 
 export default class ErrorBoundary extends Component {
   state = { hasError: false };
@@ -21,10 +21,10 @@ export default class ErrorBoundary extends Component {
         padding: '32px 24px', background: '#fff', textAlign: 'center',
       }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-        <div style={{ fontWeight: 800, fontSize: 20, color: '#263238', marginBottom: 8 }}>
+        <div style={{ fontWeight: 800, fontSize: 20, color: 'var(--text-primary)', marginBottom: 8 }}>
           Algo salió mal
         </div>
-        <div style={{ fontSize: 14, color: '#78909C', marginBottom: 32, maxWidth: 300, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 14, color: 'var(--gray-mid)', marginBottom: 32, maxWidth: 300, lineHeight: 1.5 }}>
           La app encontró un error inesperado. Recargala para continuar; tus datos están guardados en la nube.
         </div>
         <button

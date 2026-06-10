@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { useStore, getPlanProgress } from '../store/useStore';
 import { toDateStr, addDays, getWeekDays } from '../utils/dates';
 import { getDayActivities, getEffectiveTemplateDays as getEffectiveTmpl, buildGymTogglePatch, buildToggleSkipPatch } from '../utils/activities';
@@ -19,10 +19,10 @@ function PlanBar({ label, value, max, color }) {
   return (
     <div style={{ flex: 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: 11, color: '#94A3B8' }}>{label}</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: '#1A2332' }}>{value}/{max}</span>
+        <span style={{ fontSize: 11, color: 'var(--text-light)' }}>{label}</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>{value}/{max}</span>
       </div>
-      <div style={{ height: 4, background: '#E8ECEB', borderRadius: 99, overflow: 'hidden' }}>
+      <div style={{ height: 4, background: 'var(--divider)', borderRadius: 99, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 99 }} />
       </div>
     </div>
@@ -151,7 +151,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
   // ── Stats presentation ─────────────────────────────────────────────────────
   const streakHot   = streak >= 5;
   const weekRatio   = weekStats.planned > 0 ? weekStats.done / weekStats.planned : 0;
-  const weekColor   = weekStats.planned === 0 ? '#94A3B8' : weekRatio >= 1 ? 'var(--emerald-600)' : weekRatio >= 0.5 ? 'var(--text-primary)' : 'var(--red-600)';
+  const weekColor   = weekStats.planned === 0 ? 'var(--text-light)' : weekRatio >= 1 ? 'var(--emerald-600)' : weekRatio >= 0.5 ? 'var(--text-primary)' : 'var(--red-600)';
   const monthColor  = monthStats >= 70 ? 'var(--emerald-600)' : monthStats >= 40 ? 'var(--amber-600)' : 'var(--red-600)';
 
   return (
@@ -240,8 +240,8 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
       <div style={{ padding: '0 16px 12px' }}>
         <div className="hoy-section-label">ESTADÍSTICAS</div>
         <div className="metrics-row" style={{ padding: 0 }}>
-          <div className="metric-card" style={streakHot ? { background: 'linear-gradient(150deg, #112040, #1D3461)', borderColor: 'transparent' } : undefined}>
-            <div className="metric-value" style={{ color: streakHot ? '#FCD34D' : streak === 0 ? 'var(--text-light)' : 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <div className="metric-card" style={streakHot ? { background: 'linear-gradient(150deg, var(--navy-700), var(--navy-600))', borderColor: 'transparent' } : undefined}>
+            <div className="metric-value" style={{ color: streakHot ? 'var(--amber-300)' : streak === 0 ? 'var(--text-light)' : 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               {streakHot && <FireIcon size={16} />}{streak}
             </div>
             <div className="metric-label" style={streakHot ? { color: 'rgba(255,255,255,0.7)' } : undefined}>RACHA</div>
@@ -266,8 +266,8 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
             onClick={onGoToDesafios}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#1A2332' }}>{activePlan.name}</span>
-              <span style={{ fontSize: 11, color: '#94A3B8' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{activePlan.name}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-light)' }}>
                 Sem {planData.prog.currentWeekNum}/{planData.prog.totalWeeks}
               </span>
             </div>

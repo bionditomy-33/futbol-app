@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { getPlanProgress, computePlanWeeklyLog, useStore } from '../store/useStore';
 import { toDateStr } from '../utils/dates';
 import { getDayActivities, buildGymTogglePatch, buildToggleSkipPatch } from '../utils/activities';
@@ -69,7 +69,7 @@ function AlertBanner({ level, text, onClose }) {
 
 // ─── SVG circular progress ────────────────────────────────────────────────────
 
-function CircularProgress({ pct, size = 136, strokeWidth = 11, color = '#1D3461', bg = '#E8EDF5' }) {
+function CircularProgress({ pct, size = 136, strokeWidth = 11, color = 'var(--navy-600)', bg = 'var(--navy-100)' }) {
   const r = (size - strokeWidth) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - Math.min(100, Math.max(0, pct)) / 100);
@@ -91,7 +91,7 @@ function CircularProgress({ pct, size = 136, strokeWidth = 11, color = '#1D3461'
 
 function LinearBar({ pct, color }) {
   return (
-    <div style={{ height: 8, borderRadius: 99, background: '#E8EDF5', overflow: 'hidden' }}>
+    <div style={{ height: 8, borderRadius: 99, background: 'var(--navy-100)', overflow: 'hidden' }}>
       <div style={{
         height: '100%', borderRadius: 99, background: color,
         width: `${Math.min(100, pct)}%`, transition: 'width 0.4s ease',
@@ -104,17 +104,17 @@ function LinearBar({ pct, color }) {
 
 function RhythmBadge({ onTrack, ahead }) {
   if (ahead) return (
-    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: '#DBEAFE', color: '#1D4ED8' }}>
+    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: 'var(--blue-100)', color: 'var(--blue-800)' }}>
       Adelantado
     </span>
   );
   if (onTrack) return (
-    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: '#D1FAE5', color: '#065F46' }}>
+    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: 'var(--emerald-100)', color: 'var(--emerald-800)' }}>
       En ritmo
     </span>
   );
   return (
-    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: '#FEE2E2', color: '#991B1B' }}>
+    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: 'var(--red-100)', color: 'var(--red-800)' }}>
       Atrasado
     </span>
   );
@@ -132,8 +132,8 @@ function RatingPicker({ value, onChange }) {
           style={{
             flex: 1, padding: '7px 2px', borderRadius: 6, border: 'none',
             cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 12,
-            background: n <= value ? '#0A1628' : '#F1F5F9',
-            color: n <= value ? '#FCD34D' : '#94A3B8',
+            background: n <= value ? 'var(--navy-800)' : 'var(--divider)',
+            color: n <= value ? 'var(--amber-300)' : 'var(--text-light)',
           }}
         >
           {n}
@@ -160,42 +160,42 @@ function CloseForm({ plan, progress, weeks, onClose, onCancel }) {
   const diff = finalRating - (plan.initialRating ?? 5);
 
   return (
-    <div className="card" style={{ border: '2px solid #059669' }}>
+    <div className="card" style={{ border: '2px solid var(--emerald-600)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
         <CheckCircleIcon size={20} />
-        <div style={{ fontWeight: 800, fontSize: 16, color: '#059669' }}>Cerrar plan</div>
+        <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--emerald-600)' }}>Cerrar plan</div>
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-        <div style={{ flex: 1, background: '#F8FAFC', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#1D3461' }}>{progress.pct}%</div>
-          <div style={{ fontSize: 11, color: '#78909C' }}>{progress.completedSessions}/{progress.effTotal} sesiones</div>
+        <div style={{ flex: 1, background: 'var(--bg-subtle)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+          <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy-600)' }}>{progress.pct}%</div>
+          <div style={{ fontSize: 11, color: 'var(--gray-mid)' }}>{progress.completedSessions}/{progress.effTotal} sesiones</div>
         </div>
         {progress.gymPct != null && (
-          <div style={{ flex: 1, background: '#F8FAFC', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#1D3461' }}>{progress.gymPct}%</div>
-            <div style={{ fontSize: 11, color: '#78909C' }}>Gym: {progress.gymSessions}/{progress.effGymTarget}</div>
+          <div style={{ flex: 1, background: 'var(--bg-subtle)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy-600)' }}>{progress.gymPct}%</div>
+            <div style={{ fontSize: 11, color: 'var(--gray-mid)' }}>Gym: {progress.gymSessions}/{progress.effGymTarget}</div>
           </div>
         )}
         {progress.individualPct != null && (
-          <div style={{ flex: 1, background: '#F8FAFC', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#1D3461' }}>{progress.individualPct}%</div>
-            <div style={{ fontSize: 11, color: '#78909C' }}>Ind: {progress.individualSessions}/{progress.effIndTarget}</div>
+          <div style={{ flex: 1, background: 'var(--bg-subtle)', borderRadius: 10, padding: '10px 12px', textAlign: 'center' }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy-600)' }}>{progress.individualPct}%</div>
+            <div style={{ fontSize: 11, color: 'var(--gray-mid)' }}>Ind: {progress.individualSessions}/{progress.effIndTarget}</div>
           </div>
         )}
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 13, color: '#263238' }}>
+        <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>
           <strong>{completedWeeks}</strong>/{pastWeeks.length} semanas al 100%
         </div>
         {bestWeek && (
-          <div style={{ fontSize: 12, color: '#78909C' }}>
+          <div style={{ fontSize: 12, color: 'var(--gray-mid)' }}>
             · Mejor: Sem {bestWeek.num} ({bestWeek.score} ses.)
           </div>
         )}
         {worstWeek && bestWeek?.num !== worstWeek?.num && (
-          <div style={{ fontSize: 12, color: '#78909C' }}>
+          <div style={{ fontSize: 12, color: 'var(--gray-mid)' }}>
             · Peor: Sem {worstWeek.num} ({worstWeek.score} ses.)
           </div>
         )}
@@ -204,11 +204,11 @@ function CloseForm({ plan, progress, weeks, onClose, onCancel }) {
       <div style={{ marginBottom: 12 }}>
         <div className="form-label" style={{ marginBottom: 6 }}>¿Cómo estás ahora en esto? (1-10)</div>
         <RatingPicker value={finalRating} onChange={setFinalRating} />
-        <div style={{ fontSize: 12, color: '#78909C', marginTop: 6 }}>
-          Antes: <strong style={{ color: '#263238' }}>{plan.initialRating}/10</strong>
-          {' → '}Ahora: <strong style={{ color: '#263238' }}>{finalRating}/10</strong>
+        <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginTop: 6 }}>
+          Antes: <strong style={{ color: 'var(--text-primary)' }}>{plan.initialRating}/10</strong>
+          {' → '}Ahora: <strong style={{ color: 'var(--text-primary)' }}>{finalRating}/10</strong>
           {diff !== 0 && (
-            <span style={{ fontWeight: 700, marginLeft: 6, color: diff > 0 ? '#059669' : '#DC2626' }}>
+            <span style={{ fontWeight: 700, marginLeft: 6, color: diff > 0 ? 'var(--emerald-600)' : 'var(--red-600)' }}>
               ({diff > 0 ? '+' : ''}{diff})
             </span>
           )}
@@ -216,7 +216,7 @@ function CloseForm({ plan, progress, weeks, onClose, onCancel }) {
       </div>
 
       <div className="form-group">
-        <label className="form-label">¿Qué sacaste de este plan? <span style={{ color: '#B0BEC5' }}>(opcional)</span></label>
+        <label className="form-label">¿Qué sacaste de este plan? <span style={{ color: 'var(--text-light)' }}>(opcional)</span></label>
         <textarea
           className="input"
           placeholder="Reflexión, aprendizajes, próximos pasos..."
@@ -538,10 +538,10 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   // ── Compact week summary items ─────────────────────────────────────────────
   const summaryItems = currentWeek ? [
     (actType === 'gym' || actType === 'both') && currentWeek.gymEffTarget > 0 && {
-      label: 'Gym', done: currentWeek.gym, target: currentWeek.gymEffTarget, color: '#1D3461',
+      label: 'Gym', done: currentWeek.gym, target: currentWeek.gymEffTarget, color: 'var(--navy-600)',
     },
     (actType === 'individual' || actType === 'both') && currentWeek.indivEffTarget > 0 && {
-      label: 'Individual', done: currentWeek.individual, target: currentWeek.indivEffTarget, color: '#059669',
+      label: 'Individual', done: currentWeek.individual, target: currentWeek.indivEffTarget, color: 'var(--emerald-600)',
     },
   ].filter(Boolean) : [];
 
@@ -574,7 +574,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <RhythmBadge onTrack={progress.isOnTrack} ahead={rhythmStatus === 'ahead'} />
               {progress.isExpired ? (
-                <span className="plan-hero-chip" style={{ background: 'rgba(239,83,80,0.22)', color: '#FCA5A5' }}>Vencido</span>
+                <span className="plan-hero-chip" style={{ background: 'rgba(239,83,80,0.22)', color: 'var(--red-300)' }}>Vencido</span>
               ) : progress.remainingDays > 0 && (
                 <span className="plan-hero-chip" style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)' }}>
                   Quedan {progress.remainingDays} días
@@ -713,12 +713,12 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                 <div key={item.label} className="wk-summary-chip">
                   <div className="wk-summary-chip-top">
                     <span className="wk-summary-chip-label">{item.label}</span>
-                    <span className="wk-summary-chip-val" style={{ color: met ? '#059669' : item.color }}>
+                    <span className="wk-summary-chip-val" style={{ color: met ? 'var(--emerald-600)' : item.color }}>
                       {item.done}/{item.target}
                     </span>
                   </div>
                   <div className="wk-summary-chip-bar">
-                    <div className="wk-summary-chip-fill" style={{ width: `${pct}%`, background: met ? '#059669' : item.color }} />
+                    <div className="wk-summary-chip-fill" style={{ width: `${pct}%`, background: met ? 'var(--emerald-600)' : item.color }} />
                   </div>
                 </div>
               );
@@ -761,35 +761,35 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
 
       {/* Cómo vengo */}
       <div className="card">
-        <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 14 }}>Cómo vengo</div>
+        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', marginBottom: 14 }}>Cómo vengo</div>
 
         {actType === 'both' && progress.gymPct != null && progress.individualPct != null ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 14 }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#263238' }}>Gimnasio</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Gimnasio</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, color: '#78909C' }}>{progress.gymSessions}/{progress.effGymTarget} ses.</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#1D3461' }}>{progress.gymPct}%</span>
+                  <span style={{ fontSize: 12, color: 'var(--gray-mid)' }}>{progress.gymSessions}/{progress.effGymTarget} ses.</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy-600)' }}>{progress.gymPct}%</span>
                   <RhythmBadge onTrack={progress.gymOnTrack} ahead={false} />
                 </div>
               </div>
-              <LinearBar pct={progress.gymPct} color="#1D3461" />
+              <LinearBar pct={progress.gymPct} color="var(--navy-600)" />
             </div>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#263238' }}>Entrenamiento</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Entrenamiento</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, color: '#78909C' }}>{progress.individualSessions}/{progress.effIndTarget} ses.</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#059669' }}>{progress.individualPct}%</span>
+                  <span style={{ fontSize: 12, color: 'var(--gray-mid)' }}>{progress.individualSessions}/{progress.effIndTarget} ses.</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--emerald-600)' }}>{progress.individualPct}%</span>
                   <RhythmBadge onTrack={progress.individualOnTrack} ahead={false} />
                 </div>
               </div>
-              <LinearBar pct={progress.individualPct} color="#059669" />
+              <LinearBar pct={progress.individualPct} color="var(--emerald-600)" />
             </div>
-            <div style={{ borderTop: '1px solid #E8EDF5', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 13, color: '#78909C' }}>Total: {progress.completedSessions}/{progress.effTotal}</span>
-              <span style={{ fontSize: 22, fontWeight: 800, color: '#1D3461' }}>{progress.pct}%</span>
+            <div style={{ borderTop: '1px solid var(--navy-100)', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: 'var(--gray-mid)' }}>Total: {progress.completedSessions}/{progress.effTotal}</span>
+              <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy-600)' }}>{progress.pct}%</span>
             </div>
           </div>
         ) : (
@@ -797,13 +797,13 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <CircularProgress pct={progress.pct} size={100} strokeWidth={9} />
               <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#1D3461', lineHeight: 1 }}>{progress.pct}%</div>
-                <div style={{ fontSize: 9, color: '#94A3B8', marginTop: 2 }}>completado</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy-600)', lineHeight: 1 }}>{progress.pct}%</div>
+                <div style={{ fontSize: 9, color: 'var(--text-light)', marginTop: 2 }}>completado</div>
               </div>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#263238' }}>{progress.completedSessions} / {progress.effTotal}</div>
-              <div style={{ fontSize: 12, color: '#78909C', marginBottom: 8 }}>sesiones completadas</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{progress.completedSessions} / {progress.effTotal}</div>
+              <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginBottom: 8 }}>sesiones completadas</div>
               <RhythmBadge onTrack={progress.isOnTrack} ahead={rhythmStatus === 'ahead'} />
             </div>
           </div>
@@ -820,18 +820,18 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             }
             if (streak === 0) return null;
             return (
-              <div style={{ flex: 1, minWidth: 80, background: '#F8FAFC', borderRadius: 8, padding: '10px 12px' }}>
-                <div style={{ fontSize: 11, color: '#78909C', marginBottom: 2 }}>Racha</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#1D3461' }}>{streak}</div>
-                <div style={{ fontSize: 10, color: '#78909C' }}>sem. consec.</div>
+              <div style={{ flex: 1, minWidth: 80, background: 'var(--bg-subtle)', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ fontSize: 11, color: 'var(--gray-mid)', marginBottom: 2 }}>Racha</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy-600)' }}>{streak}</div>
+                <div style={{ fontSize: 10, color: 'var(--gray-mid)' }}>sem. consec.</div>
               </div>
             );
           })()}
 
           {(gymDebt > 0 || indivDebt > 0) && (
-            <div style={{ flex: 1, minWidth: 80, background: '#FEF3C7', borderRadius: 8, padding: '10px 12px' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#92400E', marginBottom: 2 }}>Deuda</div>
-              <div style={{ fontSize: 12, color: '#92400E' }}>
+            <div style={{ flex: 1, minWidth: 80, background: 'var(--amber-100)', borderRadius: 8, padding: '10px 12px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--amber-800)', marginBottom: 2 }}>Deuda</div>
+              <div style={{ fontSize: 12, color: 'var(--amber-800)' }}>
                 {[gymDebt > 0 && `${gymDebt} gym`, indivDebt > 0 && `${indivDebt} indiv`].filter(Boolean).join(' · ')}
               </div>
             </div>
@@ -847,7 +847,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
           open={!!openSections.week}
           onToggle={() => toggleSection('week')}
           badge={(currentWeek.gymCompAvail > 0 || currentWeek.indivCompAvail > 0) ? (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: '#FEF3C7', color: '#92400E' }}>+comp</span>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: 'var(--amber-100)', color: 'var(--amber-800)' }}>+comp</span>
           ) : null}
         >
           {/* Day list */}
@@ -859,29 +859,29 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             return (
               <div key={dateStr} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 10, padding: '6px 0',
-                borderBottom: isLast ? 'none' : '0.5px solid #F1F5F9',
+                borderBottom: isLast ? 'none' : '0.5px solid var(--divider)',
               }}>
                 <span style={{
                   fontSize: 11, width: 46, flexShrink: 0, paddingTop: 1,
-                  color: isToday ? 'var(--navy-600)' : isPast ? '#94A3B8' : '#263238',
+                  color: isToday ? 'var(--navy-600)' : isPast ? 'var(--text-light)' : 'var(--text-primary)',
                   fontWeight: isToday ? 700 : 400,
                 }}>
                   {DAY_SHORT[d.getDay()]} {d.getDate()}{isToday ? ' ·' : ''}
                 </span>
                 {acts.length === 0 ? (
-                  <span style={{ fontSize: 12, color: '#B0BEC5' }}>Descanso</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-light)' }}>Descanso</span>
                 ) : (
                   <div style={{ flex: 1 }}>
                     {acts.map((act, ai) => {
                       const icon = act.done ? '✓' : act.skipped ? '✗' : (isPast ? '—' : '○');
-                      const ic = act.done ? '#059669' : act.skipped ? '#DC2626' : (isPast ? '#B0BEC5' : '#94A3B8');
+                      const ic = act.done ? 'var(--emerald-600)' : act.skipped ? 'var(--red-600)' : (isPast ? 'var(--text-light)' : 'var(--text-light)');
                       const name = act.type === 'gym'
                         ? 'Gimnasio'
                         : (routines.find(r => r.id === act.routineId)?.name || 'Entrenamiento');
                       return (
                         <div key={ai} style={{ display: 'flex', gap: 6, marginBottom: ai < acts.length - 1 ? 2 : 0, fontSize: 12 }}>
                           <span style={{ fontWeight: 700, color: ic, width: 12, flexShrink: 0 }}>{icon}</span>
-                          <span style={{ color: act.done ? '#059669' : '#263238', textDecoration: act.skipped ? 'line-through' : 'none' }}>
+                          <span style={{ color: act.done ? 'var(--emerald-600)' : 'var(--text-primary)', textDecoration: act.skipped ? 'line-through' : 'none' }}>
                             {name}
                           </span>
                         </div>
@@ -907,21 +907,21 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             const name = act.type === 'gym'
               ? 'Gimnasio'
               : (routines.find(r => r.id === act.routineId)?.name || 'Entrenamiento individual');
-            const dotColor = act.type === 'gym' ? '#185FA5' : '#0F6E56';
+            const dotColor = act.type === 'gym' ? 'var(--blue-800)' : 'var(--emerald-800)';
             const isLast = i === upcomingActs.length - 1;
             return (
               <div key={`${dateStr}-${act.type}-${i}`} style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0',
-                borderBottom: isLast ? 'none' : '0.5px solid #F1F5F9',
+                borderBottom: isLast ? 'none' : '0.5px solid var(--divider)',
               }}>
                 <div style={{ width: 54, flexShrink: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#263238' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
                     {DAY_SHORT[d.getDay()]} {d.getDate()}/{d.getMonth() + 1}
                   </div>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, color: '#263238', fontWeight: 500 }}>{name}</div>
-                  <div style={{ fontSize: 11, color: '#94A3B8' }}>{act.type === 'gym' ? 'Gimnasio' : 'Individual'}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-light)' }}>{act.type === 'gym' ? 'Gimnasio' : 'Individual'}</div>
                 </div>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
               </div>
@@ -941,8 +941,8 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             const isLast     = i === weeks.length - 1;
             const isExpanded = expandedWeeks.has(week.num);
             const canExpand  = week.isPast || week.isCurrent;
-            const bg         = week.isCurrent ? '#EEF2FF' : 'transparent';
-            const borderColor = week.isCurrent ? '#C7D2FE' : '#F1F5F9';
+            const bg         = week.isCurrent ? 'var(--bg-selected)' : 'transparent';
+            const borderColor = week.isCurrent ? 'var(--navy-100)' : 'var(--divider)';
             const gymMet     = week.gym       >= week.gymEffTarget;
             const indivMet   = week.individual >= week.indivEffTarget;
             const hasDebt    = week.isPast && (week.accGymDebt > 0 || week.accIndivDebt > 0);
@@ -950,7 +950,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             return (
               <div key={week.num} style={{
                 borderBottom: isLast ? 'none' : `1px solid ${borderColor}`,
-                background: hasDebt ? '#FFFBEB' : bg,
+                background: hasDebt ? 'var(--amber-50)' : bg,
                 borderRadius: (week.isCurrent || hasDebt) ? 8 : 0,
                 paddingLeft: (week.isCurrent || hasDebt) ? 8 : 0,
                 paddingRight: (week.isCurrent || hasDebt) ? 8 : 0,
@@ -963,24 +963,24 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                   <div style={{ width: 60, flexShrink: 0 }}>
                     <div style={{
                       fontSize: 11, fontWeight: week.isCurrent ? 800 : 600,
-                      color: week.isCurrent ? 'var(--navy-600)' : week.isFuture ? '#B0BEC5' : '#263238',
+                      color: week.isCurrent ? 'var(--navy-600)' : week.isFuture ? 'var(--text-light)' : 'var(--text-primary)',
                     }}>
                       Sem {week.num}
                     </div>
-                    <div style={{ fontSize: 10, color: '#94A3B8' }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-light)' }}>
                       {dateShort(week.startDate)}–{dateShort(week.endDate)}
                     </div>
                   </div>
 
                   {(actType === 'gym' || actType === 'both') && week.gymEffTarget > 0 && (
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 10, color: '#78909C', marginBottom: 2 }}>
-                        Gym{week.gymCompAvail > 0 && <span style={{ color: '#D97706', fontWeight: 700 }}> +{week.gymCompAvail}</span>}
+                      <div style={{ fontSize: 10, color: 'var(--gray-mid)', marginBottom: 2 }}>
+                        Gym{week.gymCompAvail > 0 && <span style={{ color: 'var(--amber-600)', fontWeight: 700 }}> +{week.gymCompAvail}</span>}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span style={{
                           fontSize: 12, fontWeight: 700,
-                          color: week.isFuture ? '#B0BEC5' : gymMet ? '#1D3461' : '#EF5350',
+                          color: week.isFuture ? 'var(--text-light)' : gymMet ? 'var(--navy-600)' : 'var(--red-600)',
                         }}>
                           {week.isFuture ? `—/${week.gymEffTarget}` : `${week.gym}/${week.gymEffTarget}`}
                         </span>
@@ -991,13 +991,13 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
 
                   {(actType === 'individual' || actType === 'both') && week.indivEffTarget > 0 && (
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 10, color: '#78909C', marginBottom: 2 }}>
-                        Entreno{week.indivCompAvail > 0 && <span style={{ color: '#D97706', fontWeight: 700 }}> +{week.indivCompAvail}</span>}
+                      <div style={{ fontSize: 10, color: 'var(--gray-mid)', marginBottom: 2 }}>
+                        Entreno{week.indivCompAvail > 0 && <span style={{ color: 'var(--amber-600)', fontWeight: 700 }}> +{week.indivCompAvail}</span>}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <span style={{
                           fontSize: 12, fontWeight: 700,
-                          color: week.isFuture ? '#B0BEC5' : indivMet ? '#059669' : '#EF5350',
+                          color: week.isFuture ? 'var(--text-light)' : indivMet ? 'var(--emerald-600)' : 'var(--red-600)',
                         }}>
                           {week.isFuture ? `—/${week.indivEffTarget}` : `${week.individual}/${week.indivEffTarget}`}
                         </span>
@@ -1007,11 +1007,11 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                   )}
 
                   {week.isPast && (
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: week.isCompliant ? '#059669' : '#EF5350' }} />
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: week.isCompliant ? 'var(--emerald-600)' : 'var(--red-600)' }} />
                   )}
                   {week.isCurrent && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--navy-600)', flexShrink: 0 }}>HOY</span>}
                   {canExpand && (
-                    <span style={{ fontSize: 10, color: '#B0BEC5', flexShrink: 0 }}>{isExpanded ? '▼' : '▶'}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-light)', flexShrink: 0 }}>{isExpanded ? '▼' : '▶'}</span>
                   )}
                 </div>
 
@@ -1026,27 +1026,27 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                       return (
                         <div key={dateStr} style={{
                           display: 'flex', gap: 8, padding: '5px 0',
-                          borderBottom: isLast ? 'none' : '0.5px solid #F1F5F9',
+                          borderBottom: isLast ? 'none' : '0.5px solid var(--divider)',
                         }}>
                           <span style={{
                             fontSize: 11, width: 44, flexShrink: 0,
-                            color: isToday ? 'var(--navy-600)' : isPast ? '#94A3B8' : '#263238',
+                            color: isToday ? 'var(--navy-600)' : isPast ? 'var(--text-light)' : 'var(--text-primary)',
                             fontWeight: isToday ? 700 : 400,
                           }}>
                             {DAY_SHORT[d.getDay()]} {d.getDate()}
                           </span>
                           {acts.length === 0 ? (
-                            <span style={{ fontSize: 12, color: '#B0BEC5' }}>—</span>
+                            <span style={{ fontSize: 12, color: 'var(--text-light)' }}>—</span>
                           ) : (
                             <div>
                               {acts.map((act, ai) => {
                                 const icon = act.done ? '✓' : act.skipped ? '✗' : (isPast ? '—' : '○');
-                                const ic   = act.done ? '#059669' : act.skipped ? '#DC2626' : (isPast ? '#B0BEC5' : '#94A3B8');
+                                const ic   = act.done ? 'var(--emerald-600)' : act.skipped ? 'var(--red-600)' : (isPast ? 'var(--text-light)' : 'var(--text-light)');
                                 const name = act.type === 'gym'
                                   ? 'Gimnasio'
                                   : (routines.find(r => r.id === act.routineId)?.name || 'Entrenamiento');
                                 return (
-                                  <div key={ai} style={{ display: 'flex', gap: 5, fontSize: 12, color: '#263238', marginBottom: 1 }}>
+                                  <div key={ai} style={{ display: 'flex', gap: 5, fontSize: 12, color: 'var(--text-primary)', marginBottom: 1 }}>
                                     <span style={{ fontWeight: 700, color: ic, width: 12, flexShrink: 0 }}>{icon}</span>
                                     <span style={{ textDecoration: act.skipped ? 'line-through' : 'none' }}>{name}</span>
                                   </div>
@@ -1067,7 +1067,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
 
       {/* ── Configuración del plan ── */}
       <div className="card">
-        <div style={{ fontWeight: 700, fontSize: 13, color: '#263238', marginBottom: 12 }}>Configuración del plan</div>
+        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', marginBottom: 12 }}>Configuración del plan</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {onEdit && (
             <button className="btn btn-secondary btn-full" onClick={() => onEdit(plan)}>
@@ -1076,7 +1076,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
           )}
           <button
             className="btn btn-primary btn-full"
-            style={{ background: '#059669', borderColor: '#059669' }}
+            style={{ background: 'var(--emerald-600)', borderColor: 'var(--emerald-600)' }}
             onClick={() => setShowCloseForm(true)}
           >
             Cerrar este plan
@@ -1096,24 +1096,24 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
 
       {/* ── Selector de rutina (cambiar / asignar para un día) ── */}
       <AnimatedModal open={!!pickerTarget} onClose={() => setPickerTarget(null)} sheetStyle={{ padding: '20px 20px 28px', maxHeight: '80vh', overflowY: 'auto' }}>
-        <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 4 }}>Elegí una rutina</div>
+        <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', marginBottom: 4 }}>Elegí una rutina</div>
         {pickerTarget && (() => {
           const d = new Date(pickerTarget + 'T12:00:00');
-          return <div style={{ fontSize: 13, color: '#78909C', marginBottom: 14 }}>Para el {DAY_FULL[d.getDay()]} {d.getDate()}</div>;
+          return <div style={{ fontSize: 13, color: 'var(--gray-mid)', marginBottom: 14 }}>Para el {DAY_FULL[d.getDay()]} {d.getDate()}</div>;
         })()}
         {routines.length === 0 ? (
-          <div style={{ fontSize: 13, color: '#78909C', padding: '12px 0' }}>No hay rutinas creadas.</div>
+          <div style={{ fontSize: 13, color: 'var(--gray-mid)', padding: '12px 0' }}>No hay rutinas creadas.</div>
         ) : routines.map(r => {
           const totalEx = r.phases.reduce((s, p) => s + (p.exercises?.length || 0), 0);
           return (
             <button
               key={r.id}
               onClick={() => selectRoutineForTarget(r.id)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 10, padding: '12px 0', borderBottom: '0.5px solid #F1F5F4', background: 'none', border: 'none', borderBottomStyle: 'solid', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 10, padding: '12px 0', borderBottom: '0.5px solid var(--divider)', background: 'none', border: 'none', borderBottomStyle: 'solid', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
             >
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#263238' }}>{r.name}</div>
-                <div style={{ fontSize: 12, color: '#78909C' }}>{r.duration ? `${r.duration} · ` : ''}{totalEx} ejercicios</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{r.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--gray-mid)' }}>{r.duration ? `${r.duration} · ` : ''}{totalEx} ejercicios</div>
               </div>
               <span style={{ color: 'var(--emerald-600)', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>Elegir</span>
             </button>

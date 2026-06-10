@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr, formatDate, getDayName } from '../utils/dates';
 import { PlusIcon, EditIcon, TrashIcon, ChevronLeft } from '../components/Icons';
@@ -6,9 +6,9 @@ import { useToast } from '../components/useToast';
 
 const COMPETITIONS = ['Arsenal Liga', 'Premier', 'Otro'];
 const RESULTS = [
-  { value: 'ganamos', label: 'Victoria', short: 'V', color: '#064E3B', bg: '#D1FAE5', badgeClass: 'result-win' },
-  { value: 'perdimos', label: 'Derrota', short: 'D', color: '#991B1B', bg: '#FEE2E2', badgeClass: 'result-loss' },
-  { value: 'empate',   label: 'Empate',  short: 'E', color: '#92400E', bg: '#FEF3C7', badgeClass: 'result-draw' },
+  { value: 'ganamos', label: 'Victoria', short: 'V', color: 'var(--emerald-800)', bg: 'var(--emerald-100)', badgeClass: 'result-win' },
+  { value: 'perdimos', label: 'Derrota', short: 'D', color: 'var(--red-800)', bg: 'var(--red-100)', badgeClass: 'result-loss' },
+  { value: 'empate',   label: 'Empate',  short: 'E', color: 'var(--amber-800)', bg: 'var(--amber-100)', badgeClass: 'result-draw' },
 ];
 
 function emptyForm() {
@@ -145,7 +145,7 @@ export default function Partidos({ onBack }) {
       {/* Formulario */}
       {showForm && (
         <div className="card">
-          <div style={{ fontWeight: 800, fontSize: 16, color: '#1A2332', marginBottom: 16, letterSpacing: '-0.02em' }}>
+          <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)', marginBottom: 16, letterSpacing: '-0.02em' }}>
             {editingId ? 'Editar partido' : 'Nuevo partido'}
           </div>
 
@@ -162,7 +162,7 @@ export default function Partidos({ onBack }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Horario <span style={{ color: '#94A3B8', fontWeight: 500 }}>(opcional)</span></label>
+            <label className="form-label">Horario <span style={{ color: 'var(--text-light)', fontWeight: 500 }}>(opcional)</span></label>
             <input
               type="time"
               className="input"
@@ -192,8 +192,8 @@ export default function Partidos({ onBack }) {
                   style={{
                     flex: 1, padding: '11px 6px', borderRadius: 10, border: 'none',
                     cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 13,
-                    background: form.result === r.value ? r.bg : '#F8FAFC',
-                    color: form.result === r.value ? r.color : '#94A3B8',
+                    background: form.result === r.value ? r.bg : 'var(--bg-subtle)',
+                    color: form.result === r.value ? r.color : 'var(--text-light)',
                     outline: form.result === r.value ? `2px solid ${r.color}` : '2px solid transparent',
                     transition: 'all 0.15s',
                   }}
@@ -205,7 +205,7 @@ export default function Partidos({ onBack }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Minutos jugados <span style={{ color: '#94A3B8', fontWeight: 500 }}>(opcional)</span></label>
+            <label className="form-label">Minutos jugados <span style={{ color: 'var(--text-light)', fontWeight: 500 }}>(opcional)</span></label>
             <input
               type="number"
               className="input"
@@ -218,7 +218,7 @@ export default function Partidos({ onBack }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Nota personal <span style={{ color: '#94A3B8', fontWeight: 500 }}>(opcional)</span></label>
+            <label className="form-label">Nota personal <span style={{ color: 'var(--text-light)', fontWeight: 500 }}>(opcional)</span></label>
             <textarea
               className="input"
               placeholder="¿Cómo te fue? ¿Algo destacado?"
@@ -255,10 +255,10 @@ export default function Partidos({ onBack }) {
           <div key={match.id} className="match-card">
             <div className="match-card-header">
               <div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#1A2332' }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>
                   {match.competition}
                 </div>
-                <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 1 }}>
                   {getDayName(match.date)} · {formatDate(match.date)}
                 </div>
               </div>
@@ -268,14 +268,14 @@ export default function Partidos({ onBack }) {
                 </span>
                 <button
                   className="btn btn-ghost"
-                  style={{ padding: '5px 7px', color: '#94A3B8' }}
+                  style={{ padding: '5px 7px', color: 'var(--text-light)' }}
                   onClick={() => openEdit(match)}
                 >
                   <EditIcon size={13} />
                 </button>
                 <button
                   className="btn btn-ghost"
-                  style={{ padding: '5px 7px', color: '#94A3B8' }}
+                  style={{ padding: '5px 7px', color: 'var(--text-light)' }}
                   onClick={() => setDeleteConfirmId(match.id)}
                 >
                   <TrashIcon size={13} />
@@ -287,7 +287,7 @@ export default function Partidos({ onBack }) {
               <div style={{ padding: '10px 14px 12px' }}>
                 {match.minutes != null && (
                   <div style={{
-                    fontSize: 12, color: '#64748B', fontWeight: 600,
+                    fontSize: 12, color: 'var(--gray-mid)', fontWeight: 600,
                     marginBottom: match.notes ? 8 : 0,
                   }}>
                     ⏱ {match.minutes} minutos jugados
@@ -295,10 +295,10 @@ export default function Partidos({ onBack }) {
                 )}
                 {match.notes && (
                   <div style={{
-                    fontSize: 13, color: '#475569',
-                    background: '#F8FAFC',
+                    fontSize: 13, color: 'var(--text-secondary)',
+                    background: 'var(--bg-subtle)',
                     borderRadius: 8, padding: '9px 12px',
-                    borderLeft: '3px solid #E2E8F0',
+                    borderLeft: '3px solid var(--border-color)',
                     lineHeight: 1.5,
                   }}>
                     {match.notes}
@@ -318,10 +318,10 @@ export default function Partidos({ onBack }) {
           <div className="modal-overlay" onClick={() => setDeleteConfirmId(null)}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
               <div className="modal-drag-handle" />
-              <div style={{ fontWeight: 800, fontSize: 17, color: '#1A2332', marginBottom: 10 }}>
+              <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', marginBottom: 10 }}>
                 Eliminar partido
               </div>
-              <div style={{ fontSize: 14, color: '#64748B', marginBottom: 24, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 14, color: 'var(--gray-mid)', marginBottom: 24, lineHeight: 1.5 }}>
                 ¿Eliminar el partido de {match.competition} del {formatDate(match.date)}? Esta acción no se puede deshacer.
               </div>
               <div style={{ display: 'flex', gap: 10 }}>

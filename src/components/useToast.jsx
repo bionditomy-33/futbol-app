@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback } from 'react';
 
 export function useToast() {
   const [toast, setToast] = useState(null);
@@ -14,7 +14,7 @@ export function useToast() {
       bottom: 'calc(72px + env(safe-area-inset-bottom, 0px) + 12px)',
       left: '50%',
       transform: 'translateX(-50%)',
-      background: '#263238',
+      background: 'var(--text-primary)',
       color: 'white',
       padding: '10px 20px',
       borderRadius: 'var(--radius-sm)',

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+﻿import { useState, useMemo, useEffect } from 'react';
 import { useStore, getPlanProgress } from '../store/useStore';
 import { todayStr, formatDate, addDays } from '../utils/dates';
 import { daysUntil, weeksBetween, getDatesBetween } from '../utils/plans';
@@ -6,6 +6,7 @@ import { PlusIcon, TrashIcon, EditIcon, ChevronLeft, CheckIcon, ChevronRight } f
 import PlanDetail from './PlanDetail';
 import ProgressBar from '../components/ProgressBar';
 import PlanCelebration from '../components/PlanCelebration';
+import { ACT_DOT_COLORS } from '../utils/colors';
 
 
 function WeekTemplatePreview({ template }) {
@@ -16,17 +17,17 @@ function WeekTemplatePreview({ template }) {
       {DOW_MAP.map((dow, i) => {
         const d = template?.[dow] || {};
         const acts = [
-          d.gym       && '#2D3E50',
-          d.routineId && '#3E7A5C',
-          d.arsenal   && '#8B4513',
-          d.match     && '#C17817',
+          d.gym       && ACT_DOT_COLORS.gym,
+          d.routineId && ACT_DOT_COLORS.indiv,
+          d.arsenal   && ACT_DOT_COLORS.arsenal,
+          d.match     && ACT_DOT_COLORS.match,
         ].filter(Boolean);
         return (
           <div key={dow} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <span style={{ fontSize: 9, color: '#94A3B8', fontWeight: 600, lineHeight: 1 }}>{LABELS[i]}</span>
+            <span style={{ fontSize: 9, color: 'var(--text-light)', fontWeight: 600, lineHeight: 1 }}>{LABELS[i]}</span>
             {acts.length > 0
               ? acts.map((bg, ai) => <div key={ai} style={{ width: '100%', height: 4, borderRadius: 2, background: bg }} />)
-              : <div style={{ width: '100%', height: 4, borderRadius: 2, background: '#F1F5F9' }} />
+              : <div style={{ width: '100%', height: 4, borderRadius: 2, background: 'var(--divider)' }} />
             }
           </div>
         );
@@ -62,8 +63,8 @@ function RatingPicker({ value, onChange, label }) {
           <button key={n} onClick={() => onChange(n)} style={{
             flex: 1, padding: '8px 2px', borderRadius: 8, border: 'none',
             cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: 13,
-            background: n <= value ? '#0A1628' : '#F1F5F9',
-            color: n <= value ? '#FCD34D' : '#94A3B8',
+            background: n <= value ? 'var(--navy-800)' : 'var(--divider)',
+            color: n <= value ? 'var(--amber-300)' : 'var(--text-light)',
           }}>{n}</button>
         ))}
       </div>
@@ -304,11 +305,11 @@ export default function Planes({ onBack }) {
   function CardActions({ plan }) {
     return (
       <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-        <button className="btn btn-ghost" style={{ padding: '4px 6px', color: '#78909C' }}
+        <button className="btn btn-ghost" style={{ padding: '4px 6px', color: 'var(--gray-mid)' }}
           onClick={e => { e.stopPropagation(); startEditing(plan); }} title="Editar plan">
           <EditIcon size={14} />
         </button>
-        <button className="btn btn-ghost" style={{ padding: '4px 6px', color: '#EF5350' }}
+        <button className="btn btn-ghost" style={{ padding: '4px 6px', color: 'var(--red-600)' }}
           onClick={e => { e.stopPropagation(); setDeleteConfirmId(plan.id); }} title="Eliminar plan">
           <TrashIcon size={14} />
         </button>
@@ -336,7 +337,7 @@ export default function Planes({ onBack }) {
       {/* ── Formulario ── */}
       {showForm && (
         <div className="card">
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#263238', marginBottom: 16 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', marginBottom: 16 }}>
             {editingId ? 'Editar plan' : 'Nuevo plan'}
           </div>
 
@@ -345,8 +346,8 @@ export default function Planes({ onBack }) {
             <label className="form-label">Nombre *</label>
             <input className="input" placeholder="ej: Vuelta al ruedo" value={form.name}
               onChange={e => updateForm('name', e.target.value)}
-              style={errors.name ? { borderColor: '#EF5350' } : {}} />
-            {errors.name && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.name}</div>}
+              style={errors.name ? { borderColor: 'var(--red-600)' } : {}} />
+            {errors.name && <div style={{ fontSize: 12, color: 'var(--red-600)', marginTop: 4 }}>{errors.name}</div>}
           </div>
 
           {/* Objetivo */}
@@ -354,8 +355,8 @@ export default function Planes({ onBack }) {
             <label className="form-label">Objetivo *</label>
             <textarea className="input" placeholder="¿Qué buscás lograr con este plan?" value={form.objective}
               onChange={e => updateForm('objective', e.target.value)}
-              style={errors.objective ? { borderColor: '#EF5350' } : {}} />
-            {errors.objective && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.objective}</div>}
+              style={errors.objective ? { borderColor: 'var(--red-600)' } : {}} />
+            {errors.objective && <div style={{ fontSize: 12, color: 'var(--red-600)', marginTop: 4 }}>{errors.objective}</div>}
           </div>
 
           {/* Fechas */}
@@ -369,12 +370,12 @@ export default function Planes({ onBack }) {
               <label className="form-label">Fecha de fin *</label>
               <input className="input" type="date" value={form.endDate}
                 onChange={e => updateForm('endDate', e.target.value)}
-                style={errors.endDate ? { borderColor: '#EF5350' } : {}} />
-              {errors.endDate && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.endDate}</div>}
+                style={errors.endDate ? { borderColor: 'var(--red-600)' } : {}} />
+              {errors.endDate && <div style={{ fontSize: 12, color: 'var(--red-600)', marginTop: 4 }}>{errors.endDate}</div>}
             </div>
           </div>
           {formWeeks != null && formWeeks > 0 && (
-            <div style={{ fontSize: 12, color: '#78909C', marginTop: -8, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginTop: -8, marginBottom: 12 }}>
               Duración: <strong>{formWeeks} semanas</strong>
               {form.startDate > today && (
                 <span style={{ marginLeft: 8 }}>· Comienza en {daysUntil(form.startDate)} días</span>
@@ -389,10 +390,10 @@ export default function Planes({ onBack }) {
               {ACTIVITY_OPTIONS.map(({ value, label }) => (
                 <button key={value} type="button" onClick={() => updateForm('activityType', value)} style={{
                   flex: 1, padding: '9px 4px', borderRadius: 8, fontFamily: 'inherit',
-                  border: `1.5px solid ${form.activityType === value ? '#1D3461' : 'transparent'}`,
-                  background: form.activityType === value ? '#E8EDF5' : '#F8FAFC',
+                  border: `1.5px solid ${form.activityType === value ? 'var(--navy-600)' : 'transparent'}`,
+                  background: form.activityType === value ? 'var(--navy-100)' : 'var(--bg-subtle)',
                   fontWeight: form.activityType === value ? 700 : 400,
-                  color: form.activityType === value ? '#1D3461' : '#78909C',
+                  color: form.activityType === value ? 'var(--navy-600)' : 'var(--gray-mid)',
                   cursor: 'pointer', fontSize: 12,
                 }}>{label}</button>
               ))}
@@ -403,7 +404,7 @@ export default function Planes({ onBack }) {
           {(form.activityType === 'individual' || form.activityType === 'both') && routines.length > 0 && (
             <div className="form-group">
               <label className="form-label">
-                Rutinas que cuentan <span style={{ color: '#B0BEC5' }}>(todas si no elegís ninguna)</span>
+                Rutinas que cuentan <span style={{ color: 'var(--text-light)' }}>(todas si no elegís ninguna)</span>
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {routines.map(r => {
@@ -412,13 +413,13 @@ export default function Planes({ onBack }) {
                     <div key={r.id} onClick={() => toggleRoutine(r.id)} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
-                      background: checked ? '#E8EDF5' : '#F8FAFC',
-                      border: `1.5px solid ${checked ? '#1D3461' : 'transparent'}`,
+                      background: checked ? 'var(--navy-100)' : 'var(--bg-subtle)',
+                      border: `1.5px solid ${checked ? 'var(--navy-600)' : 'transparent'}`,
                     }}>
                       <div className={`checkbox-custom${checked ? ' checked' : ''}`} style={{ flexShrink: 0 }}>
                         {checked && <CheckIcon size={11} />}
                       </div>
-                      <span style={{ fontSize: 14, fontWeight: checked ? 600 : 400, color: '#263238' }}>{r.name}</span>
+                      <span style={{ fontSize: 14, fontWeight: checked ? 600 : 400, color: 'var(--text-primary)' }}>{r.name}</span>
                     </div>
                   );
                 })}
@@ -450,10 +451,10 @@ export default function Planes({ onBack }) {
             <input className="input" type="number" min="1" placeholder="ej: 24"
               value={form.targetSessions}
               onChange={e => updateTargetSessions(e.target.value)}
-              style={errors.targetSessions ? { borderColor: '#EF5350' } : {}} />
-            {errors.targetSessions && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.targetSessions}</div>}
+              style={errors.targetSessions ? { borderColor: 'var(--red-600)' } : {}} />
+            {errors.targetSessions && <div style={{ fontSize: 12, color: 'var(--red-600)', marginTop: 4 }}>{errors.targetSessions}</div>}
             {showAutoCalc && (
-              <div style={{ fontSize: 12, color: '#78909C', marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginTop: 4 }}>
                 Auto: {gymFreqNum > 0 ? `${gymFreqNum} gym` : ''}{gymFreqNum > 0 && indFreqNum > 0 ? ' + ' : ''}{indFreqNum > 0 ? `${indFreqNum} ind.` : ''} × {formWeeks} sem = <strong>{(gymFreqNum || 0) + (indFreqNum || 0)} × {formWeeks} = {((gymFreqNum || 0) + (indFreqNum || 0)) * formWeeks}</strong>
               </div>
             )}
@@ -469,7 +470,7 @@ export default function Planes({ onBack }) {
           {weekTemplates.length > 0 && (
             <div className="form-group">
               <label className="form-label">
-                Semana tipo asociada <span style={{ color: '#B0BEC5' }}>(opcional)</span>
+                Semana tipo asociada <span style={{ color: 'var(--text-light)' }}>(opcional)</span>
               </label>
               <select
                 className="input"
@@ -485,11 +486,11 @@ export default function Planes({ onBack }) {
                 const tmpl = weekTemplates.find(t => t.id === form.weekTemplateId);
                 return (
                   <div style={{ marginTop: 8 }}>
-                    <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-light)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
                       Vista previa
                     </div>
                     <WeekTemplatePreview template={tmpl?.days} />
-                    <div style={{ fontSize: 11, color: '#64748B', marginTop: 6 }}>
+                    <div style={{ fontSize: 11, color: 'var(--gray-mid)', marginTop: 6 }}>
                       Se sugerirá aplicar esta semana tipo al activarse el plan.
                     </div>
                   </div>
@@ -499,7 +500,7 @@ export default function Planes({ onBack }) {
           )}
 
           {reopenOnSave && (
-            <div style={{ padding: '10px 12px', borderRadius: 8, background: '#D1FAE5', fontSize: 12, color: '#065F46', fontWeight: 600, marginTop: 4 }}>
+            <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--emerald-100)', fontSize: 12, color: 'var(--emerald-800)', fontWeight: 600, marginTop: 4 }}>
               Al guardar, el plan se reabrirá como activo.
             </div>
           )}
@@ -524,33 +525,33 @@ export default function Planes({ onBack }) {
       {/* ── Próximos ── */}
       {pending.length > 0 && (
         <>
-          <div style={{ padding: '16px 16px 8px', fontWeight: 700, fontSize: 12, color: '#78909C', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <div style={{ padding: '16px 16px 8px', fontWeight: 700, fontSize: 12, color: 'var(--gray-mid)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Próximos
           </div>
           {pending.map(plan => {
             const dias = daysUntil(plan.startDate);
             return (
-              <div key={plan.id} className="card" style={{ background: '#F8FAFC', border: '1.5px solid #E2E8F0' }}>
+              <div key={plan.id} className="card" style={{ background: 'var(--bg-subtle)', border: '1.5px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                   <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: '#263238' }}>{plan.name}</div>
-                    {plan.objective && <div style={{ fontSize: 12, color: '#78909C', marginTop: 2 }}>{plan.objective}</div>}
+                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{plan.name}</div>
+                    {plan.objective && <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginTop: 2 }}>{plan.objective}</div>}
                   </div>
                   <CardActions plan={plan} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: '#78909C' }}>Inicio: {formatDate(plan.startDate)}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: '#F1F5F9', color: '#64748B' }}>
+                  <span style={{ fontSize: 12, color: 'var(--gray-mid)' }}>Inicio: {formatDate(plan.startDate)}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20, background: 'var(--divider)', color: 'var(--gray-mid)' }}>
                     Comienza en {dias} día{dias !== 1 ? 's' : ''}
                   </span>
                 </div>
-                <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 6 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-light)', marginTop: 6 }}>
                   {activityLabel(plan)} · Meta: {plan.targetSessions} ses. · {weeksBetween(plan.startDate, plan.endDate)} sem
                 </div>
                 {plan.weekTemplateId && (() => {
                   const tmpl = weekTemplates.find(t => t.id === plan.weekTemplateId);
                   return tmpl ? (
-                    <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-light)', marginTop: 2 }}>
                       Semana tipo: {tmpl.name}
                     </div>
                   ) : null;
@@ -563,7 +564,7 @@ export default function Planes({ onBack }) {
 
       {/* ── Activos ── */}
       {active.length > 0 && (pending.length > 0 || completed.length > 0) && (
-        <div style={{ padding: '16px 16px 8px', fontWeight: 700, fontSize: 12, color: '#78909C', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <div style={{ padding: '16px 16px 8px', fontWeight: 700, fontSize: 12, color: 'var(--gray-mid)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Activos
         </div>
       )}
@@ -574,20 +575,20 @@ export default function Planes({ onBack }) {
             onClick={() => setSelectedPlanId(plan.id)}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
               <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: '#263238' }}>{plan.name}</div>
-                {plan.objective && <div style={{ fontSize: 12, color: '#78909C', marginTop: 2 }}>{plan.objective}</div>}
+                <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{plan.name}</div>
+                {plan.objective && <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginTop: 2 }}>{plan.objective}</div>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <CardActions plan={plan} />
-                <ChevronRight size={14} style={{ color: '#B0BEC5', flexShrink: 0 }} />
+                <ChevronRight size={14} style={{ color: 'var(--text-light)', flexShrink: 0 }} />
               </div>
             </div>
 
-            <div style={{ fontSize: 12, color: '#78909C', marginBottom: plan.weekTemplateId ? 4 : 8 }}>{activityLabel(plan)}</div>
+            <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginBottom: plan.weekTemplateId ? 4 : 8 }}>{activityLabel(plan)}</div>
             {plan.weekTemplateId && (() => {
               const tmpl = weekTemplates.find(t => t.id === plan.weekTemplateId);
               return tmpl ? (
-                <div style={{ fontSize: 11, color: '#64748B', marginBottom: 8 }}>
+                <div style={{ fontSize: 11, color: 'var(--gray-mid)', marginBottom: 8 }}>
                   Semana tipo: <strong>{tmpl.name}</strong>
                 </div>
               ) : null;
@@ -596,12 +597,12 @@ export default function Planes({ onBack }) {
             {/* Progreso */}
             <div style={{ marginBottom: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 12, color: '#78909C' }}>{prog.completedSessions}/{prog.effTotal} sesiones</span>
+                <span style={{ fontSize: 12, color: 'var(--gray-mid)' }}>{prog.completedSessions}/{prog.effTotal} sesiones</span>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 99, background: '#F1F5F9', color: '#64748B' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 99, background: 'var(--divider)', color: 'var(--gray-mid)' }}>
                     Sem {prog.currentWeekNum}/{prog.totalWeeks}
                   </span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#263238' }}>{prog.pct}%</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{prog.pct}%</span>
                 </div>
               </div>
               <ProgressBar value={prog.pct} />
@@ -609,13 +610,13 @@ export default function Planes({ onBack }) {
 
             {/* Ritmo */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#78909C' }}>
+              <span style={{ fontSize: 12, color: 'var(--gray-mid)' }}>
                 {prog.remainingDays > 0 ? `${prog.remainingDays} días restantes` : 'Plazo vencido'}
               </span>
               <span style={{
                 fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20,
-                background: prog.isOnTrack ? '#D1FAE5' : '#FEE2E2',
-                color: prog.isOnTrack ? '#065F46' : '#991B1B',
+                background: prog.isOnTrack ? 'var(--emerald-100)' : 'var(--red-100)',
+                color: prog.isOnTrack ? 'var(--emerald-800)' : 'var(--red-800)',
               }}>
                 {prog.isOnTrack ? '✓ En ritmo' : `Atrasado`}
               </span>
@@ -627,27 +628,27 @@ export default function Planes({ onBack }) {
       {/* ── Vencidos ── */}
       {expired.length > 0 && (
         <>
-          <div style={{ padding: '16px 16px 8px', fontWeight: 700, fontSize: 12, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <div style={{ padding: '16px 16px 8px', fontWeight: 700, fontSize: 12, color: 'var(--amber-800)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Vencidos
           </div>
           {expired.map(plan => {
             const prog = getPlanProgress(plan, history);
             return (
-              <div key={plan.id} className="card" style={{ cursor: 'pointer', borderColor: '#FDE68A' }}
+              <div key={plan.id} className="card" style={{ cursor: 'pointer', borderColor: 'var(--amber-100)' }}
                 onClick={() => setSelectedPlanId(plan.id)}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                   <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: '#263238' }}>{plan.name}</div>
-                    {plan.objective && <div style={{ fontSize: 12, color: '#78909C', marginTop: 2 }}>{plan.objective}</div>}
+                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{plan.name}</div>
+                    {plan.objective && <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginTop: 2 }}>{plan.objective}</div>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#FEF3C7', color: '#92400E' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'var(--amber-100)', color: 'var(--amber-800)' }}>
                       Vencido
                     </span>
                     <CardActions plan={plan} />
                   </div>
                 </div>
-                <div style={{ fontSize: 12, color: '#78909C', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginBottom: 8 }}>
                   {formatDate(plan.startDate)} — {formatDate(plan.endDate)} · {prog.completedSessions}/{prog.effTotal} ses.
                 </div>
                 <ProgressBar value={prog.pct} color="var(--amber-600)" />
@@ -660,7 +661,7 @@ export default function Planes({ onBack }) {
       {/* ── Completados ── */}
       {completed.length > 0 && (
         <>
-          <div style={{ padding: '16px 16px 8px', fontWeight: 700, fontSize: 12, color: '#78909C', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <div style={{ padding: '16px 16px 8px', fontWeight: 700, fontSize: 12, color: 'var(--gray-mid)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Completados
           </div>
           {completed.map(plan => {
@@ -671,35 +672,35 @@ export default function Planes({ onBack }) {
               <div key={plan.id} className="card" style={{ opacity: 0.88 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
                   <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#263238' }}>{plan.name}</div>
-                    {plan.objective && <div style={{ fontSize: 12, color: '#78909C', marginTop: 1 }}>{plan.objective}</div>}
+                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{plan.name}</div>
+                    {plan.objective && <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginTop: 1 }}>{plan.objective}</div>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
-                      background: goalMet ? '#D1FAE5' : '#FEF3C7',
-                      color: goalMet ? '#065F46' : '#92400E',
+                      background: goalMet ? 'var(--emerald-100)' : 'var(--amber-100)',
+                      color: goalMet ? 'var(--emerald-800)' : 'var(--amber-800)',
                     }}>{goalMet ? '✓ Meta' : 'Parcial'}</span>
                     <CardActions plan={plan} />
                   </div>
                 </div>
-                <div style={{ fontSize: 12, color: '#78909C', marginBottom: 6 }}>
+                <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginBottom: 6 }}>
                   {formatDate(plan.startDate)} — {formatDate(plan.endDate)} · {prog.completedSessions}/{prog.effTotal} ses.
                 </div>
                 {plan.finalRating != null && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#263238' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-primary)' }}>
                     <span>Antes: <strong>{plan.initialRating}/10</strong></span>
-                    <span style={{ color: '#B0BEC5' }}>→</span>
+                    <span style={{ color: 'var(--text-light)' }}>→</span>
                     <span>Después: <strong>{plan.finalRating}/10</strong></span>
                     {diff !== 0 && diff != null && (
-                      <span style={{ fontWeight: 700, color: diff > 0 ? '#059669' : '#DC2626' }}>
+                      <span style={{ fontWeight: 700, color: diff > 0 ? 'var(--emerald-600)' : 'var(--red-600)' }}>
                         ({diff > 0 ? '+' : ''}{diff})
                       </span>
                     )}
                   </div>
                 )}
                 {plan.closingNotes && (
-                  <div style={{ fontSize: 12, color: '#78909C', marginTop: 6, fontStyle: 'italic' }}>
+                  <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginTop: 6, fontStyle: 'italic' }}>
                     "{plan.closingNotes}"
                   </div>
                 )}
@@ -716,9 +717,9 @@ export default function Planes({ onBack }) {
         return (
           <div className="modal-overlay" onClick={() => setDeleteConfirmId(null)}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
-              <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>Eliminar plan</div>
-              <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
-                ¿Estás seguro de eliminar <strong style={{ color: '#263238' }}>"{p.name}"</strong>?
+              <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', marginBottom: 10 }}>Eliminar plan</div>
+              <div style={{ fontSize: 14, color: 'var(--gray-mid)', marginBottom: 24, lineHeight: 1.5 }}>
+                ¿Estás seguro de eliminar <strong style={{ color: 'var(--text-primary)' }}>"{p.name}"</strong>?
                 {p.status !== 'completed' && today >= p.startDate && ' Se perderá el progreso registrado.'}
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
@@ -737,16 +738,16 @@ export default function Planes({ onBack }) {
       {applyPrompt && (
         <div className="modal-overlay" onClick={() => { markPlanAutoApplied(applyPrompt.planId); setApplyPrompt(null); }}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
-            <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
+            <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', marginBottom: 10 }}>
               Semana tipo del plan
             </div>
-            <div style={{ fontSize: 14, color: '#78909C', marginBottom: 12, lineHeight: 1.5 }}>
-              El plan <strong style={{ color: '#263238' }}>"{applyPrompt.planName}"</strong> tiene la semana tipo{' '}
-              <strong style={{ color: '#263238' }}>"{applyPrompt.templateName}"</strong> asociada.
+            <div style={{ fontSize: 14, color: 'var(--gray-mid)', marginBottom: 12, lineHeight: 1.5 }}>
+              El plan <strong style={{ color: 'var(--text-primary)' }}>"{applyPrompt.planName}"</strong> tiene la semana tipo{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>"{applyPrompt.templateName}"</strong> asociada.
               ¿Querés aplicarla al período del plan? Esto va a reemplazar las actividades asignadas en ese período.
             </div>
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-light)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
                 Vista previa · {Math.ceil(applyPrompt.dates.length / 7)} semanas
               </div>
               <WeekTemplatePreview template={applyPrompt.templateDays} />
@@ -773,12 +774,12 @@ export default function Planes({ onBack }) {
       {cleanupPrompt && (
         <div className="modal-overlay" onClick={() => { if (cleanupPrompt.deleteAfter) deletePlan(cleanupPrompt.planId); setCleanupPrompt(null); }}>
           <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
-            <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
+            <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', marginBottom: 10 }}>
               Actividades del plan
             </div>
-            <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: 'var(--gray-mid)', marginBottom: 24, lineHeight: 1.5 }}>
               ¿Querés limpiar las actividades del plan{' '}
-              <strong style={{ color: '#263238' }}>"{cleanupPrompt.planName}"</strong> del calendario o mantenerlas?
+              <strong style={{ color: 'var(--text-primary)' }}>"{cleanupPrompt.planName}"</strong> del calendario o mantenerlas?
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-secondary" style={{ flex: 1 }}
@@ -805,9 +806,9 @@ export default function Planes({ onBack }) {
         return (
           <div className="modal-overlay" onClick={() => setReopenPromptId(null)}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
-              <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>Plan cerrado</div>
-              <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
-                <strong style={{ color: '#263238' }}>"{p.name}"</strong> ya está cerrado. ¿Querés reabrirlo como activo?
+              <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', marginBottom: 10 }}>Plan cerrado</div>
+              <div style={{ fontSize: 14, color: 'var(--gray-mid)', marginBottom: 24, lineHeight: 1.5 }}>
+                <strong style={{ color: 'var(--text-primary)' }}>"{p.name}"</strong> ya está cerrado. ¿Querés reabrirlo como activo?
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => confirmEditCompleted(false)}>No, solo editar</button>

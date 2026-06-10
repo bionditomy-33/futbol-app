@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { toDateStr } from '../utils/dates';
 import { getDayActivities, getScheduleEntry, getEffectiveTemplateDays as getEffectiveTmpl } from '../utils/activities';
-import { ACT_DOT_COLORS as C } from '../utils/colors';
+import { ACT_DOT_COLORS as C, ACT_COLORS } from '../utils/colors';
 import { TrophyIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
 import { useToday } from '../hooks/useToday';
@@ -222,11 +222,11 @@ function DaySheet({ dateStr, onClose, schedule, history, routines, matches, week
                 </span>
               )}
             </div>
-            <div style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>
+            <div style={{ fontSize: 13, color: 'var(--gray-mid)', marginTop: 2 }}>
               {d.getDate()} de {MONTHS_LO[d.getMonth()]} {d.getFullYear()}
             </div>
           </div>
-          <button className="btn btn-ghost" style={{ padding: '5px 8px', color: '#94A3B8' }} onClick={onClose}>✕</button>
+          <button className="btn btn-ghost" style={{ padding: '5px 8px', color: 'var(--text-light)' }} onClick={onClose}>✕</button>
         </div>
 
         {/* Actividades */}
@@ -234,21 +234,21 @@ function DaySheet({ dateStr, onClose, schedule, history, routines, matches, week
           let bg, label, detail, borderColor;
           if (act.type === 'indiv') {
             const r = routines.find(ro => ro.id === (day?.routineId || assignedRoutineId));
-            bg = act.missed ? '#FEE2E2' : act.done ? '#D1FAE5' : '#E8EDF5';
+            bg = act.missed ? 'var(--red-100)' : act.done ? 'var(--emerald-100)' : 'var(--navy-100)';
             borderColor = act.missed ? C.indivMissed : C.indiv;
             label = r ? r.name : 'Entrenamiento individual';
             detail = act.done
               ? `✓ Completado · ${Object.values(day?.completed || {}).filter(Boolean).length} ejercicios`
               : act.missed ? 'No realizado' : 'Planificado';
           } else if (act.type === 'gym') {
-            bg = '#E8EDF5'; borderColor = C.gym;
+            bg = 'var(--navy-100)'; borderColor = C.gym;
             label = 'Gimnasio';
             detail = act.done ? '✓ Completado' : 'Planificado';
           } else if (act.type === 'arsenal') {
-            bg = '#F5EDE8'; borderColor = C.arsenal;
+            bg = ACT_COLORS.arsenal.bg; borderColor = C.arsenal;
             label = 'Arsenal'; detail = 'Entrenamiento con el equipo';
           } else {
-            bg = '#FDF4E3'; borderColor = C.match;
+            bg = ACT_COLORS.match.bg; borderColor = C.match;
             label = act.match?.competition || 'Partido';
             detail = act.match
               ? `${act.match.result === 'ganamos' ? 'Ganamos' : act.match.result === 'perdimos' ? 'Perdimos' : 'Empate'}${act.match.minutes ? ` · ${act.match.minutes} min` : ''}`
@@ -257,20 +257,20 @@ function DaySheet({ dateStr, onClose, schedule, history, routines, matches, week
           return (
             <div key={i} style={{ background: bg, borderLeft: `4px solid ${borderColor}`, borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{label}</div>
-              <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>{detail}</div>
-              {act.match?.notes && <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>{act.match.notes}</div>}
+              <div style={{ fontSize: 12, color: 'var(--gray-mid)', marginTop: 2 }}>{detail}</div>
+              {act.match?.notes && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>{act.match.notes}</div>}
             </div>
           );
         })}
 
         {acts.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#94A3B8', fontSize: 13, padding: '12px 0' }}>
+          <div style={{ textAlign: 'center', color: 'var(--text-light)', fontSize: 13, padding: '12px 0' }}>
             Día sin actividad registrada
           </div>
         )}
 
         {day?.notes && (
-          <div style={{ fontSize: 13, color: '#475569', background: '#F8FAFC', borderRadius: 8, padding: '9px 12px', borderLeft: '3px solid #E2E8F0', marginTop: 4, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', background: 'var(--bg-subtle)', borderRadius: 8, padding: '9px 12px', borderLeft: '3px solid var(--border-color)', marginTop: 4, lineHeight: 1.5 }}>
             {day.notes}
           </div>
         )}
