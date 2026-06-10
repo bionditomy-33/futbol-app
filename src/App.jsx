@@ -18,6 +18,7 @@ import {
   ChevronRight, EditIcon, BodyIcon, FireIcon, StarIcon, CalendarIcon,
 } from './components/Icons';
 import AnimatedModal from './components/AnimatedModal';
+import PlanCelebration from './components/PlanCelebration';
 
 const BOTTOM_TABS = [
   { id: 'inicio',        label: 'Inicio',        Icon: HomeIcon },
@@ -352,21 +353,7 @@ export default function App() {
       </nav>
 
       {/* Plan completion celebration */}
-      {planCelebration && (
-        <div style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(5,150,105,0.88)',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          zIndex: 300, animation: 'fadeIn 0.3s ease',
-        }}>
-          <div style={{ fontSize: 80, marginBottom: 20, animation: 'checkPop 0.4s ease' }}>✅</div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: 'white', marginBottom: 8, letterSpacing: '-0.02em' }}>¡Plan completado!</div>
-          {planCelebration.planName && (
-            <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.85)' }}>{planCelebration.planName}</div>
-          )}
-        </div>
-      )}
+      {planCelebration && <PlanCelebration planName={planCelebration.planName} />}
 
       {/* Cleanup prompt after plan completion */}
       <AnimatedModal open={!!cleanupPrompt} onClose={() => setCleanupPrompt(null)} sheetStyle={{ padding: '24px 20px 32px' }}>

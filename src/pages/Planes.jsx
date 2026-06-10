@@ -5,6 +5,7 @@ import { daysUntil, weeksBetween, getDatesBetween } from '../utils/plans';
 import { PlusIcon, TrashIcon, EditIcon, ChevronLeft, CheckIcon, ChevronRight } from '../components/Icons';
 import PlanDetail from './PlanDetail';
 import ProgressBar from '../components/ProgressBar';
+import PlanCelebration from '../components/PlanCelebration';
 
 
 function WeekTemplatePreview({ template }) {
@@ -90,6 +91,7 @@ export default function Planes({ onBack }) {
   const [selectedPlanId, setSelectedPlanId]   = useState(null);
   const [applyPrompt, setApplyPrompt]         = useState(null);
   const [cleanupPrompt, setCleanupPrompt]     = useState(null);
+  const [planCelebration, setPlanCelebration] = useState(null);
 
   const today = todayStr();
 
@@ -117,19 +119,27 @@ export default function Planes({ onBack }) {
   const selectedPlan = selectedPlanId ? plans.find(p => p.id === selectedPlanId) : null;
   if (selectedPlan) {
     return (
-      <PlanDetail
-        plan={selectedPlan}
-        history={history}
-        routines={routines}
-        onBack={() => setSelectedPlanId(null)}
-        onComplete={(id, rating, notes) => {
-          const p = plans.find(pl => pl.id === id);
-          completePlan(id, rating, notes);
-          if (p?.autoApplied && p?.weekTemplateId) {
-            setCleanupPrompt({ planId: id, planName: p.name, dates: getDatesBetween(p.startDate, p.endDate), deleteAfter: false });
-          }
-        }}
-      />
+      <>
+        <PlanDetail
+          plan={selectedPlan}
+          history={history}
+          routines={routines}
+          onBack={() => setSelectedPlanId(null)}
+          onComplete={(id, rating, notes) => {
+            const p = plans.find(pl => pl.id === id);
+            completePlan(id, rating, notes);
+            // Misma celebración que al cerrar desde la tab Entrenamiento
+            setPlanCelebration({ planName: p?.name || '' });
+            setTimeout(() => {
+              setPlanCelebration(null);
+              if (p?.autoApplied && p?.weekTemplateId) {
+                setCleanupPrompt({ planId: id, planName: p.name, dates: getDatesBetween(p.startDate, p.endDate), deleteAfter: false });
+              }
+            }, 1800);
+          }}
+        />
+        {planCelebration && <PlanCelebration planName={planCelebration.planName} />}
+      </>
     );
   }
 
@@ -807,6 +817,9 @@ export default function Planes({ onBack }) {
           </div>
         );
       })()}
+
+      {/* ── Celebración al completar un plan ── */}
+      {planCelebration && <PlanCelebration planName={planCelebration.planName} />}
     </div>
   );
 }
