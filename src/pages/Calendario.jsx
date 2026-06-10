@@ -1,12 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../store/useStore';
-import { todayStr, toDateStr } from '../utils/dates';
+import { toDateStr } from '../utils/dates';
 import { getDayActivities, getScheduleEntry } from '../utils/activities';
 import { ACT_DOT_COLORS as C } from '../utils/colors';
 import { TrophyIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
-
-const TODAY = todayStr();
+import { useToday } from '../hooks/useToday';
 
 const MONTHS_ES  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -117,7 +116,7 @@ function CalDayBars({ acts, isToday }) {
 }
 
 // ── Month summary by week ────────────────────────────────────────────────────
-function MonthSummary({ year, month, schedule, history, weekTemplate, weekTemplates, plans }) {
+function MonthSummary({ year, month, schedule, history, weekTemplate, weekTemplates, plans, TODAY }) {
   const weeks = useMemo(() => {
     const first    = new Date(year, month, 1);
     const firstDow = first.getDay();
@@ -159,7 +158,7 @@ function MonthSummary({ year, month, schedule, history, weekTemplate, weekTempla
       result.push({ planned, done, isCurrentWeek, weekStart, weekEnd, primaryPlan });
     }
     return result;
-  }, [year, month, schedule, history, weekTemplate, weekTemplates, plans]);
+  }, [year, month, schedule, history, weekTemplate, weekTemplates, plans, TODAY]);
 
   return (
     <div className="cal-summary">
@@ -193,7 +192,7 @@ function MonthSummary({ year, month, schedule, history, weekTemplate, weekTempla
 }
 
 // ── Day detail sheet (inline, reusing Semana's logic) ───────────────────────
-function DaySheet({ dateStr, onClose, schedule, history, routines, matches, weekTemplate }) {
+function DaySheet({ dateStr, onClose, schedule, history, routines, matches, weekTemplate, TODAY }) {
   const [editing, setEditing] = useState(false);
   const d         = new Date(dateStr + 'T12:00:00');
   const isToday   = dateStr === TODAY;
@@ -307,6 +306,7 @@ function DaySheet({ dateStr, onClose, schedule, history, routines, matches, week
 export default function Calendario() {
   const { history, schedule, routines, matches, weekTemplate, weekTemplates, plans } = useStore();
 
+  const TODAY = useToday();
   const [viewDate, setViewDate] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -402,6 +402,7 @@ export default function Calendario() {
         weekTemplate={weekTemplate}
         weekTemplates={weekTemplates}
         plans={plans}
+        TODAY={TODAY}
       />
 
       {/* Day detail sheet */}
@@ -414,6 +415,7 @@ export default function Calendario() {
           routines={routines}
           matches={matches}
           weekTemplate={getEffectiveTmpl(selectedDay, plans, weekTemplates, weekTemplate)}
+          TODAY={TODAY}
         />
       )}
     </div>

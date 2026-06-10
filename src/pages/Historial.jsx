@@ -4,11 +4,10 @@ import { INITIAL_CATALOG } from '../data/initialData';
 import { todayStr, formatDate, getDayName } from '../utils/dates';
 import { GymIcon, ChevronLeft } from '../components/Icons';
 import ProgressBar from '../components/ProgressBar';
+import { useToday } from '../hooks/useToday';
 
 const RATING_COLORS = ['', '#EF5350', '#FF7043', '#FFC107', '#66BB6A', '#2E7D32'];
 const RATING_LABELS = ['', 'Muy mal', 'Mal', 'Regular', 'Bien', 'Excelente'];
-
-const TODAY = todayStr();
 
 function weekStartStr(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');
@@ -17,10 +16,6 @@ function weekStartStr(dateStr) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function getCurrentMonthStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
 
 function exportData() {
   const s = getState();
@@ -47,7 +42,8 @@ export default function Historial({ onBack } = {}) {
   const [importError, setImportError]     = useState('');
   const [importing, setImporting]         = useState(false);
   const preImportRef = useRef(null);
-  const currentMonth = getCurrentMonthStr();
+  const TODAY = useToday();
+  const currentMonth = TODAY.slice(0, 7);
 
   const entries = Object.entries(history)
     .filter(([, day]) => day.done || day.gym)

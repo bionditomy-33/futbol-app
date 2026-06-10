@@ -1,12 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useStore, computePlanWeeklyLog } from '../store/useStore';
-import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
+import { toDateStr, getWeekDays } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
 import { ChevronLeft, TrashIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
-
-const TODAY = todayStr();
+import { useToday } from '../hooks/useToday';
 
 const MONTHS_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const MONTHS_FULL  = ['enero','febrero','marzo','abril','mayo','junio',
@@ -186,6 +185,7 @@ function getDatesBetween(startStr, endStr) {
 export default function Semana({ editToday = false, onConsumed }) {
   const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity, removeActivityFromDay, setActivityTime, addActivityToDay } = useStore();
 
+  const TODAY = useToday();
   const [weekOffset,      setWeekOffset]      = useState(0);
   const [selectedDateStr, setSelectedDateStr] = useState(TODAY);
   const [editing,         setEditing]         = useState(editToday);
@@ -210,7 +210,7 @@ export default function Semana({ editToday = false, onConsumed }) {
   const [addTime,      setAddTime]      = useState('');
   const [addRoutineId, setAddRoutineId] = useState('');
 
-  const baseDate = new Date();
+  const baseDate = new Date(TODAY + 'T12:00:00');
   baseDate.setDate(baseDate.getDate() + weekOffset * 7);
   const weekDays     = getWeekDays(baseDate);
   const weekDateStrs = weekDays.map(d => toDateStr(d));
@@ -235,7 +235,7 @@ export default function Semana({ editToday = false, onConsumed }) {
       map[ds] = getDayActivities(ds, schedule, history, matches, effTmpl);
     });
     return map;
-  }, [schedule, history, matches, weekTemplate, weekTemplates, plans, weekOffset]);
+  }, [schedule, history, matches, weekTemplate, weekTemplates, plans, weekOffset, TODAY]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Active plan info + template info for the viewed week
   const weekPlanInfo = useMemo(() => {
@@ -269,7 +269,7 @@ export default function Semana({ editToday = false, onConsumed }) {
     }
     return { primary, conflict, weekNum, totalWeeks, templateInfo };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plans, weekTemplates, weekOffset]);
+  }, [plans, weekTemplates, weekOffset, TODAY]);
 
   // Compensation info for viewed week
   const compensationInfo = useMemo(() => {
@@ -281,7 +281,7 @@ export default function Semana({ editToday = false, onConsumed }) {
     if (!entry || (entry.gymCompAvail === 0 && entry.indivCompAvail === 0)) return null;
     return entry;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekPlanInfo, history, weekOffset]);
+  }, [weekPlanInfo, history, weekOffset, TODAY]);
 
   // Week range label
   const d0 = weekDays[0], d6 = weekDays[6];

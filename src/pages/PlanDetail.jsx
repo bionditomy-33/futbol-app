@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import { getPlanProgress, computePlanWeeklyLog, useStore } from '../store/useStore';
-import { toDateStr, todayStr } from '../utils/dates';
+import { toDateStr } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
 import { ChevronLeft, ChevronDown, CheckCircleIcon, XIcon, PlayIcon } from '../components/Icons';
 import { ActivityList, RoutinePreviewModal } from '../components/DayActivities';
 import AnimatedModal from '../components/AnimatedModal';
+import { useToday } from '../hooks/useToday';
 
-const TODAY = todayStr();
 const DAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const DAY_FULL  = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const CAT_PALETTE = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#F97316', '#EC4899'];
@@ -251,6 +251,7 @@ function isRelevantAct(act, actType, routineIds = []) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function PlanDetail({ plan, history, routines, onBack, onComplete, onEdit, onStartToday }) {
+  const TODAY = useToday();
   const [showCloseForm, setShowCloseForm] = useState(false);
   const [expandedWeeks, setExpandedWeeks] = useState(() => new Set());
   const [previewRoutineId, setPreviewRoutineId] = useState(null);
@@ -279,7 +280,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   // Actividades de HOY (interactivas) — todo lo del día
   const todayActs = useMemo(
     () => getDayActivities(TODAY, schedule, history, matches, effectiveTmpl),
-    [schedule, history, matches, effectiveTmpl]
+    [schedule, history, matches, effectiveTmpl, TODAY]
   );
 
   // "Esta semana" — days of the current plan week
@@ -355,7 +356,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
       d.setDate(d.getDate() + 1);
     }
     return result;
-  }, [schedule, history, matches, effectiveTmpl, actType, plan]);
+  }, [schedule, history, matches, effectiveTmpl, actType, plan, TODAY]);
 
   const routineLabel = () => {
     if (actType === 'gym') return 'Gimnasio';

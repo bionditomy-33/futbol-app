@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { todayStr } from '../utils/dates';
 import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, GripIcon } from './Icons';
 import { useDragSort } from '../hooks/useDragSort';
 import ExerciseGroupedList from './ExerciseGroupedList';
@@ -119,8 +118,6 @@ function RatingDisplay({ rating, hardestExercise }) {
     </div>
   );
 }
-
-const TODAY = todayStr();
 
 function countExercises(routine) {
   if (!routine) return 0;

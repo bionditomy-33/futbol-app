@@ -1,17 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useStore, getPlanProgress } from '../store/useStore';
-import { todayStr, toDateStr, getWeekDays } from '../utils/dates';
+import { toDateStr, addDays, getWeekDays } from '../utils/dates';
 import { getDayActivities } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
 import { FireIcon } from '../components/Icons';
 import { ActivityList, RoutinePreviewModal } from '../components/DayActivities';
-
-const TODAY = todayStr();
-const TOMORROW = (() => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return toDateStr(d);
-})();
+import { useToday } from '../hooks/useToday';
 
 const MONTHS = [
   'enero','febrero','marzo','abril','mayo','junio',
@@ -47,11 +41,17 @@ function PlanBar({ label, value, max, color }) {
 }
 
 export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, updateDay, removeActivityFromDay, exerciseMap, catalog, catLinks } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, markPlanAutoApplied, updateDay, removeActivityFromDay, exerciseMap, catalog, catLinks } = useStore();
   const [templateSuggestionDismissed, setTemplateSuggestionDismissed] = useState(false);
   const [previewRoutineId, setPreviewRoutineId] = useState(null);
 
-  const weekDateStrs = useMemo(() => getWeekDays(new Date()).map(d => toDateStr(d)), []);
+  const TODAY = useToday();
+  const TOMORROW = addDays(TODAY, 1);
+
+  const weekDateStrs = useMemo(
+    () => getWeekDays(new Date(TODAY + 'T12:00:00')).map(d => toDateStr(d)),
+    [TODAY]
+  );
 
   const streak = useMemo(() => {
     let s = 0;
@@ -59,11 +59,11 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     for (let i = 0; i < 60; i++) {
       const ds = toDateStr(d);
       if (history[ds]?.done) s++;
-      else if (ds <= TODAY) break;
+      else if (ds < TODAY) break; // hoy pendiente no corta la racha
       d.setDate(d.getDate() - 1);
     }
     return s;
-  }, [history]);
+  }, [history, TODAY]);
 
   const weekStats = useMemo(() => {
     const done = weekDateStrs.filter(d => history[d]?.done).length;
@@ -76,10 +76,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
   }, [weekDateStrs, schedule, history, weekTemplate]);
 
   const monthStats = useMemo(() => {
-    const now = new Date();
-    const yr = now.getFullYear();
-    const mo = now.getMonth() + 1;
-    const todayDay = parseInt(TODAY.split('-')[2]);
+    const [yr, mo, todayDay] = TODAY.split('-').map(Number);
     let planned = 0, done = 0;
     for (let d = 1; d <= todayDay; d++) {
       const ds = `${yr}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -87,11 +84,11 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
       if (history[ds]?.done) done++;
     }
     return planned > 0 ? Math.round((done / planned) * 100) : 0;
-  }, [schedule, history]);
+  }, [schedule, history, TODAY]);
 
   const activePlan = useMemo(
     () => plans.find(p => p.status !== 'completed' && TODAY >= p.startDate && TODAY <= p.endDate),
-    [plans]
+    [plans, TODAY]
   );
 
   const planData = useMemo(() => {
@@ -117,12 +114,12 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
   const todayActs = useMemo(() => {
     const effTmpl = getEffectiveTmpl(TODAY, plans, weekTemplates, weekTemplate);
     return getDayActivities(TODAY, schedule, history, matches, effTmpl);
-  }, [schedule, history, matches, weekTemplate, weekTemplates, plans]);
+  }, [schedule, history, matches, weekTemplate, weekTemplates, plans, TODAY]);
 
   const tomorrowActs = useMemo(() => {
     const effTmpl = getEffectiveTmpl(TOMORROW, plans, weekTemplates, weekTemplate);
     return getDayActivities(TOMORROW, schedule, history, matches, effTmpl);
-  }, [schedule, history, matches, weekTemplate, weekTemplates, plans]);
+  }, [schedule, history, matches, weekTemplate, weekTemplates, plans, TOMORROW]);
 
   const todayDate    = new Date(TODAY    + 'T12:00:00');
   const tomorrowDate = new Date(TOMORROW + 'T12:00:00');
@@ -162,6 +159,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     const dates = [];
     while (d <= end) { dates.push(toDateStr(d)); d.setDate(d.getDate() + 1); }
     applyWeekTemplate(dates, tmpl.days);
+    markPlanAutoApplied(plan.id);
     setTemplateSuggestionDismissed(true);
   }
 

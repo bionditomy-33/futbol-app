@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import { useStore } from './store/useStore';
-import { todayStr } from './utils/dates';
+import { useToday } from './hooks/useToday';
 import { getDatesBetween } from './utils/plans';
 import Hoy from './pages/Hoy';
 import Planes from './pages/Planes';
@@ -18,8 +18,6 @@ import {
   ChevronRight, EditIcon, BodyIcon, FireIcon, StarIcon, CalendarIcon,
 } from './components/Icons';
 import AnimatedModal from './components/AnimatedModal';
-
-const TODAY = todayStr();
 
 const BOTTOM_TABS = [
   { id: 'inicio',        label: 'Inicio',        Icon: HomeIcon },
@@ -90,11 +88,12 @@ export default function App() {
   const labIsDirtyRef = useRef(false);
   const [cleanupPrompt, setCleanupPrompt] = useState(null);
   const [planCelebration, setPlanCelebration] = useState(null);
+  const TODAY = useToday();
 
   // Must be before any early return — React hooks must always be called unconditionally
   const activePlan = useMemo(
     () => (plans || []).find(p => p.status !== 'completed' && TODAY >= p.startDate && TODAY <= p.endDate),
-    [plans]
+    [plans, TODAY]
   );
 
   if (!isReady) {
