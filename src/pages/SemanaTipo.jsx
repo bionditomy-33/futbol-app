@@ -1,8 +1,9 @@
 ﻿import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr, formatDate } from '../utils/dates';
-import { ChevronLeft, GymIcon, BallIcon, TrophyIcon, PlusIcon, EditIcon, TrashIcon } from '../components/Icons';
+import { ChevronLeft, GymIcon, BallIcon, TrophyIcon, PlusIcon, EditIcon, TrashIcon, CalendarIcon } from '../components/Icons';
 import { ACT_COLORS, ACT_DOT_COLORS } from '../utils/colors';
+import EmptyState from '../components/EmptyState';
 
 const WEEK_DAYS = [
   { dow: 1, label: 'Lunes' },
@@ -442,10 +443,12 @@ export default function SemanaTipo({ onBack }) {
       </p>
 
       {weekTemplates.length === 0 ? (
-        <div className="empty-state">
-          <p>No hay semanas tipo guardadas.</p>
-          <button className="btn btn-primary" onClick={openNew}>Crear primera semana tipo</button>
-        </div>
+        <EmptyState
+          icon={<CalendarIcon size={30} />}
+          title="Sin semanas tipo"
+          text="Definí tu semana habitual y aplicala a cualquier período"
+          action={<button className="btn btn-primary" onClick={openNew}>Crear primera semana tipo</button>}
+        />
       ) : (
         <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 32 }}>
           {weekTemplates.map(tmpl => (

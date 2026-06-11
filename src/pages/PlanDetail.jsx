@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useId } from 'react';
+﻿import { useState, useMemo, useId, useEffect } from 'react';
 import { getPlanProgress, computePlanWeeklyLog, useStore } from '../store/useStore';
 import { toDateStr } from '../utils/dates';
 import { getDayActivities, buildGymTogglePatch, buildToggleSkipPatch } from '../utils/activities';
@@ -65,6 +65,25 @@ function AlertBanner({ level, text, onClose }) {
       </button>
     </div>
   );
+}
+
+// ─── Conteo animado (solo presentación) ───────────────────────────────────────
+
+function useCountUp(target, duration = 800) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    let raf;
+    const t0 = performance.now();
+    const tick = (now) => {
+      const p = Math.min(1, (now - t0) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setVal(Math.round(target * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return val;
 }
 
 // ─── SVG circular progress ────────────────────────────────────────────────────
@@ -275,6 +294,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   const progress = getPlanProgress(plan, history);
   const weeks    = computePlanWeeklyLog(plan, history);
   const actType  = plan.activityType || 'individual';
+  const shownPct = useCountUp(progress.pct);
 
   const effectiveTmpl = useMemo(() => {
     if (plan.weekTemplateId) {
@@ -580,7 +600,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
               gradient={['#34D399', '#FFFFFF']} bg="rgba(255,255,255,0.14)"
             />
             <div className="plan-hero-ring-pct">
-              <div style={{ fontSize: 28, fontWeight: 800, color: 'white', lineHeight: 1, letterSpacing: '-0.02em' }}>{progress.pct}%</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: 'white', lineHeight: 1, letterSpacing: '-0.02em' }}>{shownPct}%</div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 3, letterSpacing: '0.06em', fontWeight: 600 }}>COMPLETADO</div>
             </div>
           </div>
@@ -611,7 +631,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
       )}
 
       {/* ── HOY (interactivo) ── */}
-      <div className="hoy-acts">
+      <div className="hoy-acts stagger">
         <div className="hoy-section-label">HOY</div>
         {todayActs.length === 0 ? (
           <div className="hoy-free-day">Día de descanso. Disfrutá la recuperación 💪</div>

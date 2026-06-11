@@ -1,8 +1,9 @@
 ﻿import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import { todayStr, formatDate, getDayName } from '../utils/dates';
-import { PlusIcon, EditIcon, TrashIcon, ChevronLeft } from '../components/Icons';
+import { PlusIcon, EditIcon, TrashIcon, ChevronLeft, TrophyIcon } from '../components/Icons';
 import { useToast } from '../components/useToast';
+import EmptyState from '../components/EmptyState';
 
 const COMPETITIONS = ['Arsenal Liga', 'Premier', 'Otro'];
 const RESULTS = [
@@ -240,12 +241,12 @@ export default function Partidos({ onBack }) {
 
       {/* Lista vacía */}
       {matches.length === 0 && !showForm && (
-        <div className="empty-state">
-          <div className="empty-state-icon">🏆</div>
-          <div className="empty-state-title">Sin partidos</div>
-          <p>Registrá tus partidos para llevar el historial de resultados</p>
-          <button className="btn btn-primary" onClick={openNew}>Cargar primer partido</button>
-        </div>
+        <EmptyState
+          icon={<TrophyIcon size={30} />}
+          title="Sin partidos"
+          text="Registrá tus partidos para llevar el historial de resultados"
+          action={<button className="btn btn-primary" onClick={openNew}>Cargar primer partido</button>}
+        />
       )}
 
       {/* Lista de partidos */}

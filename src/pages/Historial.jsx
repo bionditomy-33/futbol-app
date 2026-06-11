@@ -2,9 +2,10 @@
 import { useStore, getState } from '../store/useStore';
 import { INITIAL_CATALOG } from '../data/initialData';
 import { todayStr, formatDate, getDayName, getWeekStart } from '../utils/dates';
-import { GymIcon, ChevronLeft } from '../components/Icons';
+import { GymIcon, ChevronLeft, CalendarIcon } from '../components/Icons';
 import ProgressBar from '../components/ProgressBar';
 import { useToday } from '../hooks/useToday';
+import EmptyState from '../components/EmptyState';
 
 const RATING_COLORS = ['', 'var(--red-600)', '#FF7043', '#FFC107', '#66BB6A', '#2E7D32'];
 const RATING_LABELS = ['', 'Muy mal', 'Mal', 'Regular', 'Bien', 'Excelente'];
@@ -239,11 +240,11 @@ export default function Historial({ onBack } = {}) {
       )}
 
       {entries.length === 0 && (
-        <div className="empty-state">
-          <div className="empty-state-icon">📋</div>
-          <div className="empty-state-title">Sin actividad</div>
-          <p>Completá tu primer entrenamiento para ver el historial</p>
-        </div>
+        <EmptyState
+          icon={<CalendarIcon size={30} />}
+          title="Sin actividad"
+          text="Completá tu primer entrenamiento para ver el historial"
+        />
       )}
 
       {/* Entradas del historial */}

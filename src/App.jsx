@@ -98,9 +98,20 @@ export default function App() {
   );
 
   if (!isReady) {
+    // Skeleton del layout de Inicio mientras llegan los datos
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh', background: 'var(--bg-subtle)' }}>
-        <div style={{ color: 'var(--gray-mid)', fontSize: 14, fontFamily: 'inherit' }}>Cargando...</div>
+      <div className="app-container">
+        <div className="skeleton" style={{ height: 110, borderRadius: 0 }} />
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="skeleton" style={{ height: 14, width: 90, borderRadius: 6 }} />
+          <div className="skeleton" style={{ height: 104, borderRadius: 'var(--radius-lg)' }} />
+          <div className="skeleton" style={{ height: 104, borderRadius: 'var(--radius-lg)' }} />
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <div className="skeleton" style={{ flex: 1, height: 76 }} />
+            <div className="skeleton" style={{ flex: 1, height: 76 }} />
+            <div className="skeleton" style={{ flex: 1, height: 76 }} />
+          </div>
+        </div>
       </div>
     );
   }
@@ -249,7 +260,7 @@ export default function App() {
         <div className="page-header">
           <h1 className="page-title">Más</h1>
         </div>
-        <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="stagger" style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {MAS_ITEMS.map(item => (
             <button
               key={item.id}

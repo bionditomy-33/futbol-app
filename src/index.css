@@ -213,6 +213,37 @@ body {
   flex: 1;
   padding-top: 0;
   padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  animation: pageEnter var(--dur-base) var(--ease-out);
+}
+
+/* ── Microinteracciones ── */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Stagger sutil: cada hijo entra 30ms después del anterior */
+.stagger > * { animation: cardIn var(--dur-slow) var(--ease-out) backwards; }
+.stagger > *:nth-child(2) { animation-delay: 30ms; }
+.stagger > *:nth-child(3) { animation-delay: 60ms; }
+.stagger > *:nth-child(4) { animation-delay: 90ms; }
+.stagger > *:nth-child(5) { animation-delay: 120ms; }
+.stagger > *:nth-child(6) { animation-delay: 150ms; }
+.stagger > *:nth-child(n+7) { animation-delay: 180ms; }
+
+/* ── Skeleton loading ── */
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #EDF1F7 25%, #F6F8FB 50%, #EDF1F7 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: var(--radius-md);
 }
 
 /* ──────────────────────────────────────────
@@ -911,9 +942,18 @@ select.input {
   color: var(--text-secondary);
 }
 .empty-state-icon {
-  font-size: 44px;
-  margin-bottom: 12px;
-  opacity: 0.7;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  color: var(--text-light);
+  font-size: 30px;
 }
 .empty-state p { font-size: 14px; margin: 6px 0 20px; line-height: 1.5; color: var(--text-secondary); }
 .empty-state-title {

@@ -164,7 +164,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
       </div>
 
       {/* ── Tu día ── */}
-      <div className="hoy-acts">
+      <div className="hoy-acts stagger">
         <div className="hoy-section-label">TU DÍA</div>
         {todayActs.length === 0 ? (
           <div className="hoy-free-day">Día libre</div>

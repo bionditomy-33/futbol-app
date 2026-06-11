@@ -2,7 +2,8 @@
 import { useStore, getPlanProgress } from '../store/useStore';
 import { todayStr, formatDate, addDays } from '../utils/dates';
 import { daysUntil, weeksBetween, getDatesBetween } from '../utils/plans';
-import { PlusIcon, TrashIcon, EditIcon, ChevronLeft, CheckIcon, ChevronRight } from '../components/Icons';
+import { PlusIcon, TrashIcon, EditIcon, ChevronLeft, CheckIcon, ChevronRight, StarIcon } from '../components/Icons';
+import EmptyState from '../components/EmptyState';
 import PlanDetail from './PlanDetail';
 import ProgressBar from '../components/ProgressBar';
 import PlanCelebration from '../components/PlanCelebration';
@@ -516,10 +517,12 @@ export default function Planes({ onBack }) {
 
       {/* ── Estado vacío ── */}
       {pending.length === 0 && active.length === 0 && completed.length === 0 && !showForm && (
-        <div className="empty-state">
-          <p>No hay planes todavía.</p>
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>Crear primer plan</button>
-        </div>
+        <EmptyState
+          icon={<StarIcon size={30} />}
+          title="Sin planes"
+          text="Marcá un objetivo y seguí tu progreso semana a semana"
+          action={<button className="btn btn-primary" onClick={() => setShowForm(true)}>Crear primer plan</button>}
+        />
       )}
 
       {/* ── Próximos ── */}

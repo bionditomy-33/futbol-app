@@ -3,6 +3,7 @@ import { useStore } from '../store/useStore';
 import { useToast } from '../components/useToast';
 import { EditIcon, CopyIcon, TrashIcon, PlusIcon, EyeIcon, ChevronLeft, PlayIcon, BodyIcon, BallIcon, FireIcon } from '../components/Icons';
 import ExerciseGroupedList from '../components/ExerciseGroupedList';
+import EmptyState from '../components/EmptyState';
 
 function countExercises(routine) {
   return routine.phases.reduce((sum, p) => sum + p.exercises.length, 0);
@@ -189,12 +190,12 @@ export default function Rutinas({ onEdit, onNew, onBack }) {
       </div>
 
       {routines.length === 0 && (
-        <div className="empty-state">
-          <div className="empty-state-icon">⚽</div>
-          <div className="empty-state-title">Sin rutinas</div>
-          <p>Creá tu primera rutina de entrenamiento</p>
-          <button className="btn btn-primary" onClick={onNew}>Crear rutina</button>
-        </div>
+        <EmptyState
+          icon={<BallIcon size={30} />}
+          title="Sin rutinas"
+          text="Creá tu primera rutina de entrenamiento"
+          action={<button className="btn btn-primary" onClick={onNew}>Crear rutina</button>}
+        />
       )}
 
       {routines.map(routine => {
