@@ -597,7 +597,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
           <div className="plan-hero-ring">
             <CircularProgress
               pct={progress.pct} size={118} strokeWidth={11}
-              gradient={['#34D399', '#FFFFFF']} bg="rgba(255,255,255,0.14)"
+              gradient={['var(--emerald-400)', 'var(--bg-main)']} bg="rgba(255,255,255,0.14)"
             />
             <div className="plan-hero-ring-pct">
               <div style={{ fontSize: 28, fontWeight: 800, color: 'white', lineHeight: 1, letterSpacing: '-0.02em' }}>{shownPct}%</div>
