@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+﻿import { useState, useRef, useEffect, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import ExercisePicker from '../components/ExercisePicker';
 import { PlusIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon, XIcon, BodyIcon, BallIcon, FireIcon, GripIcon } from '../components/Icons';
@@ -17,10 +17,10 @@ function getPhaseClass(displayIdx) {
 }
 
 function getPhaseAccentColor(displayIdx) {
-  if (displayIdx === 0) return '#1D3461';
-  if (displayIdx === 1) return '#059669';
-  if (displayIdx === 2) return '#D97706';
-  return '#64748B';
+  if (displayIdx === 0) return 'var(--navy-600)';
+  if (displayIdx === 1) return 'var(--emerald-600)';
+  if (displayIdx === 2) return 'var(--amber-600)';
+  return 'var(--gray-mid)';
 }
 
 function getPhaseIcon(displayIdx) {
@@ -72,7 +72,7 @@ function PhaseExercises({ exercises, exerciseMap, catalog, onReorder, onMove, on
         const cat = catByExId[ex.ref] || 'Sin categoría';
         const prevCat = displayIdx > 0 ? (catByExId[displayItems[displayIdx - 1].ref] || 'Sin categoría') : null;
         const isNewGroup = cat !== prevCat;
-        const catColor = catColorMap[cat] || '#94A3B8';
+        const catColor = catColorMap[cat] || 'var(--text-light)';
 
         return (
           <div key={ei} style={{ marginBottom: 4, ...getItemStyle(displayIdx) }}>
@@ -98,11 +98,11 @@ function PhaseExercises({ exercises, exerciseMap, catalog, onReorder, onMove, on
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
                   <div
                     onPointerDown={e => onHandlePointerDown(e, displayIdx)}
-                    style={{ cursor: 'grab', color: '#B0BEC5', padding: '3px 2px', touchAction: 'none', flexShrink: 0 }}
+                    style={{ cursor: 'grab', color: 'var(--text-light)', padding: '3px 2px', touchAction: 'none', flexShrink: 0 }}
                   >
                     <GripIcon size={12} />
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#263238', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {info ? info.name : ex.ref}
                   </span>
                 </div>
@@ -298,9 +298,9 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
             placeholder="Nombre de la rutina"
             value={form.name}
             onChange={e => updateField('name', e.target.value)}
-            style={errors.name ? { borderColor: '#EF5350' } : {}}
+            style={errors.name ? { borderColor: 'var(--red-600)' } : {}}
           />
-          {errors.name && <div style={{ fontSize: 12, color: '#EF5350', marginTop: 4 }}>{errors.name}</div>}
+          {errors.name && <div style={{ fontSize: 12, color: 'var(--red-600)', marginTop: 4 }}>{errors.name}</div>}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <div className="form-group" style={{ flex: 2, marginBottom: 0 }}>
@@ -338,7 +338,7 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
                       <div
                         onPointerDown={e => onPhaseHandleDown(e, displayIdx)}
-                        style={{ cursor: 'grab', color: '#B0BEC5', padding: '4px 3px', touchAction: 'none', flexShrink: 0 }}
+                        style={{ cursor: 'grab', color: 'var(--text-light)', padding: '4px 3px', touchAction: 'none', flexShrink: 0 }}
                       >
                         <GripIcon size={14} />
                       </div>
@@ -349,7 +349,7 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                           style={{
                             fontSize: 11, fontWeight: 700, color: accentColor,
                             padding: '3px 7px', background: 'rgba(255,255,255,0.6)',
-                            border: `1px solid ${accentColor}50`, borderRadius: 5,
+                            border: `1px solid color-mix(in srgb, ${accentColor} 31%, transparent)`, borderRadius: 5,
                             textTransform: 'uppercase', letterSpacing: '0.05em',
                             minWidth: 0, flex: 1,
                           }}
@@ -367,14 +367,14 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
                       <button
                         className="btn btn-ghost"
-                        style={{ padding: '5px 7px', color: '#607D8B', opacity: pi === 0 ? 0.25 : 1, pointerEvents: pi === 0 ? 'none' : 'auto' }}
+                        style={{ padding: '5px 7px', color: 'var(--gray-mid)', opacity: pi === 0 ? 0.25 : 1, pointerEvents: pi === 0 ? 'none' : 'auto' }}
                         onClick={() => movePhase(pi, -1)}
                       >
                         <ArrowUpIcon size={14} />
                       </button>
                       <button
                         className="btn btn-ghost"
-                        style={{ padding: '5px 7px', color: '#607D8B', opacity: pi >= form.phases.length - 1 ? 0.25 : 1, pointerEvents: pi >= form.phases.length - 1 ? 'none' : 'auto' }}
+                        style={{ padding: '5px 7px', color: 'var(--gray-mid)', opacity: pi >= form.phases.length - 1 ? 0.25 : 1, pointerEvents: pi >= form.phases.length - 1 ? 'none' : 'auto' }}
                         onClick={() => movePhase(pi, 1)}
                       >
                         <ArrowDownIcon size={14} />
@@ -382,7 +382,7 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                       {canDelete && (
                         <button
                           className="btn btn-ghost"
-                          style={{ padding: '5px 7px', color: '#EF5350' }}
+                          style={{ padding: '5px 7px', color: 'var(--red-600)' }}
                           onClick={() => {
                             if (phase.exercises.length > 0) setDeleteConfirmPhase(pi);
                             else removeCustomPhase(pi);
@@ -422,7 +422,7 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
 
                     <button
                       className="btn btn-sm"
-                      style={{ background: 'rgba(255,255,255,0.8)', border: `1.5px solid ${accentColor}40`, color: accentColor, fontWeight: 600 }}
+                      style={{ background: 'rgba(255,255,255,0.8)', border: `1.5px solid color-mix(in srgb, ${accentColor} 25%, transparent)`, color: accentColor, fontWeight: 600 }}
                       onClick={() => setPicker(pi)}
                     >
                       <PlusIcon size={11} /> Agregar ejercicio
@@ -437,7 +437,7 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
         {/* Add custom phase (outside containerRef so it doesn't interfere with drag index) */}
         {showAddPhase ? (
           <div className="card" style={{ marginBottom: 12 }}>
-            <div style={{ fontWeight: 600, fontSize: 13, color: '#263238', marginBottom: 10 }}>Nueva seccion</div>
+            <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', marginBottom: 10 }}>Nueva seccion</div>
             <input
               className="input"
               placeholder="Nombre de la seccion..."
@@ -483,12 +483,12 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
         return (
           <div className="modal-overlay" onClick={() => setDeleteConfirmPhase(null)}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 32px' }}>
-              <div style={{ fontWeight: 800, fontSize: 17, color: '#263238', marginBottom: 10 }}>
+              <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', marginBottom: 10 }}>
                 Eliminar sección
               </div>
-              <div style={{ fontSize: 14, color: '#78909C', marginBottom: 24, lineHeight: 1.5 }}>
-                La sección <strong style={{ color: '#263238' }}>"{phase.phase}"</strong> tiene{' '}
-                <strong style={{ color: '#263238' }}>{phase.exercises.length} ejercicio{phase.exercises.length !== 1 ? 's' : ''}</strong>.
+              <div style={{ fontSize: 14, color: 'var(--gray-mid)', marginBottom: 24, lineHeight: 1.5 }}>
+                La sección <strong style={{ color: 'var(--text-primary)' }}>"{phase.phase}"</strong> tiene{' '}
+                <strong style={{ color: 'var(--text-primary)' }}>{phase.exercises.length} ejercicio{phase.exercises.length !== 1 ? 's' : ''}</strong>.
                 {' '}¿Estás seguro de que querés eliminarla?
               </div>
               <div style={{ display: 'flex', gap: 10 }}>

@@ -260,10 +260,10 @@ export default function App() {
               }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 14,
-                background: 'white', border: '1px solid var(--divider)',
-                borderRadius: 14, padding: '16px', cursor: 'pointer',
+                background: 'var(--bg-main)', border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)', padding: '16px', cursor: 'pointer',
                 textAlign: 'left', fontFamily: 'inherit', width: '100%',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                boxShadow: 'var(--shadow-sm)',
               }}
             >
               <div style={{
