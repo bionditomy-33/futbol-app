@@ -256,3 +256,12 @@ export function PauseIcon({ size = 12 }) {
     </svg>
   );
 }
+
+export function MoveIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 1.5v13M1.5 8h13" />
+      <path d="M8 1.5 6.2 3.3M8 1.5l1.8 1.8M8 14.5l-1.8-1.8M8 14.5l1.8-1.8M1.5 8l1.8-1.8M1.5 8l1.8 1.8M14.5 8l-1.8-1.8M14.5 8l-1.8 1.8" />
+    </svg>
+  );
+}

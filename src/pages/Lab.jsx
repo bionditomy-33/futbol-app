@@ -1,7 +1,7 @@
 ﻿import { useState, useRef, useEffect, useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import ExercisePicker from '../components/ExercisePicker';
-import { PlusIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon, XIcon, BodyIcon, BallIcon, FireIcon, GripIcon } from '../components/Icons';
+import { PlusIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon, XIcon, BodyIcon, BallIcon, FireIcon, GripIcon, MoveIcon } from '../components/Icons';
 import { useDragSort } from '../hooks/useDragSort';
 import { CAT_PALETTE as CAT_COLORS_PALETTE } from '../utils/colors';
 
@@ -47,7 +47,7 @@ function emptyRoutine() {
 }
 
 // ── Sub-component: exercise list with drag sort + category grouping ───────────
-function PhaseExercises({ exercises, exerciseMap, catalog, onReorder, onMove, onRemove, onUpdate }) {
+function PhaseExercises({ exercises, exerciseMap, catalog, onReorder, onMove, onMoveToPhase, canMoveToPhase, onRemove, onUpdate }) {
   const { containerRef, displayItems, origIndices, getItemStyle, onHandlePointerDown } =
     useDragSort(exercises, onReorder);
 
@@ -121,6 +121,16 @@ function PhaseExercises({ exercises, exerciseMap, catalog, onReorder, onMove, on
                   >
                     <ArrowDownIcon size={12} />
                   </button>
+                  {canMoveToPhase && (
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: '3px 5px', color: 'var(--text-secondary)' }}
+                      title="Mover a otra fase"
+                      onClick={() => onMoveToPhase(ei)}
+                    >
+                      <MoveIcon size={12} />
+                    </button>
+                  )}
                   <button
                     className="btn btn-ghost"
                     style={{ padding: '3px 5px', color: 'var(--red-600)' }}
@@ -174,6 +184,7 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
   const [newPhaseName, setNewPhaseName] = useState('');
   const [showAddPhase, setShowAddPhase] = useState(false);
   const [deleteConfirmPhase, setDeleteConfirmPhase] = useState(null);
+  const [moveTarget, setMoveTarget] = useState(null); // { pi, ei } del ejercicio a mover
 
   // Drag sort for phases
   const {
@@ -248,6 +259,20 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
       ...f,
       phases: f.phases.map((p, i) => i === pi ? { ...p, exercises: newExercises } : p),
     }));
+  }
+
+  // Mueve un ejercicio de una fase a otra: lo quita del origen y lo agrega al final del destino
+  function moveExerciseToPhase(fromPi, ei, toPi) {
+    setForm(f => {
+      const ex = f.phases[fromPi]?.exercises[ei];
+      if (!ex || fromPi === toPi) return f;
+      const phases = f.phases.map((p, i) => {
+        if (i === fromPi) return { ...p, exercises: p.exercises.filter((_, j) => j !== ei) };
+        if (i === toPi)   return { ...p, exercises: [...p.exercises, ex] };
+        return p;
+      });
+      return { ...f, phases };
+    });
   }
 
   function addCustomPhase() {
@@ -415,6 +440,8 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                         catalog={catalog}
                         onReorder={newExs => reorderExercises(pi, newExs)}
                         onMove={(ei, dir) => moveExercise(pi, ei, dir)}
+                        onMoveToPhase={ei => setMoveTarget({ pi, ei })}
+                        canMoveToPhase={form.phases.length > 1}
                         onRemove={ei => removeExercise(pi, ei)}
                         onUpdate={(ei, field, value) => updateExercise(pi, ei, field, value)}
                       />
@@ -503,6 +530,50 @@ export default function Lab({ routine: initialRoutine, onDone, onDirtyChange }) 
                   Eliminar
                 </button>
               </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Move exercise to another phase modal */}
+      {moveTarget !== null && (() => {
+        const fromPhase = form.phases[moveTarget.pi];
+        const ex = fromPhase?.exercises[moveTarget.ei];
+        if (!ex) return null;
+        const info = exerciseMap[ex.ref];
+        const others = form.phases
+          .map((p, i) => ({ p, i }))
+          .filter(({ i }) => i !== moveTarget.pi);
+        return (
+          <div className="modal-overlay" onClick={() => setMoveTarget(null)}>
+            <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ padding: '24px 20px 28px' }}>
+              <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', marginBottom: 4 }}>
+                Mover ejercicio
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--gray-mid)', marginBottom: 16 }}>
+                <strong style={{ color: 'var(--text-primary)' }}>{info ? info.name : ex.ref}</strong> — elegí la fase destino
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {others.map(({ p, i }) => (
+                  <button
+                    key={i}
+                    onClick={() => { moveExerciseToPhase(moveTarget.pi, moveTarget.ei, i); setMoveTarget(null); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                      padding: '12px 14px', borderRadius: 10, background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-color)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{p.phase}</span>
+                    <span style={{ fontSize: 12, color: 'var(--gray-mid)', flexShrink: 0 }}>
+                      {p.exercises.length} ej.
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <button className="btn btn-ghost btn-full" style={{ marginTop: 14 }} onClick={() => setMoveTarget(null)}>
+                Cancelar
+              </button>
             </div>
           </div>
         );
