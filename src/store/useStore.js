@@ -37,24 +37,41 @@ export function getPlanProgress(plan, history) {
       gymOnTrack: true, individualOnTrack: true,
       isPending: true, daysUntilStart,
       currentWeekNum: 0, totalWeeks,
+      excusedGym: 0, excusedIndividual: 0, excusedSessions: 0, excusedReasons: {},
     };
   }
 
+  const wantsGym = activityType === 'gym' || activityType === 'both';
+  const wantsInd = activityType === 'individual' || activityType === 'both';
+
   let gymSessions = 0;
   let individualSessions = 0;
+  let excusedGym = 0;
+  let excusedIndividual = 0;
+  const excusedReasons = {}; // motivo → nº de sesiones justificadas
   for (const [dateStr, day] of Object.entries(history)) {
     if (dateStr < startDate || dateStr > endDate) continue;
-    if ((activityType === 'gym' || activityType === 'both') && day.gym) gymSessions++;
-    if ((activityType === 'individual' || activityType === 'both') && day.done
+    if (wantsGym && day.gym) gymSessions++;
+    if (wantsInd && day.done
         && (routineIds.length === 0 || routineIds.includes(day.routineId))) individualSessions++;
+    const exc = day.excused?.activities;
+    if (exc?.length) {
+      const reason = day.excused.reason || 'Sin motivo';
+      if (wantsGym && exc.includes('gym') && !day.gym) { excusedGym++; excusedReasons[reason] = (excusedReasons[reason] || 0) + 1; }
+      if (wantsInd && exc.includes('indiv') && !day.done) { excusedIndividual++; excusedReasons[reason] = (excusedReasons[reason] || 0) + 1; }
+    }
   }
 
   const completedSessions = gymSessions + individualSessions;
+  const excusedSessions   = excusedGym + excusedIndividual;
 
-  // Effective targets
-  const effGymTarget = targetGymSessions ?? (activityType === 'gym' ? targetSessions : null);
-  const effIndTarget = targetIndividualSessions ?? (activityType === 'individual' ? targetSessions : null);
-  const effTotal     = targetSessions || ((effGymTarget || 0) + (effIndTarget || 0));
+  // Effective targets — las sesiones justificadas se descuentan del objetivo (no penalizan)
+  const baseGymTarget = targetGymSessions ?? (activityType === 'gym' ? targetSessions : null);
+  const baseIndTarget = targetIndividualSessions ?? (activityType === 'individual' ? targetSessions : null);
+  const baseTotal     = targetSessions || ((baseGymTarget || 0) + (baseIndTarget || 0));
+  const effGymTarget = baseGymTarget != null ? Math.max(0, baseGymTarget - excusedGym) : null;
+  const effIndTarget = baseIndTarget != null ? Math.max(0, baseIndTarget - excusedIndividual) : null;
+  const effTotal     = Math.max(0, baseTotal - excusedSessions);
 
   const pct           = Math.min(100, Math.round((completedSessions / Math.max(1, effTotal)) * 100));
   const gymPct        = effGymTarget != null ? Math.min(100, Math.round((gymSessions / Math.max(1, effGymTarget)) * 100)) : null;
@@ -69,12 +86,12 @@ export function getPlanProgress(plan, history) {
   const elapsedWeeks  = elapsedDays / 7;
   const weeksRemaining = remainingDays / 7;
 
-  // On-track per type
+  // On-track per type — lo justificado relaja lo esperado (no penaliza el ritmo)
   const gymOnTrack = gymWeeklyFrequency
-    ? gymSessions >= elapsedWeeks * gymWeeklyFrequency - 0.5
+    ? gymSessions >= elapsedWeeks * gymWeeklyFrequency - excusedGym - 0.5
     : true;
   const individualOnTrack = individualWeeklyFrequency
-    ? individualSessions >= elapsedWeeks * individualWeeklyFrequency - 0.5
+    ? individualSessions >= elapsedWeeks * individualWeeklyFrequency - excusedIndividual - 0.5
     : true;
   const isOnTrack = gymOnTrack && individualOnTrack;
 
@@ -110,6 +127,7 @@ export function getPlanProgress(plan, history) {
     isPending: false, daysUntilStart: 0,
     currentWeekNum, totalWeeks,
     effTotal, effGymTarget, effIndTarget,
+    excusedGym, excusedIndividual, excusedSessions, excusedReasons,
   };
 }
 
@@ -125,16 +143,24 @@ export function getPlanWeeks(plan, history) {
   const weeks = [];
   let weekStart = getWeekStart(startDate);
 
+  const wantsGym = activityType === 'gym' || activityType === 'both';
+  const wantsInd = activityType === 'individual' || activityType === 'both';
+
   while (weekStart <= endDate) {
     const weekEnd = addDays(weekStart, 6);
-    let gym = 0, individual = 0;
+    let gym = 0, individual = 0, excusedGym = 0, excusedIndividual = 0;
 
     for (const [dateStr, day] of Object.entries(history)) {
       if (dateStr < startDate || dateStr > endDate) continue;
       if (dateStr < weekStart || dateStr > weekEnd) continue;
-      if ((activityType === 'gym' || activityType === 'both') && day.gym) gym++;
-      if ((activityType === 'individual' || activityType === 'both') && day.done
+      if (wantsGym && day.gym) gym++;
+      if (wantsInd && day.done
           && (routineIds.length === 0 || routineIds.includes(day.routineId))) individual++;
+      const exc = day.excused?.activities;
+      if (exc?.length) {
+        if (wantsGym && exc.includes('gym') && !day.gym) excusedGym++;
+        if (wantsInd && exc.includes('indiv') && !day.done) excusedIndividual++;
+      }
     }
 
     const effectiveStart = weekStart > startDate ? weekStart : startDate;
@@ -150,8 +176,9 @@ export function getPlanWeeks(plan, history) {
     const prorate = base => (base <= 0 || daysInWeek >= 7)
       ? base
       : Math.min(base, Math.ceil(base * daysInWeek / 7));
-    const gymTarget        = prorate(gymWeeklyFrequency || 0);
-    const individualTarget = prorate(individualWeeklyFrequency || 0);
+    // Objetivo efectivo de la semana: prorrateado y descontando las sesiones justificadas
+    const gymTarget        = Math.max(0, prorate(gymWeeklyFrequency || 0) - excusedGym);
+    const individualTarget = Math.max(0, prorate(individualWeeklyFrequency || 0) - excusedIndividual);
     const gymMet         = gymTarget === 0 || gym >= gymTarget;
     const individualMet  = individualTarget === 0 || individual >= individualTarget;
 
@@ -161,6 +188,7 @@ export function getPlanWeeks(plan, history) {
       endDate: effectiveEnd,
       gym, individual,
       gymTarget, individualTarget,
+      excusedGym, excusedIndividual,
       gymMet, individualMet,
       isCompliant: gymMet && individualMet,
       isPast, isCurrent, isFuture,
@@ -440,9 +468,33 @@ export function useStore() {
 
   const completeDay = useCallback((dateStr, routineId) => {
     const day = state.history[dateStr] || { done: false, routineId, completed: {}, gym: false, notes: '' };
-    const next = { ...state.history, [dateStr]: { ...day, done: true, routineId } };
+    // Completar deja sin efecto la excepción del entrenamiento individual
+    const excusedRest = (day.excused?.activities || []).filter(t => t !== 'indiv');
+    const excused = (day.excused && excusedRest.length > 0)
+      ? { activities: excusedRest, reason: day.excused.reason ?? null }
+      : null;
+    const next = { ...state.history, [dateStr]: { ...day, done: true, routineId, excused } };
     setState({ history: next });
     writeDoc('history', next);
+  }, []);
+
+  // Marca o limpia la excepción ("justificado") de un día.
+  // activities: lista de tipos justificados (['gym','indiv']); vacío/null la limpia.
+  const setDayExcused = useCallback((dateStr, activities, reason = null) => {
+    const current = state.history[dateStr] || { done: false, routineId: null, completed: {}, gym: false, notes: '' };
+    const next = { ...current };
+    if (activities && activities.length > 0) {
+      next.excused = { activities, reason: reason ?? null };
+      // Estados mutuamente excluyentes: justificar borra hecho / no hecho de esos tipos
+      if (activities.includes('gym')) next.gym = false;
+      if (activities.includes('indiv')) next.done = false;
+      next.skipped = (current.skipped || []).filter(t => !activities.includes(t));
+    } else {
+      next.excused = null;
+    }
+    const nextHistory = { ...state.history, [dateStr]: next };
+    setState({ history: nextHistory });
+    writeDoc('history', nextHistory);
   }, []);
 
   const removeActivityFromDay = useCallback((dateStr, actType) => {
@@ -898,6 +950,7 @@ export function useStore() {
     updateDay,
     toggleExercise,
     completeDay,
+    setDayExcused,
     removeActivityFromDay,
     toggleSkipActivity,
     setActivityTime,

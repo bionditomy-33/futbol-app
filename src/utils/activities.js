@@ -20,9 +20,20 @@ export function getEffectiveTemplateDays(dateStr, plans, weekTemplates, defaultD
   return defaultDays;
 }
 
-// Patch de history para alternar el gym de un día (al marcarlo hecho deja de estar salteado)
+// Patch para quitar un tipo de la excepción del día (los estados hecho / no hecho /
+// excepción son mutuamente excluyentes por actividad). Devuelve {} si no había nada.
+export function buildExcusedRemovalPatch(day, type) {
+  const cur = day.excused?.activities || [];
+  if (!cur.includes(type)) return {};
+  const rest = cur.filter(t => t !== type);
+  return { excused: rest.length > 0 ? { activities: rest, reason: day.excused.reason ?? null } : null };
+}
+
+// Patch de history para alternar el gym de un día (al marcarlo hecho deja de estar salteado/justificado)
 export function buildGymTogglePatch(day) {
-  return { gym: !day.gym, skipped: (day.skipped || []).filter(t => t !== 'gym') };
+  const patch = { gym: !day.gym, skipped: (day.skipped || []).filter(t => t !== 'gym') };
+  if (!day.gym) Object.assign(patch, buildExcusedRemovalPatch(day, 'gym'));
+  return patch;
 }
 
 // Patch de history para alternar "no hice" de un tipo de actividad
@@ -33,6 +44,7 @@ export function buildToggleSkipPatch(day, type) {
   if (!isSkipped) {
     if (type === 'gym') patch.gym = false;
     if (type === 'indiv') patch.done = false;
+    Object.assign(patch, buildExcusedRemovalPatch(day, type));
   }
   return patch;
 }
@@ -47,6 +59,8 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
 
   const suppressTemplate = !!(day?.cleared && !day?.done && !day?.gym);
   const suppressed = sched.suppressedTypes || [];
+  const excusedTypes  = day?.excused?.activities || [];
+  const excusedReason = day?.excused?.reason || null;
 
   // Gym (from history, schedule entry, or template)
   if (!suppressed.includes('gym') && (day?.gym || sched.gym || (!suppressTemplate && tmpl.gym))) {
@@ -55,6 +69,8 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
       time: sched.gymTime || tmpl.gymTime || tmpl.time || '07:00',
       done: !!day?.gym,
       skipped: !!(day?.skipped?.includes('gym')),
+      excused: excusedTypes.includes('gym') && !day?.gym,
+      excusedReason: (excusedTypes.includes('gym') && !day?.gym) ? excusedReason : null,
       fromTemplate: !day?.gym && !sched.gym && !!tmpl.gym,
     });
   }
@@ -69,6 +85,8 @@ export function getDayActivities(dateStr, schedule, history, matches, weekTempla
       time: sched.indivTime || tmpl.indivTime || '08:10',
       done: !!day?.done,
       skipped: !!(day?.skipped?.includes('indiv')),
+      excused: excusedTypes.includes('indiv') && !day?.done,
+      excusedReason: (excusedTypes.includes('indiv') && !day?.done) ? excusedReason : null,
       missed: !day?.done && !!schedId && dateStr < today,
       routineId: histId || schedId || tmplId,
       fromTemplate: !schedId && !day?.done && !!tmplId,

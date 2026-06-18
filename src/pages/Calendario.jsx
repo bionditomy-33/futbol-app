@@ -3,7 +3,9 @@ import { useStore } from '../store/useStore';
 import { toDateStr } from '../utils/dates';
 import { getDayActivities, getScheduleEntry, getEffectiveTemplateDays as getEffectiveTmpl } from '../utils/activities';
 import { ACT_DOT_COLORS as C, ACT_COLORS } from '../utils/colors';
-import { TrophyIcon } from '../components/Icons';
+import { TrophyIcon, PauseIcon } from '../components/Icons';
+
+const EXCUSED_GRAY = '#94A3B8';
 import DayEditor from '../components/DayEditor';
 import { useToday } from '../hooks/useToday';
 
@@ -55,31 +57,36 @@ function CalDayBars({ acts }) {
   const matchAct   = acts.find(a => a.type === 'match');
 
   const planned = (act) => !act?.done && act?.fromTemplate;
+  const excused = (act) => !!act?.excused && !act?.done;
+  const center  = { display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' };
 
   const bars = [];
 
   if (gymAct && indivAct) {
-    const op = (planned(gymAct) || planned(indivAct)) ? 0.35 : 1;
+    const gExc = excused(gymAct), iExc = excused(indivAct);
+    const op = (gExc || iExc) ? 1 : ((planned(gymAct) || planned(indivAct)) ? 0.35 : 1);
     bars.push(
       <div key="session" className="cal-bar-split" style={{ opacity: op }}>
-        <div style={{ flex: 1, background: C.gym,   display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-          <WeightIcon size={6} />
+        <div style={{ flex: 1, background: gExc ? EXCUSED_GRAY : C.gym, ...center }}>
+          {gExc ? <PauseIcon size={6} /> : <WeightIcon size={6} />}
         </div>
-        <div style={{ flex: 1, background: indivAct.missed ? C.indivMissed : C.indiv, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-          <SmallBall size={6} />
+        <div style={{ flex: 1, background: iExc ? EXCUSED_GRAY : (indivAct.missed ? C.indivMissed : C.indiv), ...center }}>
+          {iExc ? <PauseIcon size={6} /> : <SmallBall size={6} />}
         </div>
       </div>
     );
   } else if (indivAct) {
+    const exc = excused(indivAct);
     bars.push(
-      <div key="indiv" className="cal-bar" style={{ background: indivAct.missed ? C.indivMissed : C.indiv, opacity: planned(indivAct) ? 0.35 : 1, color: 'white' }}>
-        <SmallBall size={6} />
+      <div key="indiv" className="cal-bar" style={{ background: exc ? EXCUSED_GRAY : (indivAct.missed ? C.indivMissed : C.indiv), opacity: exc ? 1 : (planned(indivAct) ? 0.35 : 1), color: 'white' }}>
+        {exc ? <PauseIcon size={6} /> : <SmallBall size={6} />}
       </div>
     );
   } else if (gymAct) {
+    const exc = excused(gymAct);
     bars.push(
-      <div key="gym" className="cal-bar" style={{ background: C.gym, opacity: planned(gymAct) ? 0.35 : 1, color: 'white' }}>
-        <WeightIcon size={6} />
+      <div key="gym" className="cal-bar" style={{ background: exc ? EXCUSED_GRAY : C.gym, opacity: exc ? 1 : (planned(gymAct) ? 0.35 : 1), color: 'white' }}>
+        {exc ? <PauseIcon size={6} /> : <WeightIcon size={6} />}
       </div>
     );
   }
@@ -253,6 +260,11 @@ function DaySheet({ dateStr, onClose, schedule, history, routines, matches, week
             detail = act.match
               ? `${act.match.result === 'ganamos' ? 'Ganamos' : act.match.result === 'perdimos' ? 'Perdimos' : 'Empate'}${act.match.minutes ? ` · ${act.match.minutes} min` : ''}`
               : 'Planificado';
+          }
+          if (act.excused && !act.done) {
+            bg = 'var(--divider)';
+            borderColor = EXCUSED_GRAY;
+            detail = `Justificado${act.excusedReason ? `: ${act.excusedReason}` : ''}`;
           }
           return (
             <div key={i} style={{ background: bg, borderLeft: `4px solid ${borderColor}`, borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>

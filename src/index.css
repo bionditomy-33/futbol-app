@@ -488,6 +488,30 @@ body {
 }
 .hoy-card.is-skipped { opacity: 0.62; }
 .hoy-card.is-skipped .hoy-card-title { text-decoration: line-through; }
+.act-btn-excuse {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(100,116,139,0.35);
+  background: rgba(255,255,255,0.55);
+  color: var(--gray-mid);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.1s, background 0.15s;
+}
+.act-btn-excuse:active { transform: scale(0.97); background: rgba(255,255,255,0.85); }
+.act-status-excused {
+  background: var(--divider);
+  color: var(--text-secondary);
+  animation: none;
+}
+.hoy-card.is-excused { opacity: 0.75; filter: grayscale(0.35); }
 .hoy-progress {
   height: 4px;
   background: rgba(0,0,0,0.08);
@@ -2598,6 +2622,11 @@ select.input {
   gap: 1px;
   border: 1px solid rgba(10,22,40,0.05);
 }
+.wk2-block-excused {
+  background: var(--divider);
+  border-color: rgba(10,22,40,0.08);
+}
+.wk2-block-excused .wk2-block-name { text-decoration: none; }
 .wk2-block-name {
   font-size: 10px;
   font-weight: 700;

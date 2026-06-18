@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react';
 import { ACT_COLORS } from '../utils/colors';
-import { XIcon, TrashIcon, CheckIcon, PlayIcon, GymIcon, BallIcon, ShieldIcon, TrophyIcon } from './Icons';
+import { XIcon, TrashIcon, CheckIcon, PlayIcon, GymIcon, BallIcon, ShieldIcon, TrophyIcon, PauseIcon } from './Icons';
 import ExerciseGroupedList from './ExerciseGroupedList';
 
 const ACT_ICONS = { gym: GymIcon, indiv: BallIcon, arsenal: ShieldIcon, match: TrophyIcon };
@@ -62,6 +62,30 @@ function SkipControl({ skipped, color, onSkip }) {
   );
 }
 
+// Botón "Excepción" para justificar una actividad no realizada
+function ExcuseControl({ onExcuse }) {
+  return (
+    <button className="act-btn-excuse" onClick={onExcuse}>
+      <PauseIcon size={11} /> Excepción
+    </button>
+  );
+}
+
+// Pill de estado justificado (gris); tocar para deshacer
+function ExcusedPill({ reason, onClear }) {
+  return (
+    <button
+      className="act-status-pill act-status-excused"
+      onClick={onClear}
+      aria-label="Justificado, tocá para deshacer"
+    >
+      <PauseIcon size={11} />
+      <span>Justificado{reason ? `: ${reason}` : ''}</span>
+      <span className="act-undo">Deshacer</span>
+    </button>
+  );
+}
+
 function ConfirmDelete({ onCancel, onDelete }) {
   return (
     <div style={{ margin: '6px 0', padding: '8px 10px', background: 'rgba(220,38,38,0.07)', borderRadius: 8 }}>
@@ -74,12 +98,13 @@ function ConfirmDelete({ onCancel, onDelete }) {
   );
 }
 
-function GymCard({ act, onDone, onSkip, onDelete }) {
+function GymCard({ act, onDone, onSkip, onExcuse, onDelete }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const c = ACT_COLORS.gym;
   const skipped = act.skipped && !act.done;
+  const excused = act.excused && !act.done;
   return (
-    <div className={`hoy-card${skipped ? ' is-skipped' : ''}`} style={{ background: c.bg }}>
+    <div className={`hoy-card${skipped ? ' is-skipped' : ''}${excused ? ' is-excused' : ''}`} style={{ background: c.bg }}>
       <CardLeft type="gym" time={act.time} c={c} />
       <div className="hoy-card-body">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -95,12 +120,15 @@ function GymCard({ act, onDone, onSkip, onDelete }) {
           <button className="act-status-pill act-status-done" style={{ background: c.sub }} onClick={onDone}>
             <CheckIcon size={11} /> <span>Hecho</span> <span className="act-undo">Deshacer</span>
           </button>
+        ) : excused ? (
+          <ExcusedPill reason={act.excusedReason} onClear={onExcuse} />
         ) : (
           <div className="act-actions">
             <button className="act-btn-done" style={{ background: c.sub }} onClick={onDone}>
               Marcar hecho
             </button>
             <SkipControl skipped={skipped} color={c.sub} onSkip={onSkip} />
+            {onExcuse && <ExcuseControl onExcuse={onExcuse} />}
           </div>
         )}
       </div>
@@ -108,7 +136,7 @@ function GymCard({ act, onDone, onSkip, onDelete }) {
   );
 }
 
-function IndivCard({ act, routines, history, todayKey, onStart, onSkip, onPreview, onDelete }) {
+function IndivCard({ act, routines, history, todayKey, onStart, onSkip, onExcuse, onPreview, onDelete }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const c = ACT_COLORS.indiv;
   const r = routines.find(r => r.id === act.routineId);
@@ -121,9 +149,10 @@ function IndivCard({ act, routines, history, todayKey, onStart, onSkip, onPrevie
   const doneEx = Object.entries(history[todayKey]?.completed || {}).filter(([id, done]) => done && exIds.has(id)).length;
   const started = doneEx > 0;
   const skipped = act.skipped && !act.done;
+  const excused = act.excused && !act.done;
 
   return (
-    <div className={`hoy-card${skipped ? ' is-skipped' : ''}`} style={{ background: c.bg }}>
+    <div className={`hoy-card${skipped ? ' is-skipped' : ''}${excused ? ' is-excused' : ''}`} style={{ background: c.bg }}>
       <CardLeft type="indiv" time={act.time} c={c} />
       <div className="hoy-card-body">
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -145,6 +174,8 @@ function IndivCard({ act, routines, history, todayKey, onStart, onSkip, onPrevie
           <div className="hoy-done-badge" style={{ color: c.sub, display: 'flex', alignItems: 'center', gap: 5 }}>
             <CheckIcon size={11} /><span style={{ color: c.sub }}>Completado{totalEx > 0 ? ` · ${doneEx}/${totalEx}` : ''}</span>
           </div>
+        ) : excused ? (
+          <ExcusedPill reason={act.excusedReason} onClear={onExcuse} />
         ) : (
           <div className="act-actions">
             {onStart && (
@@ -158,6 +189,7 @@ function IndivCard({ act, routines, history, todayKey, onStart, onSkip, onPrevie
               </button>
             )}
             {onSkip && <SkipControl skipped={skipped} color={c.sub} onSkip={onSkip} />}
+            {onExcuse && <ExcuseControl onExcuse={onExcuse} />}
           </div>
         )}
       </div>
@@ -199,10 +231,11 @@ function MatchCard({ act }) {
   );
 }
 
-export function ActivityCard({ act, routines, history, todayKey, onGymDone, onSkip, onStart, onPreview, onDelete }) {
+export function ActivityCard({ act, routines, history, todayKey, onGymDone, onSkip, onExcuse, onStart, onPreview, onDelete }) {
   const del = onDelete ? () => onDelete(act.type) : undefined;
-  if (act.type === 'gym')     return <GymCard    act={act} onDone={onGymDone} onSkip={onSkip ? () => onSkip('gym') : undefined} onDelete={del} />;
-  if (act.type === 'indiv')   return <IndivCard  act={act} routines={routines} history={history} todayKey={todayKey} onStart={onStart} onSkip={onSkip ? () => onSkip('indiv') : undefined} onPreview={onPreview ? () => onPreview(act.routineId) : undefined} onDelete={del} />;
+  const exc = onExcuse ? () => onExcuse(act.type) : undefined;
+  if (act.type === 'gym')     return <GymCard    act={act} onDone={onGymDone} onSkip={onSkip ? () => onSkip('gym') : undefined} onExcuse={exc} onDelete={del} />;
+  if (act.type === 'indiv')   return <IndivCard  act={act} routines={routines} history={history} todayKey={todayKey} onStart={onStart} onSkip={onSkip ? () => onSkip('indiv') : undefined} onExcuse={exc} onPreview={onPreview ? () => onPreview(act.routineId) : undefined} onDelete={del} />;
   if (act.type === 'arsenal') return <ArsenalCard act={act} onDelete={del} />;
   if (act.type === 'match')   return <MatchCard  act={act} />;
   return null;

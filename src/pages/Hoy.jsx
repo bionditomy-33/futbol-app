@@ -5,6 +5,7 @@ import { getDayActivities, getEffectiveTemplateDays as getEffectiveTmpl, buildGy
 import { ACT_COLORS } from '../utils/colors';
 import { FireIcon } from '../components/Icons';
 import { ActivityList, RoutinePreviewModal } from '../components/DayActivities';
+import ExcuseModal from '../components/ExcuseModal';
 import { useToday } from '../hooks/useToday';
 
 const MONTHS = [
@@ -30,9 +31,10 @@ function PlanBar({ label, value, max, color }) {
 }
 
 export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, markPlanAutoApplied, updateDay, removeActivityFromDay, exerciseMap, catalog, catLinks } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, markPlanAutoApplied, updateDay, setDayExcused, removeActivityFromDay, exerciseMap, catalog, catLinks } = useStore();
   const [templateSuggestionDismissed, setTemplateSuggestionDismissed] = useState(false);
   const [previewRoutineId, setPreviewRoutineId] = useState(null);
+  const [excuseType, setExcuseType] = useState(null); // tipo de actividad a justificar
 
   const TODAY = useToday();
   const TOMORROW = addDays(TODAY, 1);
@@ -48,6 +50,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     for (let i = 0; i < 60; i++) {
       const ds = toDateStr(d);
       if (history[ds]?.done) s++;
+      else if (history[ds]?.excused?.activities?.length) { /* día justificado: no suma ni corta */ }
       else if (ds < TODAY) break; // hoy pendiente no corta la racha
       d.setDate(d.getDate() - 1);
     }
@@ -65,7 +68,8 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     let done = 0, planned = 0;
     weekDateStrs.forEach(ds => {
       const indiv = indivOfDay(ds);
-      if (indiv) { planned++; if (indiv.done) done++; }
+      // Los días justificados no cuentan como planificados (no penalizan el ratio)
+      if (indiv && !indiv.excused) { planned++; if (indiv.done) done++; }
     });
     return { done, planned };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,7 +81,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     for (let d = 1; d <= todayDay; d++) {
       const ds = `${yr}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const indiv = indivOfDay(ds);
-      if (indiv) { planned++; if (indiv.done) done++; }
+      if (indiv && !indiv.excused) { planned++; if (indiv.done) done++; }
     }
     return planned > 0 ? Math.round((done / planned) * 100) : 0;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,18 +97,26 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     const prog = getPlanProgress(activePlan, history);
     const gymFreq = activePlan.gymWeeklyFrequency || 0;
     const indFreq = activePlan.individualWeeklyFrequency || 0;
-    const weekTarget = gymFreq + indFreq || 1;
+    const { activityType = 'individual', routineIds = [], startDate, endDate } = activePlan;
+    const wantsGym = activityType === 'gym' || activityType === 'both';
+    const wantsInd = activityType === 'individual' || activityType === 'both';
+    let weekExcused = 0;
     const weekDone = weekDateStrs.reduce((acc, ds) => {
       const day = history[ds];
-      if (!day) return acc;
-      const { activityType = 'individual', routineIds = [], startDate, endDate } = activePlan;
-      if (ds < startDate || ds > endDate) return acc;
+      if (!day || ds < startDate || ds > endDate) return acc;
       let n = 0;
-      if ((activityType === 'gym' || activityType === 'both') && day.gym) n++;
-      if ((activityType === 'individual' || activityType === 'both') && day.done
+      if (wantsGym && day.gym) n++;
+      if (wantsInd && day.done
         && (routineIds.length === 0 || routineIds.includes(day.routineId))) n++;
+      const exc = day.excused?.activities;
+      if (exc?.length) {
+        if (wantsGym && exc.includes('gym') && !day.gym) weekExcused++;
+        if (wantsInd && exc.includes('indiv') && !day.done) weekExcused++;
+      }
       return acc + n;
     }, 0);
+    // Las sesiones justificadas se descuentan del objetivo semanal (no penalizan)
+    const weekTarget = Math.max(1, (gymFreq + indFreq) - weekExcused);
     return { prog, weekTarget, weekDone };
   }, [activePlan, history, weekDateStrs]);
 
@@ -127,6 +139,19 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
   const todayDay = history[TODAY] || {};
   const handleGymDone = () => updateDay(TODAY, buildGymTogglePatch(todayDay));
   const handleToggleSkip = (type) => updateDay(TODAY, buildToggleSkipPatch(todayDay, type));
+
+  // Excepción: si ya está justificada, la quita; si no, abre el modal de motivo
+  const handleExcuse = (type) => {
+    const exc = todayDay.excused?.activities || [];
+    if (exc.includes(type)) setDayExcused(TODAY, exc.filter(t => t !== type), todayDay.excused.reason);
+    else setExcuseType(type);
+  };
+  const confirmExcuse = (reason) => {
+    const exc = todayDay.excused?.activities || [];
+    const activities = exc.includes(excuseType) ? exc : [...exc, excuseType];
+    setDayExcused(TODAY, activities, reason ?? todayDay.excused?.reason ?? null);
+    setExcuseType(null);
+  };
 
   // Template suggestion for plan start day
   const templateSuggestion = (() => {
@@ -177,6 +202,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
             onGymDone={handleGymDone}
             onStart={onGoToEntreno}
             onSkip={handleToggleSkip}
+            onExcuse={handleExcuse}
             onPreview={(routineId) => setPreviewRoutineId(routineId)}
             onDelete={(type) => removeActivityFromDay(TODAY, type)}
           />
@@ -286,6 +312,14 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
           catalog={catalog}
           catLinks={catLinks}
           onClose={() => setPreviewRoutineId(null)}
+        />
+      )}
+
+      {excuseType && (
+        <ExcuseModal
+          subtitle={`${ACT_LABEL[excuseType]} · ${headerDate}`}
+          onConfirm={confirmExcuse}
+          onClose={() => setExcuseType(null)}
         />
       )}
 

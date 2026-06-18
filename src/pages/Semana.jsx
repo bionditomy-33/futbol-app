@@ -4,8 +4,9 @@ import { toDateStr, getWeekDays, getWeekStart } from '../utils/dates';
 import { getDatesBetween } from '../utils/plans';
 import { getDayActivities, getEffectiveTemplateDays, buildGymTogglePatch } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
-import { ChevronLeft, TrashIcon } from '../components/Icons';
+import { ChevronLeft, TrashIcon, PauseIcon } from '../components/Icons';
 import DayEditor from '../components/DayEditor';
+import ExcuseModal from '../components/ExcuseModal';
 import { useToday } from '../hooks/useToday';
 
 const MONTHS_SHORT = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -33,6 +34,15 @@ function timeToMinutes(t) {
 // ── Grid activity block (tiny, inside the 7-col grid) ─────────────────────────
 function ActBlock({ act }) {
   const c = ACT_COLORS[act.type];
+  const excused = act.excused && !act.done;
+  if (excused) {
+    return (
+      <div className="wk2-block wk2-block-excused">
+        <span className="wk2-block-name" style={{ color: 'var(--text-secondary)' }}>{ACT_SHORT[act.type]}</span>
+        <span className="wk2-block-time" style={{ color: 'var(--gray-mid)' }}>‖</span>
+      </div>
+    );
+  }
   const opacity = act.skipped ? 0.5 : (act.fromTemplate && !act.done ? 0.55 : 1);
   return (
     <div
@@ -50,7 +60,7 @@ function ActBlock({ act }) {
 }
 
 // ── Activity row in day detail ─────────────────────────────────────────────────
-function ActivityRow({ act, routines, onToggleSkip, onMarkDone, isPastOrToday, onDelete, onSetTime }) {
+function ActivityRow({ act, routines, onToggleSkip, onMarkDone, onExcuse, isPastOrToday, onDelete, onSetTime }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const c = ACT_COLORS[act.type];
   let title = '', subtitle = '';
@@ -116,8 +126,13 @@ function ActivityRow({ act, routines, onToggleSkip, onMarkDone, isPastOrToday, o
             </button>
           )}
         </div>
-        {act.skipped && (
+        {act.skipped && !act.excused && (
           <div style={{ fontSize: 11, color: 'var(--red-600)', fontWeight: 700, marginTop: 4 }}>No realizado</div>
+        )}
+        {act.excused && !act.done && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--gray-mid)', fontWeight: 700, marginTop: 4 }}>
+            <PauseIcon size={11} /> Justificado{act.excusedReason ? `: ${act.excusedReason}` : ''}
+          </div>
         )}
         {confirmDelete && (
           <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(220,38,38,0.07)', borderRadius: 6 }}>
@@ -147,8 +162,19 @@ function ActivityRow({ act, routines, onToggleSkip, onMarkDone, isPastOrToday, o
             >
               ✓ Hecho <span style={{ fontWeight: 400, opacity: 0.8 }}>· deshacer</span>
             </button>
+          ) : act.excused ? (
+            <button
+              onClick={e => { e.stopPropagation(); onExcuse?.(act.type); }}
+              style={{
+                marginTop: 6, fontSize: 11, fontWeight: 600,
+                padding: '3px 8px', borderRadius: 5, cursor: 'pointer',
+                border: '1px solid var(--border-strong)', background: 'var(--divider)', color: 'var(--gray-mid)',
+              }}
+            >
+              Deshacer excepción
+            </button>
           ) : (
-            <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+            <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
               {!act.skipped && (
                 <button
                   onClick={e => { e.stopPropagation(); onMarkDone?.(act); }}
@@ -172,6 +198,19 @@ function ActivityRow({ act, routines, onToggleSkip, onMarkDone, isPastOrToday, o
               >
                 {act.skipped ? 'Restablecer' : 'No hecho'}
               </button>
+              {onExcuse && (
+                <button
+                  onClick={e => { e.stopPropagation(); onExcuse(act.type); }}
+                  style={{
+                    fontSize: 11, fontWeight: 600,
+                    padding: '3px 8px', borderRadius: 5, cursor: 'pointer',
+                    border: '1px solid var(--border-strong)', background: 'white', color: 'var(--gray-mid)',
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                  }}
+                >
+                  <PauseIcon size={10} /> Excepción
+                </button>
+              )}
             </div>
           )
         )}
@@ -192,7 +231,7 @@ function GapIndicator({ gapMins }) {
 
 // ── Main Semana component ──────────────────────────────────────────────────────
 export default function Semana({ editToday = false, onConsumed }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity, removeActivityFromDay, setActivityTime, addActivityToDay, updateDay } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, clearWeekSchedule, toggleSkipActivity, removeActivityFromDay, setActivityTime, addActivityToDay, updateDay, setDayExcused } = useStore();
 
   const TODAY = useToday();
   const [weekOffset,      setWeekOffset]      = useState(0);
@@ -218,6 +257,9 @@ export default function Semana({ editToday = false, onConsumed }) {
   const [addStep,      setAddStep]      = useState('choose'); // 'choose' | 'gym' | 'indiv' | 'arsenal'
   const [addTime,      setAddTime]      = useState('');
   const [addRoutineId, setAddRoutineId] = useState('');
+
+  // Excepción ("justificado") — lista de tipos pendiente de motivo
+  const [excuseTypes, setExcuseTypes] = useState(null);
 
   const baseDate = new Date(TODAY + 'T12:00:00');
   baseDate.setDate(baseDate.getDate() + weekOffset * 7);
@@ -319,6 +361,35 @@ export default function Semana({ editToday = false, onConsumed }) {
       }
     }
   }
+
+  // Excepción: toca quitar si ya está justificada, o abrir modal de motivo
+  function handleExcuse(type) {
+    const day = history[selectedDateStr] || {};
+    const exc = day.excused?.activities || [];
+    if (exc.includes(type)) setDayExcused(selectedDateStr, exc.filter(t => t !== type), day.excused.reason);
+    else setExcuseTypes([type]);
+  }
+  // Día completo como excepción: justifica gym/indiv presentes y no hechos
+  function handleExcuseDay() {
+    const day = history[selectedDateStr] || {};
+    const exc = day.excused?.activities || [];
+    const types = selActs
+      .filter(a => (a.type === 'gym' || a.type === 'indiv') && !a.done && !exc.includes(a.type))
+      .map(a => a.type);
+    if (types.length > 0) setExcuseTypes([...new Set(types)]);
+  }
+  function confirmExcuse(reason) {
+    const day = history[selectedDateStr] || {};
+    const exc = day.excused?.activities || [];
+    const merged = [...new Set([...exc, ...excuseTypes])];
+    setDayExcused(selectedDateStr, merged, reason ?? day.excused?.reason ?? null);
+    setExcuseTypes(null);
+  }
+
+  // ¿Hay actividades justificables sin justificar todavía? (para mostrar el botón de día)
+  const canExcuseDay = isPastOrToday && selActs.some(a =>
+    (a.type === 'gym' || a.type === 'indiv') && !a.done && !a.excused
+  );
 
   function openAddModal() {
     setAddStep('choose');
@@ -517,6 +588,7 @@ export default function Semana({ editToday = false, onConsumed }) {
                   isPastOrToday={isPastOrToday}
                   onMarkDone={handleMarkDone}
                   onToggleSkip={(actType) => toggleSkipActivity(selectedDateStr, actType)}
+                  onExcuse={(act.type === 'gym' || act.type === 'indiv') ? handleExcuse : undefined}
                   onDelete={!(act.type === 'match' && act.done) ? () => removeActivityFromDay(selectedDateStr, act.type) : undefined}
                   onSetTime={!(act.type === 'match' && act.done) ? (actType, t) => setActivityTime(selectedDateStr, actType, t) : undefined}
                 />
@@ -526,6 +598,15 @@ export default function Semana({ editToday = false, onConsumed }) {
         )}
 
         <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {canExcuseDay && (
+            <button
+              className="btn btn-full"
+              onClick={handleExcuseDay}
+              style={{ background: 'var(--divider)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            >
+              <PauseIcon size={13} /> Marcar día como excepción
+            </button>
+          )}
           {addableTypes.length > 0 && (
             <button className="btn btn-secondary btn-full" onClick={openAddModal}>
               + Agregar actividad
@@ -740,6 +821,15 @@ export default function Semana({ editToday = false, onConsumed }) {
             )}
           </div>
         </div>
+      )}
+
+      {/* ── Excuse modal ── */}
+      {excuseTypes && (
+        <ExcuseModal
+          subtitle={`${excuseTypes.map(t => ADD_LABEL[t] || ACT_SHORT[t]).join(' + ')} · ${DAY_FULL[selDate.getDay()]} ${selDate.getDate()}`}
+          onConfirm={confirmExcuse}
+          onClose={() => setExcuseTypes(null)}
+        />
       )}
 
     </div>

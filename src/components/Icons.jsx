@@ -247,3 +247,12 @@ export function ShieldIcon({ size = 14 }) {
     </svg>
   );
 }
+
+export function PauseIcon({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="currentColor">
+      <rect x="3" y="2.5" width="2.6" height="9" rx="1" />
+      <rect x="8.4" y="2.5" width="2.6" height="9" rx="1" />
+    </svg>
+  );
+}

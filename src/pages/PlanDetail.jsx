@@ -2,8 +2,9 @@
 import { getPlanProgress, computePlanWeeklyLog, useStore } from '../store/useStore';
 import { toDateStr } from '../utils/dates';
 import { getDayActivities, buildGymTogglePatch, buildToggleSkipPatch } from '../utils/activities';
-import { ChevronLeft, ChevronDown, CheckCircleIcon, XIcon, PlayIcon } from '../components/Icons';
+import { ChevronLeft, ChevronDown, CheckCircleIcon, XIcon, PlayIcon, PauseIcon } from '../components/Icons';
 import { ActivityList, RoutinePreviewModal } from '../components/DayActivities';
+import ExcuseModal from '../components/ExcuseModal';
 import AnimatedModal from '../components/AnimatedModal';
 import { useToday } from '../hooks/useToday';
 import { CAT_PALETTE } from '../utils/colors';
@@ -289,7 +290,8 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   const [pickerTarget, setPickerTarget] = useState(null); // dateStr al que asignar/reemplazar rutina
   const [editingTime, setEditingTime] = useState(false);
 
-  const { schedule, matches, weekTemplate, weekTemplates, updateDay, removeActivityFromDay, assignRoutine, setActivityTime, exerciseMap, catalog, catLinks } = useStore();
+  const { schedule, matches, weekTemplate, weekTemplates, updateDay, setDayExcused, removeActivityFromDay, assignRoutine, setActivityTime, exerciseMap, catalog, catLinks } = useStore();
+  const [excuseType, setExcuseType] = useState(null);
 
   const progress = getPlanProgress(plan, history);
   const weeks    = computePlanWeeklyLog(plan, history);
@@ -513,6 +515,17 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   const todayDay = history[TODAY] || {};
   const handleGymDone = () => updateDay(TODAY, buildGymTogglePatch(todayDay));
   const handleToggleSkip = (type) => updateDay(TODAY, buildToggleSkipPatch(todayDay, type));
+  const handleExcuse = (type) => {
+    const exc = todayDay.excused?.activities || [];
+    if (exc.includes(type)) setDayExcused(TODAY, exc.filter(t => t !== type), todayDay.excused.reason);
+    else setExcuseType(type);
+  };
+  const confirmExcuse = (reason) => {
+    const exc = todayDay.excused?.activities || [];
+    const activities = exc.includes(excuseType) ? exc : [...exc, excuseType];
+    setDayExcused(TODAY, activities, reason ?? todayDay.excused?.reason ?? null);
+    setExcuseType(null);
+  };
 
   function selectRoutineForTarget(routineId) {
     if (pickerTarget) assignRoutine(pickerTarget, routineId);
@@ -644,6 +657,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             onGymDone={handleGymDone}
             onStart={onStartToday}
             onSkip={handleToggleSkip}
+            onExcuse={handleExcuse}
             onPreview={(routineId) => setPreviewRoutineId(routineId)}
             onDelete={(type) => removeActivityFromDay(TODAY, type)}
           />
@@ -872,6 +886,18 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             </div>
           )}
 
+          {progress.excusedSessions > 0 && (
+            <div style={{ flex: 1, minWidth: 80, background: 'var(--bg-subtle)', borderRadius: 8, padding: '10px 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--gray-mid)', marginBottom: 2 }}>
+                <PauseIcon size={11} /> Justificadas
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-secondary)' }}>{progress.excusedSessions}</div>
+              <div style={{ fontSize: 10, color: 'var(--gray-mid)' }}>
+                {Object.entries(progress.excusedReasons || {}).map(([r, n]) => `${n} ${r.toLowerCase()}`).join(' · ')}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -908,8 +934,8 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                 ) : (
                   <div style={{ flex: 1 }}>
                     {acts.map((act, ai) => {
-                      const icon = act.done ? '✓' : act.skipped ? '✗' : (isPast ? '—' : '○');
-                      const ic = act.done ? 'var(--emerald-600)' : act.skipped ? 'var(--red-600)' : (isPast ? 'var(--text-light)' : 'var(--text-light)');
+                      const icon = act.done ? '✓' : act.excused ? '‖' : act.skipped ? '✗' : (isPast ? '—' : '○');
+                      const ic = act.done ? 'var(--emerald-600)' : act.excused ? 'var(--gray-mid)' : act.skipped ? 'var(--red-600)' : (isPast ? 'var(--text-light)' : 'var(--text-light)');
                       const name = act.type === 'gym'
                         ? 'Gimnasio'
                         : (routines.find(r => r.id === act.routineId)?.name || 'Entrenamiento');
@@ -1075,8 +1101,8 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
                           ) : (
                             <div>
                               {acts.map((act, ai) => {
-                                const icon = act.done ? '✓' : act.skipped ? '✗' : (isPast ? '—' : '○');
-                                const ic   = act.done ? 'var(--emerald-600)' : act.skipped ? 'var(--red-600)' : (isPast ? 'var(--text-light)' : 'var(--text-light)');
+                                const icon = act.done ? '✓' : act.excused ? '‖' : act.skipped ? '✗' : (isPast ? '—' : '○');
+                                const ic   = act.done ? 'var(--emerald-600)' : act.excused ? 'var(--gray-mid)' : act.skipped ? 'var(--red-600)' : (isPast ? 'var(--text-light)' : 'var(--text-light)');
                                 const name = act.type === 'gym'
                                   ? 'Gimnasio'
                                   : (routines.find(r => r.id === act.routineId)?.name || 'Entrenamiento');
@@ -1126,6 +1152,14 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
           catalog={catalog}
           catLinks={catLinks}
           onClose={() => setPreviewRoutineId(null)}
+        />
+      )}
+
+      {excuseType && (
+        <ExcuseModal
+          subtitle={`${excuseType === 'gym' ? 'Gimnasio' : 'Entrenamiento individual'} · hoy`}
+          onConfirm={confirmExcuse}
+          onClose={() => setExcuseType(null)}
         />
       )}
 
