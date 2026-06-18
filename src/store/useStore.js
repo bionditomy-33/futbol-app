@@ -238,6 +238,74 @@ export function computePlanWeeklyLog(plan, history) {
   });
 }
 
+// ─── Ruta crítica ──────────────────────────────────────────────────────────────
+// Detecta si la semana actual es matemáticamente imposible de cumplir con los días
+// que quedan (capacidad ~1.5 sesiones/día) y proyecta cómo se carga la semana
+// siguiente si esta termina como está hoy. Devuelve { isCritical: false } salvo
+// que la situación sea realmente crítica.
+export function computeCriticalPath(plan, history) {
+  const { activityType = 'individual' } = plan;
+  const log = computePlanWeeklyLog(plan, history);
+  const current = log.find(w => w.isCurrent);
+  if (!current) return { isCritical: false };
+
+  const wantsGym = activityType === 'gym' || activityType === 'both';
+  const wantsInd = activityType === 'individual' || activityType === 'both';
+
+  const today  = todayStr();
+  const MS_DAY = 86400000;
+  const daysLeft = Math.max(0, Math.round(
+    (new Date(current.endDate + 'T12:00:00') - new Date(today + 'T12:00:00')) / MS_DAY
+  ) + 1);
+
+  // Faltantes vs objetivo efectivo de la semana (incluye compensación arrastrada)
+  const gymMissing   = wantsGym ? Math.max(0, (current.gymEffTarget   || 0) - current.gym)        : 0;
+  const indivMissing = wantsInd ? Math.max(0, (current.indivEffTarget || 0) - current.individual) : 0;
+  const totalMissing = gymMissing + indivMissing;
+
+  // Crítico: no entran en los días que quedan (cada día rinde como mucho ~1.5 sesiones)
+  const capacity   = daysLeft * 1.5;
+  const isCritical = totalMissing > 0 && totalMissing > capacity;
+  if (!isCritical) return { isCritical: false };
+
+  // Para NO sumar deuda nueva esta semana hay que llegar al menos al objetivo base
+  const recommended = {
+    gym:   wantsGym ? Math.max(0, (current.gymTarget        || 0) - current.gym)        : 0,
+    indiv: wantsInd ? Math.max(0, (current.individualTarget || 0) - current.individual) : 0,
+  };
+
+  // Proyección: si esta semana cierra como está hoy, ¿cómo queda la siguiente?
+  // Reusa el modelo de deuda (tope de compensación 2/semana) de computePlanWeeklyLog.
+  const idx  = log.indexOf(current);
+  const prev = idx > 0 ? log[idx - 1] : null;
+  const debtAfter = (prior, target, done) => {
+    const compCap = Math.min(prior, 2);
+    const comp = Math.max(0, Math.min(done - target, compCap));
+    const miss = Math.max(0, target - done);
+    return Math.max(0, prior - comp + miss);
+  };
+  const gymDebtAfter = wantsGym ? debtAfter(prev?.accGymDebt   || 0, current.gymTarget        || 0, current.gym)        : 0;
+  const indDebtAfter = wantsInd ? debtAfter(prev?.accIndivDebt || 0, current.individualTarget || 0, current.individual) : 0;
+
+  const nextRaw = log.find(w => w.num === current.num + 1 && !w.isPast);
+  let nextWeek = null;
+  if (nextRaw) {
+    const gym   = wantsGym ? (nextRaw.gymTarget        || 0) + Math.min(gymDebtAfter, 2) : 0;
+    const indiv = wantsInd ? (nextRaw.individualTarget || 0) + Math.min(indDebtAfter, 2) : 0;
+    const total = gym + indiv;
+    nextWeek = { num: nextRaw.num, gym, indiv, total, impossible: total > 7 * 1.5 };
+  }
+
+  return {
+    isCritical: true,
+    weekNum: current.num,
+    daysLeft,
+    gymMissing, indivMissing, totalMissing,
+    recommended,
+    nextWeek,
+  };
+}
+
 // Migrate old phase names to current names
 const PHASE_MIGRATION = {
   'Movilidad':             'Activacion - Bloque Agilidad',

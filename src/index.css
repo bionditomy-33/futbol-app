@@ -1546,6 +1546,49 @@ select.input {
 .plan-alert-red .plan-alert-close { color: var(--red-800); }
 .plan-alert-close:active { opacity: 1; }
 
+/* Banner crítico (ruta crítica) — rojo fuerte, números grandes */
+.plan-critical {
+  margin: 0 16px 8px;
+  border-radius: 12px;
+  background: var(--red-100);
+  border: 1.5px solid var(--red-600);
+  box-shadow: 0 3px 12px rgba(220,38,38,0.18);
+  padding: 12px 14px 14px;
+}
+.plan-critical-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.plan-critical-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.08em;
+  color: white; background: var(--red-600); border-radius: 6px; padding: 3px 8px;
+}
+.plan-critical-week { font-size: 12px; font-weight: 700; color: var(--red-800); }
+.plan-critical-close {
+  margin-left: auto; background: none; border: none; cursor: pointer;
+  color: var(--red-800); opacity: 0.65; padding: 2px; display: flex;
+}
+.plan-critical-close:active { opacity: 1; }
+.plan-critical-stats { display: flex; gap: 8px; margin-bottom: 12px; }
+.plan-critical-stat {
+  flex: 1; background: rgba(255,255,255,0.6); border-radius: 10px;
+  padding: 9px 6px; text-align: center;
+}
+.plan-critical-stat.soft { background: rgba(255,255,255,0.35); }
+.plan-critical-num {
+  display: block; font-size: 30px; font-weight: 800;
+  color: var(--red-600); line-height: 1; letter-spacing: -0.02em;
+}
+.plan-critical-stat.soft .plan-critical-num { color: var(--red-800); }
+.plan-critical-lbl {
+  display: block; font-size: 11px; font-weight: 600;
+  color: var(--red-800); margin-top: 4px;
+}
+.plan-critical-msg { font-size: 13px; line-height: 1.45; font-weight: 600; color: var(--red-800); }
+.plan-critical-route {
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid rgba(220,38,38,0.25);
+  font-size: 12.5px; line-height: 1.45; color: var(--red-800);
+}
+
 /* ──────────────────────────────────────────
    NEXT TRAINING
 ────────────────────────────────────────── */

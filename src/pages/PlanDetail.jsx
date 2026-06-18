@@ -1,5 +1,5 @@
 ﻿import { useState, useMemo, useId, useEffect } from 'react';
-import { getPlanProgress, computePlanWeeklyLog, useStore } from '../store/useStore';
+import { getPlanProgress, computePlanWeeklyLog, computeCriticalPath, useStore } from '../store/useStore';
 import { toDateStr } from '../utils/dates';
 import { getDayActivities, buildGymTogglePatch, buildToggleSkipPatch } from '../utils/activities';
 import { ChevronLeft, ChevronDown, CheckCircleIcon, XIcon, PlayIcon, PauseIcon } from '../components/Icons';
@@ -64,6 +64,59 @@ function AlertBanner({ level, text, onClose }) {
       <button className="plan-alert-close" onClick={onClose} aria-label="Descartar">
         <XIcon size={15} />
       </button>
+    </div>
+  );
+}
+
+// ─── Banner crítico (ruta crítica) ─────────────────────────────────────────────
+// Aparece solo cuando la semana es matemáticamente imposible de cumplir.
+// Tono: honesto y claro, sin catastrofismo.
+function fmtSessions(gym, indiv) {
+  return [gym > 0 && `${gym} gym`, indiv > 0 && `${indiv} indiv`].filter(Boolean).join(' + ');
+}
+
+function CriticalBanner({ cp, onClose }) {
+  const stats = [];
+  if (cp.gymMissing > 0)   stats.push({ n: cp.gymMissing,   label: 'gym' });
+  if (cp.indivMissing > 0) stats.push({ n: cp.indivMissing, label: 'individual' });
+  stats.push({ n: cp.daysLeft, label: cp.daysLeft === 1 ? 'día' : 'días', soft: true });
+
+  const reco = fmtSessions(cp.recommended.gym, cp.recommended.indiv);
+
+  return (
+    <div className="plan-critical">
+      <div className="plan-critical-head">
+        <span className="plan-critical-badge"><AlertTriangle size={12} /> CRÍTICO</span>
+        <span className="plan-critical-week">Semana {cp.weekNum}</span>
+        <button className="plan-critical-close" onClick={onClose} aria-label="Descartar">
+          <XIcon size={15} />
+        </button>
+      </div>
+
+      <div className="plan-critical-stats">
+        {stats.map((s, i) => (
+          <div key={i} className={`plan-critical-stat${s.soft ? ' soft' : ''}`}>
+            <span className="plan-critical-num">{s.n}</span>
+            <span className="plan-critical-lbl">{s.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="plan-critical-msg">
+        {cp.nextWeek
+          ? <>No es drama, pero estas sesiones <strong>tenés que hacerlas esta semana</strong>. Si quedan para después, la próxima se complica.</>
+          : <>Son las últimas sesiones del plan: <strong>hacelas esta semana</strong> para cerrarlo.</>}
+      </div>
+
+      {cp.nextWeek && (
+        <div className="plan-critical-route">
+          <strong>Ruta crítica:</strong>{' '}
+          {reco
+            ? <>hacé al menos <strong>{reco}</strong> esta semana. Si no, la <strong>Sem {cp.nextWeek.num}</strong> pasa a <strong>{fmtSessions(cp.nextWeek.gym, cp.nextWeek.indiv)}</strong></>
+            : <>la <strong>Sem {cp.nextWeek.num}</strong> pasaría a <strong>{fmtSessions(cp.nextWeek.gym, cp.nextWeek.indiv)}</strong></>}
+          {cp.nextWeek.impossible ? ' — casi imposible de cumplir.' : '.'}
+        </div>
+      )}
     </div>
   );
 }
@@ -295,6 +348,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
 
   const progress = getPlanProgress(plan, history);
   const weeks    = computePlanWeeklyLog(plan, history);
+  const criticalPath = computeCriticalPath(plan, history);
   const actType  = plan.activityType || 'individual';
   const shownPct = useCountUp(progress.pct);
 
@@ -509,7 +563,12 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
       return next;
     });
   }
-  const visibleAlerts = alerts.filter(a => dismissed[a.id] !== TODAY);
+  // Banner crítico: tiene prioridad y reemplaza a las alertas genéricas de semana
+  const showCritical = criticalPath.isCritical && planActiveNow && dismissed['plan-critical'] !== TODAY;
+  const visibleAlerts = alerts.filter(a =>
+    dismissed[a.id] !== TODAY &&
+    !(showCritical && (a.id === 'week-red' || a.id === 'week-yellow'))
+  );
 
   // ── Activity action handlers (mark done / "no hecho") ──────────────────────
   const todayDay = history[TODAY] || {};
@@ -633,6 +692,13 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
           </div>
         </div>
       </div>
+
+      {/* ── Banner crítico (ruta crítica) ── */}
+      {showCritical && (
+        <div className="plan-alerts">
+          <CriticalBanner cp={criticalPath} onClose={() => dismissAlert('plan-critical')} />
+        </div>
+      )}
 
       {/* ── Alertas de urgencia ── */}
       {visibleAlerts.length > 0 && (
