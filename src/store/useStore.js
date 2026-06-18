@@ -65,13 +65,12 @@ export function getPlanProgress(plan, history) {
   const completedSessions = gymSessions + individualSessions;
   const excusedSessions   = excusedGym + excusedIndividual;
 
-  // Effective targets — las sesiones justificadas se descuentan del objetivo (no penalizan)
-  const baseGymTarget = targetGymSessions ?? (activityType === 'gym' ? targetSessions : null);
-  const baseIndTarget = targetIndividualSessions ?? (activityType === 'individual' ? targetSessions : null);
-  const baseTotal     = targetSessions || ((baseGymTarget || 0) + (baseIndTarget || 0));
-  const effGymTarget = baseGymTarget != null ? Math.max(0, baseGymTarget - excusedGym) : null;
-  const effIndTarget = baseIndTarget != null ? Math.max(0, baseIndTarget - excusedIndividual) : null;
-  const effTotal     = Math.max(0, baseTotal - excusedSessions);
+  // El objetivo NO cambia por excepciones: effTotal = meta original.
+  // Las justificadas solo se cuentan aparte (stats) y evitan deuda/penalización
+  // (eso vive en getPlanWeeks y en la racha), pero nunca achican el denominador.
+  const effGymTarget = targetGymSessions ?? (activityType === 'gym' ? targetSessions : null);
+  const effIndTarget = targetIndividualSessions ?? (activityType === 'individual' ? targetSessions : null);
+  const effTotal     = targetSessions || ((effGymTarget || 0) + (effIndTarget || 0));
 
   const pct           = Math.min(100, Math.round((completedSessions / Math.max(1, effTotal)) * 100));
   const gymPct        = effGymTarget != null ? Math.min(100, Math.round((gymSessions / Math.max(1, effGymTarget)) * 100)) : null;
@@ -86,12 +85,12 @@ export function getPlanProgress(plan, history) {
   const elapsedWeeks  = elapsedDays / 7;
   const weeksRemaining = remainingDays / 7;
 
-  // On-track per type — lo justificado relaja lo esperado (no penaliza el ritmo)
+  // On-track per type
   const gymOnTrack = gymWeeklyFrequency
-    ? gymSessions >= elapsedWeeks * gymWeeklyFrequency - excusedGym - 0.5
+    ? gymSessions >= elapsedWeeks * gymWeeklyFrequency - 0.5
     : true;
   const individualOnTrack = individualWeeklyFrequency
-    ? individualSessions >= elapsedWeeks * individualWeeklyFrequency - excusedIndividual - 0.5
+    ? individualSessions >= elapsedWeeks * individualWeeklyFrequency - 0.5
     : true;
   const isOnTrack = gymOnTrack && individualOnTrack;
 
