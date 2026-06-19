@@ -136,7 +136,7 @@ function GymCard({ act, onDone, onSkip, onExcuse, onDelete }) {
   );
 }
 
-function IndivCard({ act, routines, history, todayKey, onStart, onSkip, onExcuse, onPreview, onDelete }) {
+function IndivCard({ act, routines, history, todayKey, onStart, onMarkDone, onSkip, onExcuse, onPreview, onDelete }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const c = ACT_COLORS.indiv;
   const r = routines.find(r => r.id === act.routineId);
@@ -188,6 +188,11 @@ function IndivCard({ act, routines, history, todayKey, onStart, onSkip, onExcuse
                 Ver
               </button>
             )}
+            {onMarkDone && (
+              <button className="act-btn-done" style={{ background: c.sub }} onClick={onMarkDone}>
+                Marcar hecho
+              </button>
+            )}
             {onSkip && <SkipControl skipped={skipped} color={c.sub} onSkip={onSkip} />}
             {onExcuse && <ExcuseControl onExcuse={onExcuse} />}
           </div>
@@ -231,11 +236,11 @@ function MatchCard({ act }) {
   );
 }
 
-export function ActivityCard({ act, routines, history, todayKey, onGymDone, onSkip, onExcuse, onStart, onPreview, onDelete }) {
+export function ActivityCard({ act, routines, history, todayKey, onGymDone, onIndivDone, onSkip, onExcuse, onStart, onPreview, onDelete }) {
   const del = onDelete ? () => onDelete(act.type) : undefined;
   const exc = onExcuse ? () => onExcuse(act.type) : undefined;
   if (act.type === 'gym')     return <GymCard    act={act} onDone={onGymDone} onSkip={onSkip ? () => onSkip('gym') : undefined} onExcuse={exc} onDelete={del} />;
-  if (act.type === 'indiv')   return <IndivCard  act={act} routines={routines} history={history} todayKey={todayKey} onStart={onStart} onSkip={onSkip ? () => onSkip('indiv') : undefined} onExcuse={exc} onPreview={onPreview ? () => onPreview(act.routineId) : undefined} onDelete={del} />;
+  if (act.type === 'indiv')   return <IndivCard  act={act} routines={routines} history={history} todayKey={todayKey} onStart={onStart} onMarkDone={onIndivDone ? () => onIndivDone(act) : undefined} onSkip={onSkip ? () => onSkip('indiv') : undefined} onExcuse={exc} onPreview={onPreview ? () => onPreview(act.routineId) : undefined} onDelete={del} />;
   if (act.type === 'arsenal') return <ArsenalCard act={act} onDelete={del} />;
   if (act.type === 'match')   return <MatchCard  act={act} />;
   return null;

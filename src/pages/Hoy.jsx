@@ -138,6 +138,11 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
   // ── Activity action handlers (mark done / "no hecho") ──────────────────────
   const todayDay = history[TODAY] || {};
   const handleGymDone = () => updateDay(TODAY, buildGymTogglePatch(todayDay));
+  const handleIndivDone = (act) => updateDay(TODAY, {
+    done: true,
+    routineId: act.routineId || todayDay.routineId || null,
+    skipped: (todayDay.skipped || []).filter(t => t !== 'indiv'),
+  });
   const handleToggleSkip = (type) => updateDay(TODAY, buildToggleSkipPatch(todayDay, type));
 
   // Excepción: si ya está justificada, la quita; si no, abre el modal de motivo
@@ -200,6 +205,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
             history={history}
             todayKey={TODAY}
             onGymDone={handleGymDone}
+            onIndivDone={handleIndivDone}
             onStart={onGoToEntreno}
             onSkip={handleToggleSkip}
             onExcuse={handleExcuse}

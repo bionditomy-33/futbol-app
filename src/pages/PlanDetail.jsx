@@ -636,6 +636,11 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   // ── Activity action handlers (mark done / "no hecho") ──────────────────────
   const todayDay = history[TODAY] || {};
   const handleGymDone = () => updateDay(TODAY, buildGymTogglePatch(todayDay));
+  const handleIndivDone = (act) => updateDay(TODAY, {
+    done: true,
+    routineId: act.routineId || todayDay.routineId || null,
+    skipped: (todayDay.skipped || []).filter(t => t !== 'indiv'),
+  });
   const handleToggleSkip = (type) => updateDay(TODAY, buildToggleSkipPatch(todayDay, type));
   const handleExcuse = (type) => {
     const exc = todayDay.excused?.activities || [];
@@ -787,6 +792,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
             history={history}
             todayKey={TODAY}
             onGymDone={handleGymDone}
+            onIndivDone={handleIndivDone}
             onStart={onStartToday}
             onSkip={handleToggleSkip}
             onExcuse={handleExcuse}
