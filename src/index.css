@@ -262,10 +262,11 @@ body {
    HOY — dark navy header
 ────────────────────────────────────────── */
 .hoy-header {
-  background: var(--grad-hero);
-  padding: 22px 20px 26px;
+  background: linear-gradient(135deg, #0A1628 0%, #1D3461 50%, #112040 100%);
+  padding: 20px;
   position: relative;
   overflow: hidden;
+  border-bottom: 0.5px solid rgba(255,255,255,0.1);
 }
 /* Patrón: glow radial tenue + ruido fino para que el hero no sea un rectángulo plano */
 .hoy-header::before,

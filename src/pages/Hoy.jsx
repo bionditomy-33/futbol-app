@@ -3,7 +3,7 @@ import { useStore, getPlanProgress } from '../store/useStore';
 import { toDateStr, addDays, getWeekDays } from '../utils/dates';
 import { getDayActivities, getEffectiveTemplateDays as getEffectiveTmpl, buildGymTogglePatch, buildToggleSkipPatch } from '../utils/activities';
 import { ACT_COLORS } from '../utils/colors';
-import { FireIcon } from '../components/Icons';
+import { FireIcon, SunIcon, CloudIcon, MoonIcon } from '../components/Icons';
 import { ActivityList, RoutinePreviewModal } from '../components/DayActivities';
 import ExcuseModal from '../components/ExcuseModal';
 import { useToday } from '../hooks/useToday';
@@ -184,13 +184,39 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
   const weekColor   = weekStats.planned === 0 ? 'var(--text-light)' : weekRatio >= 1 ? 'var(--emerald-600)' : weekRatio >= 0.5 ? 'var(--text-primary)' : 'var(--red-600)';
   const monthColor  = monthStats >= 70 ? 'var(--emerald-600)' : monthStats >= 40 ? 'var(--amber-600)' : 'var(--red-600)';
 
+  // Header: icono según la hora + resumen del día (gym/individual planeados + racha)
+  const hour = new Date().getHours();
+  const TimeIcon = (hour >= 5 && hour < 12) ? SunIcon : (hour >= 12 && hour < 18) ? CloudIcon : MoonIcon;
+  const gymCount   = todayActs.filter(a => a.type === 'gym').length;
+  const indivCount = todayActs.filter(a => a.type === 'indiv').length;
+  const dayParts = [];
+  if (gymCount > 0)   dayParts.push(`${gymCount} gimnasio`);
+  if (indivCount > 0) dayParts.push(`${indivCount} individual`);
+  const dayLabel = dayParts.length > 0 ? dayParts.join(' + ') : 'día libre';
+  const headerInfo = `Hoy: ${dayLabel} · Racha: ${streak} ${streak === 1 ? 'día' : 'días'}`;
+
   return (
     <div className="page-content">
 
       {/* ── Header ── */}
       <div className="hoy-header">
+        {/* Patrón geométrico diagonal sutil */}
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.05,
+          backgroundImage: 'repeating-linear-gradient(135deg, #fff 0, #fff 1px, transparent 1px, transparent 10px)',
+        }} />
+        {/* Icono según la hora del día (decorativo de fondo) */}
+        <div aria-hidden style={{
+          position: 'absolute', top: 16, right: 16, color: 'white', opacity: 0.2,
+          pointerEvents: 'none', lineHeight: 0,
+        }}>
+          <TimeIcon size={64} />
+        </div>
         <div className="hoy-header-date">{headerDate}</div>
         <div className="hoy-header-day">Buen día, Tomás</div>
+        <div style={{ position: 'relative', zIndex: 1, marginTop: 6, fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.8)' }}>
+          {headerInfo}
+        </div>
       </div>
 
       {/* ── Tu día ── */}
