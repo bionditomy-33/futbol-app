@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef, useMemo } from 'react';
+import debounce from 'lodash/debounce';
 import { useStore } from '../store/useStore';
 import { getScheduleEntry, getEffectiveTemplateDays } from '../utils/activities';
 import { CheckIcon, PlayIcon, GymIcon, CheckCircleIcon, GripIcon } from './Icons';
@@ -186,6 +187,27 @@ export default function DayEditor({ dateStr }) {
   const currentIndivTime = schedEntry.indivTime || tmplDayEntry.indivTime || '08:10';
   const completed = day.completed || {};
 
+  // Notas con debounce: estado local para escritura fluida + persistencia 800ms
+  // después de dejar de tipear (evita reescribir todo el history en cada tecla).
+  const [notesLocal, setNotesLocal] = useState(day.notes || '');
+  const debouncedSaveNotes = useMemo(
+    () => debounce((ds, value) => updateDay(ds, { notes: value }), 800),
+    [updateDay]
+  );
+  // Al cambiar de día: persistir lo pendiente del día anterior y resincronizar.
+  useEffect(() => {
+    debouncedSaveNotes.flush();
+    setNotesLocal(day.notes || '');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateStr]);
+  // Al desmontar: no perder la última nota tipeada.
+  useEffect(() => () => debouncedSaveNotes.flush(), [debouncedSaveNotes]);
+
+  function handleNotesChange(value) {
+    setNotesLocal(value);
+    debouncedSaveNotes(dateStr, value);
+  }
+
   const [showSelector, setShowSelector] = useState(false);
   const [showRating, setShowRating]     = useState(false);
 
@@ -231,6 +253,7 @@ export default function DayEditor({ dateStr }) {
   }
 
   function handleComplete() {
+    debouncedSaveNotes.flush(); // persistir nota pendiente antes de cerrar
     setShowRating(true);
   }
 
@@ -490,8 +513,9 @@ export default function DayEditor({ dateStr }) {
           <textarea
             className="input"
             placeholder="Escribi tus notas aqui..."
-            value={day.notes || ''}
-            onChange={e => updateDay(dateStr, { notes: e.target.value })}
+            value={notesLocal}
+            onChange={e => handleNotesChange(e.target.value)}
+            onBlur={() => debouncedSaveNotes.flush()}
           />
         </div>
       )}
