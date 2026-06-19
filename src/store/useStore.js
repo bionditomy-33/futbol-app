@@ -688,6 +688,37 @@ export function useStore() {
     }
     setState({ schedule: nextSchedule });
     writeDoc('schedule', nextSchedule);
+
+    // Limpiar referencias muertas en las semanas tipo (days[*].routineId)
+    let templatesChanged = false;
+    const nextTemplates = state.weekTemplates.map(t => {
+      let dayChanged = false;
+      const days = {};
+      for (const [dow, day] of Object.entries(t.days || {})) {
+        if (day && day.routineId === id) { days[dow] = { ...day, routineId: null }; dayChanged = true; }
+        else days[dow] = day;
+      }
+      if (dayChanged) { templatesChanged = true; return { ...t, days }; }
+      return t;
+    });
+    if (templatesChanged) {
+      setState({ weekTemplates: nextTemplates });
+      writeDoc('weekTemplates', nextTemplates);
+    }
+
+    // Quitar la rutina de los planes que la tuvieran asignada (routineIds)
+    let plansChanged = false;
+    const nextPlans = state.plans.map(p => {
+      if (Array.isArray(p.routineIds) && p.routineIds.includes(id)) {
+        plansChanged = true;
+        return { ...p, routineIds: p.routineIds.filter(r => r !== id) };
+      }
+      return p;
+    });
+    if (plansChanged) {
+      setState({ plans: nextPlans });
+      writeDoc('plans', nextPlans);
+    }
   }, []);
 
   const updatePhaseObjective = useCallback((routineId, phaseIndex, objective) => {
