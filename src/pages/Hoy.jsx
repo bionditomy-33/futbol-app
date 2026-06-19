@@ -191,13 +191,13 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno, onReprogram }) {
       <div style={{ height: 3, background: INICIO.barBronze }} />
 
       {/* ── 1. HEADER ── */}
-      <div style={{ padding: '18px 20px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: 12, letterSpacing: '0.12em', color: INICIO.textSofter, fontWeight: 600, fontFamily: INICIO.mono }}>
+      <div style={{ padding: '24px 20px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: 12, letterSpacing: '0.12em', color: INICIO.textSofter, fontWeight: 600 }}>
           {headerDate}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: INICIO.bronze }}>
           <FireIcon size={15} />
-          <span style={{ fontFamily: INICIO.mono, fontWeight: 700, fontSize: 16 }}>{streak}</span>
+          <span style={{ fontWeight: 700, fontSize: 16 }}>{streak}</span>
         </div>
       </div>
 
@@ -289,7 +289,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno, onReprogram }) {
         return (
           <div style={{ padding: '4px 20px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: INICIO.textMain, fontFamily: INICIO.mono, letterSpacing: '0.04em' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: INICIO.textMain, letterSpacing: '0.04em' }}>
                 HOY · {sessionAct.time}
               </span>
               <span style={{ fontSize: 12, color: INICIO.textSofter }}>
