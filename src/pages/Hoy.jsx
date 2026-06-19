@@ -1,11 +1,10 @@
-﻿import { useMemo, useState } from 'react';
-import { useStore, getPlanProgress } from '../store/useStore';
-import { toDateStr, addDays, getWeekDays } from '../utils/dates';
-import { getDayActivities, getEffectiveTemplateDays as getEffectiveTmpl, buildGymTogglePatch, buildToggleSkipPatch } from '../utils/activities';
-import { ACT_COLORS } from '../utils/colors';
-import { FireIcon, SunIcon, CloudIcon, MoonIcon } from '../components/Icons';
-import { ActivityList, RoutinePreviewModal } from '../components/DayActivities';
-import ExcuseModal from '../components/ExcuseModal';
+import { useMemo, useState } from 'react';
+import { useStore, getPlanProgress, computePlanWeeklyLog, computeCriticalPath } from '../store/useStore';
+import { toDateStr, addDays } from '../utils/dates';
+import { getDayActivities, getEffectiveTemplateDays as getEffectiveTmpl, buildGymTogglePatch } from '../utils/activities';
+import { FireIcon, GymIcon, BallIcon, ShieldIcon, TrophyIcon, CheckIcon } from '../components/Icons';
+import TermTag from '../components/TermTag';
+import { INICIO } from '../utils/inicioTheme';
 import { useToday } from '../hooks/useToday';
 
 const MONTHS = [
@@ -13,36 +12,33 @@ const MONTHS = [
   'julio','agosto','septiembre','octubre','noviembre','diciembre',
 ];
 const DAY_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-const ACT_LABEL = { gym: 'Gym', indiv: 'Individual', arsenal: 'Arsenal', match: 'Partido' };
+const ACT_ICONS = { gym: GymIcon, indiv: BallIcon, arsenal: ShieldIcon, match: TrophyIcon };
 
-function PlanBar({ label, value, max, color }) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+const STATE_TITLE = {
+  ontrack:  'Vas a tiempo.',
+  ahead:    'Vas adelantado.',
+  behind:   'Estás atrasado.',
+  critical: 'El plan no cierra como está.',
+};
+
+function CriticalBadge() {
   return (
-    <div style={{ flex: 1 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: 11, color: 'var(--text-light)' }}>{label}</span>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>{value}/{max}</span>
-      </div>
-      <div style={{ height: 4, background: 'var(--divider)', borderRadius: 99, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 99 }} />
-      </div>
-    </div>
+    <span style={{
+      fontFamily: INICIO.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
+      color: INICIO.criticalLight, border: `1px solid ${INICIO.critical}`,
+      borderRadius: 6, padding: '2px 7px', textTransform: 'uppercase', flexShrink: 0,
+    }}>
+      Crítico
+    </span>
   );
 }
 
 export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, markPlanAutoApplied, updateDay, setDayExcused, removeActivityFromDay, exerciseMap, catalog, catLinks } = useStore();
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, markPlanAutoApplied, updateDay } = useStore();
   const [templateSuggestionDismissed, setTemplateSuggestionDismissed] = useState(false);
-  const [previewRoutineId, setPreviewRoutineId] = useState(null);
-  const [excuseType, setExcuseType] = useState(null); // tipo de actividad a justificar
 
   const TODAY = useToday();
   const TOMORROW = addDays(TODAY, 1);
-
-  const weekDateStrs = useMemo(
-    () => getWeekDays(new Date(TODAY + 'T12:00:00')).map(d => toDateStr(d)),
-    [TODAY]
-  );
 
   const streak = useMemo(() => {
     let s = 0;
@@ -57,68 +53,10 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     return s;
   }, [history, TODAY]);
 
-  // Día con entrenamiento individual (mismo criterio que las cards: template
-  // efectivo del plan, respeta actividades eliminadas y días limpiados)
-  const indivOfDay = (ds) => {
-    const effTmpl = getEffectiveTmpl(ds, plans, weekTemplates, weekTemplate);
-    return getDayActivities(ds, schedule, history, matches, effTmpl).find(a => a.type === 'indiv');
-  };
-
-  const weekStats = useMemo(() => {
-    let done = 0, planned = 0;
-    weekDateStrs.forEach(ds => {
-      const indiv = indivOfDay(ds);
-      // Los días justificados no cuentan como planificados (no penalizan el ratio)
-      if (indiv && !indiv.excused) { planned++; if (indiv.done) done++; }
-    });
-    return { done, planned };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekDateStrs, schedule, history, matches, weekTemplate, weekTemplates, plans]);
-
-  const monthStats = useMemo(() => {
-    const [yr, mo, todayDay] = TODAY.split('-').map(Number);
-    let planned = 0, done = 0;
-    for (let d = 1; d <= todayDay; d++) {
-      const ds = `${yr}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const indiv = indivOfDay(ds);
-      if (indiv && !indiv.excused) { planned++; if (indiv.done) done++; }
-    }
-    return planned > 0 ? Math.round((done / planned) * 100) : 0;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [schedule, history, matches, weekTemplate, weekTemplates, plans, TODAY]);
-
   const activePlan = useMemo(
     () => plans.find(p => p.status !== 'completed' && TODAY >= p.startDate && TODAY <= p.endDate),
     [plans, TODAY]
   );
-
-  const planData = useMemo(() => {
-    if (!activePlan) return null;
-    const prog = getPlanProgress(activePlan, history);
-    const gymFreq = activePlan.gymWeeklyFrequency || 0;
-    const indFreq = activePlan.individualWeeklyFrequency || 0;
-    const { activityType = 'individual', routineIds = [], startDate, endDate } = activePlan;
-    const wantsGym = activityType === 'gym' || activityType === 'both';
-    const wantsInd = activityType === 'individual' || activityType === 'both';
-    let weekExcused = 0;
-    const weekDone = weekDateStrs.reduce((acc, ds) => {
-      const day = history[ds];
-      if (!day || ds < startDate || ds > endDate) return acc;
-      let n = 0;
-      if (wantsGym && day.gym) n++;
-      if (wantsInd && day.done
-        && (routineIds.length === 0 || routineIds.includes(day.routineId))) n++;
-      const exc = day.excused?.activities;
-      if (exc?.length) {
-        if (wantsGym && exc.includes('gym') && !day.gym) weekExcused++;
-        if (wantsInd && exc.includes('indiv') && !day.done) weekExcused++;
-      }
-      return acc + n;
-    }, 0);
-    // Las sesiones justificadas se descuentan del objetivo semanal (no penalizan)
-    const weekTarget = Math.max(1, (gymFreq + indFreq) - weekExcused);
-    return { prog, weekTarget, weekDone };
-  }, [activePlan, history, weekDateStrs]);
 
   const todayActs = useMemo(() => {
     const effTmpl = getEffectiveTmpl(TODAY, plans, weekTemplates, weekTemplate);
@@ -130,35 +68,46 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     return getDayActivities(TOMORROW, schedule, history, matches, effTmpl);
   }, [schedule, history, matches, weekTemplate, weekTemplates, plans, TOMORROW]);
 
-  const todayDate    = new Date(TODAY    + 'T12:00:00');
-  const tomorrowDate = new Date(TOMORROW + 'T12:00:00');
-  const headerDate   = `${DAY_FULL[todayDate.getDay()]} ${todayDate.getDate()} de ${MONTHS[todayDate.getMonth()]}`;
-  const tomorrowLabel = `${DAY_FULL[tomorrowDate.getDay()]} ${tomorrowDate.getDate()}`;
+  // ── Estado del plan (reutiliza la lógica existente, sin tocarla) ────────────
+  const planState = useMemo(() => {
+    if (!activePlan) return null;
+    const prog = getPlanProgress(activePlan, history);
+    const weeks = computePlanWeeklyLog(activePlan, history);
+    const cp = computeCriticalPath(activePlan, history);
+    const currentWeek = weeks.find(w => w.isCurrent) || null;
+    const actType = activePlan.activityType || 'individual';
+    const wantsGym = actType === 'gym' || actType === 'both';
+    const wantsInd = actType === 'individual' || actType === 'both';
+    const gymMiss = currentWeek && wantsGym ? Math.max(0, (currentWeek.gymEffTarget   || 0) - currentWeek.gym)        : 0;
+    const indMiss = currentWeek && wantsInd ? Math.max(0, (currentWeek.indivEffTarget || 0) - currentWeek.individual) : 0;
+    const daysLeft = currentWeek
+      ? Math.max(0, Math.round((new Date(currentWeek.endDate + 'T12:00:00') - new Date(TODAY + 'T12:00:00')) / 86400000) + 1)
+      : 0;
+    const active = !prog.isExpired && !prog.isComplete && !prog.isPending;
 
-  // ── Activity action handlers (mark done / "no hecho") ──────────────────────
+    let status;
+    if (cp.isCritical && active) status = 'critical';
+    else if (!active) status = 'ontrack';
+    else {
+      const expected = prog.effTotal * (prog.currentWeekNum / prog.totalWeeks);
+      if (!prog.isOnTrack) status = 'behind';
+      else if (prog.completedSessions > expected + 0.5) status = 'ahead';
+      else status = 'ontrack';
+    }
+    const debtAcceptedThisWeek = !!currentWeek && activePlan.debtAcceptedWeek === currentWeek.startDate;
+    const locked = status === 'critical' && !debtAcceptedThisWeek;
+    // Estado efectivo para título/sentencia: deuda asumida → se trata como atrasado.
+    const effStatus = (status === 'critical' && debtAcceptedThisWeek) ? 'behind' : status;
+    return { prog, cp, currentWeek, wantsGym, wantsInd, gymMiss, indMiss, daysLeft, status, effStatus, locked };
+  }, [activePlan, history, TODAY]);
+
+  const todayDate = new Date(TODAY + 'T12:00:00');
+  const headerDate = `${DAY_FULL[todayDate.getDay()]} ${todayDate.getDate()} ${MONTHS[todayDate.getMonth()]}`.toUpperCase();
+
   const todayDay = history[TODAY] || {};
   const handleGymDone = () => updateDay(TODAY, buildGymTogglePatch(todayDay));
-  const handleIndivDone = (act) => updateDay(TODAY, {
-    done: true,
-    routineId: act.routineId || todayDay.routineId || null,
-    skipped: (todayDay.skipped || []).filter(t => t !== 'indiv'),
-  });
-  const handleToggleSkip = (type) => updateDay(TODAY, buildToggleSkipPatch(todayDay, type));
 
-  // Excepción: si ya está justificada, la quita; si no, abre el modal de motivo
-  const handleExcuse = (type) => {
-    const exc = todayDay.excused?.activities || [];
-    if (exc.includes(type)) setDayExcused(TODAY, exc.filter(t => t !== type), todayDay.excused.reason);
-    else setExcuseType(type);
-  };
-  const confirmExcuse = (reason) => {
-    const exc = todayDay.excused?.activities || [];
-    const activities = exc.includes(excuseType) ? exc : [...exc, excuseType];
-    setDayExcused(TODAY, activities, reason ?? todayDay.excused?.reason ?? null);
-    setExcuseType(null);
-  };
-
-  // Template suggestion for plan start day
+  // Template suggestion para el día de inicio del plan
   const templateSuggestion = (() => {
     if (templateSuggestionDismissed) return null;
     const plan = plans.find(p => p.status !== 'completed' && p.weekTemplateId && TODAY === p.startDate);
@@ -178,88 +127,74 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     setTemplateSuggestionDismissed(true);
   }
 
-  // ── Stats presentation ─────────────────────────────────────────────────────
-  const streakHot   = streak >= 5;
-  const weekRatio   = weekStats.planned > 0 ? weekStats.done / weekStats.planned : 0;
-  const weekColor   = weekStats.planned === 0 ? 'var(--text-light)' : weekRatio >= 1 ? 'var(--emerald-600)' : weekRatio >= 0.5 ? 'var(--text-primary)' : 'var(--red-600)';
-  const monthColor  = monthStats >= 70 ? 'var(--emerald-600)' : monthStats >= 40 ? 'var(--amber-600)' : 'var(--red-600)';
+  // ── Sesión de hoy ───────────────────────────────────────────────────────────
+  const trainableToday = todayActs.filter(a => a.type === 'gym' || a.type === 'indiv');
+  const dayClosed = trainableToday.length > 0 && trainableToday.every(a => a.done);
+  // Próxima sesión pendiente (prioriza lo no hecho); para la card principal.
+  const sessionAct = trainableToday.find(a => !a.done && !a.excused)
+    || todayActs.find(a => a.type === 'indiv')
+    || todayActs.find(a => a.type === 'gym')
+    || null;
+  const sessionIsIndiv = sessionAct?.type === 'indiv';
 
-  // Header: icono según la hora + resumen del día (gym/individual planeados + racha)
-  const hour = new Date().getHours();
-  const TimeIcon = (hour >= 5 && hour < 12) ? SunIcon : (hour >= 12 && hour < 18) ? CloudIcon : MoonIcon;
-  const gymCount   = todayActs.filter(a => a.type === 'gym').length;
-  const indivCount = todayActs.filter(a => a.type === 'indiv').length;
-  const dayParts = [];
-  if (gymCount > 0)   dayParts.push(`${gymCount} gimnasio`);
-  if (indivCount > 0) dayParts.push(`${indivCount} individual`);
-  const dayLabel = dayParts.length > 0 ? dayParts.join(' + ') : 'día libre';
-  const headerInfo = `Hoy: ${dayLabel} · Racha: ${streak} ${streak === 1 ? 'día' : 'días'}`;
+  function actLabelPlain(a) {
+    if (a.type === 'gym') return 'Gimnasio';
+    if (a.type === 'indiv') return routines.find(r => r.id === a.routineId)?.name || 'Entrenamiento individual';
+    if (a.type === 'arsenal') return 'Arsenal';
+    return a.match?.competition || 'Partido';
+  }
+  const tomorrowSummary = tomorrowActs.length > 0
+    ? `Mañana: ${actLabelPlain(tomorrowActs[0])} ${tomorrowActs[0].time}`
+    : 'Mañana: descanso';
+
+  const critical = planState?.status === 'critical';
+  const accent   = critical ? INICIO.criticalLight : INICIO.bronze;
+
+  // Columnas del contador de deuda según el tipo de plan
+  const debtCols = planState ? [
+    planState.wantsGym && { key: 'gym',   term: 'GIMNASIO',   n: planState.gymMiss },
+    planState.wantsInd && { key: 'indiv', term: 'INDIVIDUAL', n: planState.indMiss },
+  ].filter(Boolean) : [];
+
+  // Resto del día: las actividades que no son la sesión principal
+  const restActs = todayActs.filter(a => a !== sessionAct);
 
   return (
-    <div className="page-content">
+    <div className="page-content" style={{ background: INICIO.bg, minHeight: '100%' }}>
 
-      {/* ── Header ── */}
-      <div className="hoy-header">
-        {/* Patrón geométrico diagonal sutil */}
-        <div aria-hidden style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none', opacity: 0.05,
-          backgroundImage: 'repeating-linear-gradient(135deg, #fff 0, #fff 1px, transparent 1px, transparent 10px)',
-        }} />
-        {/* Icono según la hora del día (decorativo de fondo) */}
-        <div aria-hidden style={{
-          position: 'absolute', top: 16, right: 16, color: 'white', opacity: 0.2,
-          pointerEvents: 'none', lineHeight: 0,
-        }}>
-          <TimeIcon size={64} />
+      {/* ── Barra fina superior (bronce / rojo en crítico) ── */}
+      <div style={{ height: 3, background: critical ? INICIO.barCritical : INICIO.barBronze }} />
+
+      {/* ── 1. HEADER ── */}
+      <div style={{ padding: '18px 20px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: 12, letterSpacing: '0.12em', color: INICIO.textSofter, fontWeight: 600, fontFamily: INICIO.mono }}>
+          {headerDate}
         </div>
-        <div className="hoy-header-date">{headerDate}</div>
-        <div className="hoy-header-day">Buen día, Tomás</div>
-        <div style={{ position: 'relative', zIndex: 1, marginTop: 6, fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.8)' }}>
-          {headerInfo}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: INICIO.bronze }}>
+          <FireIcon size={15} />
+          <span style={{ fontFamily: INICIO.mono, fontWeight: 700, fontSize: 16 }}>{streak}</span>
         </div>
       </div>
 
-      {/* ── Tu día ── */}
-      <div className="hoy-acts stagger">
-        <div className="hoy-section-label">TU DÍA</div>
-        {todayActs.length === 0 ? (
-          <div className="hoy-free-day">Día libre</div>
-        ) : (
-          <ActivityList
-            acts={todayActs}
-            routines={routines}
-            history={history}
-            todayKey={TODAY}
-            onGymDone={handleGymDone}
-            onIndivDone={handleIndivDone}
-            onStart={onGoToEntreno}
-            onSkip={handleToggleSkip}
-            onExcuse={handleExcuse}
-            onPreview={(routineId) => setPreviewRoutineId(routineId)}
-            onDelete={(type) => removeActivityFromDay(TODAY, type)}
-          />
-        )}
-      </div>
-
-      {/* ── Template suggestion ── */}
+      {/* ── Sugerencia de semana tipo (día de inicio del plan) ── */}
       {templateSuggestion && (
-        <div style={{ margin: '0 16px 12px', padding: '12px 14px', background: 'var(--bg-selected)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--navy-100)' }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy-600)', marginBottom: 6 }}>
-            "{templateSuggestion.plan.name}" comienza hoy
+        <div style={{ margin: '8px 20px 4px', padding: '12px 14px', background: INICIO.card, border: `0.5px solid ${INICIO.border}`, borderRadius: INICIO.radius }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: INICIO.textMain, marginBottom: 4 }}>
+            "{templateSuggestion.plan.name}" arranca hoy
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10 }}>
-            ¿Aplicar la semana tipo <strong>{templateSuggestion.tmpl.name}</strong> al período del plan?
+          <div style={{ fontSize: 12, color: INICIO.textSofter, marginBottom: 10 }}>
+            ¿Aplicar la semana tipo <strong style={{ color: INICIO.textSoft }}>{templateSuggestion.tmpl.name}</strong> al período del plan?
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={() => setTemplateSuggestionDismissed(true)}
-              style={{ flex: 1, padding: '7px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', background: 'white', fontSize: 12, color: 'var(--gray-mid)', cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ flex: 1, padding: '8px', borderRadius: 10, border: `1px solid ${INICIO.border}`, background: 'transparent', fontSize: 12, color: INICIO.textSofter, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Luego
             </button>
             <button
               onClick={() => applyPlanTemplate(templateSuggestion.plan, templateSuggestion.tmpl)}
-              style={{ flex: 2, padding: '7px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--navy-600)', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ flex: 2, padding: '8px', borderRadius: 10, border: 'none', background: INICIO.bronze, color: INICIO.bg, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
             >
               Aplicar al plan
             </button>
@@ -267,92 +202,143 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
         </div>
       )}
 
-      {/* ── Mañana ── */}
-      <div style={{ padding: '0 16px 24px' }}>
-        <div className="hoy-section-label">MAÑANA — {tomorrowLabel}</div>
-        {tomorrowActs.length === 0 ? (
-          <div className="hoy-free-day">Descanso</div>
-        ) : (
-          <div className="hoy-tomorrow">
-            {tomorrowActs.map((act, i) => {
-              const c = ACT_COLORS[act.type];
-              const clickable = act.type === 'indiv' && act.routineId;
-              return (
-                <div
-                  key={i}
-                  className="hoy-tomorrow-chip"
-                  style={{ background: c.bg, cursor: clickable ? 'pointer' : 'default' }}
-                  onClick={clickable ? () => setPreviewRoutineId(act.routineId) : undefined}
-                >
-                  <span className="hoy-tomorrow-chip-time" style={{ color: c.sub }}>{act.time}</span>
-                  <span style={{ color: c.title, fontWeight: 600, fontSize: 12 }}>{ACT_LABEL[act.type]}</span>
-                  {clickable && <span style={{ fontSize: 10, color: c.sub, marginLeft: 2 }}>›</span>}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── Stats ── */}
-      <div style={{ padding: '0 16px 24px' }}>
-        <div className="hoy-section-label">ESTADÍSTICAS</div>
-        <div className="metrics-row" style={{ padding: 0 }}>
-          <div className="metric-card" style={streakHot ? { background: 'linear-gradient(150deg, var(--navy-700), var(--navy-600))', borderColor: 'transparent' } : undefined}>
-            <div className="metric-value" style={{ color: streakHot ? 'var(--amber-300)' : streak === 0 ? 'var(--text-light)' : 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              {streakHot && <FireIcon size={16} />}{streak}
+      {/* ── 2. ESTADO DEL PLAN ── */}
+      {activePlan && planState && (
+        <div style={{ padding: '8px 20px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ fontSize: 12, fontFamily: INICIO.mono, color: INICIO.bronze, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              {activePlan.name} · Semana {planState.prog.currentWeekNum}/{planState.prog.totalWeeks}
             </div>
-            <div className="metric-label" style={streakHot ? { color: 'rgba(255,255,255,0.7)' } : undefined}>RACHA</div>
+            {critical && <CriticalBadge />}
           </div>
-          <div className="metric-card">
-            <div className="metric-value" style={{ color: weekColor }}>{weekStats.done}/{weekStats.planned}</div>
-            <div className="metric-label">SEMANA</div>
-          </div>
-          <div className="metric-card">
-            <div className="metric-value" style={{ color: monthColor }}>{monthStats}%</div>
-            <div className="metric-label">MES</div>
+          <div style={{ fontSize: 23, fontWeight: 700, color: INICIO.textMain, marginTop: 6, letterSpacing: '-0.01em', lineHeight: 1.15 }}>
+            {STATE_TITLE[planState.effStatus]}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* ── Plan activo ── */}
-      {activePlan && planData && (
-        <div style={{ padding: '0 16px 24px' }}>
-          <div className="hoy-section-label">PLAN ACTIVO</div>
-          <div
-            style={{ background: 'white', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px 14px', cursor: onGoToDesafios ? 'pointer' : 'default', boxShadow: 'var(--shadow-xs)' }}
-            onClick={onGoToDesafios}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{activePlan.name}</span>
-              <span style={{ fontSize: 11, color: 'var(--text-light)' }}>
-                Sem {planData.prog.currentWeekNum}/{planData.prog.totalWeeks}
+      {/* ── 3. CONTADOR DE DEUDA ── */}
+      {activePlan && planState?.currentWeek && debtCols.length > 0 && (
+        <div style={{ margin: '0 20px 14px', background: INICIO.card, border: `0.5px solid ${INICIO.border}`, borderRadius: INICIO.radius, padding: '16px 18px' }}>
+          <div style={{ fontSize: 11, fontFamily: INICIO.mono, letterSpacing: '0.07em', color: INICIO.textSofter, textTransform: 'uppercase' }}>
+            Faltan esta semana · {planState.daysLeft} {planState.daysLeft === 1 ? 'día' : 'días'} restantes
+          </div>
+          <div style={{ display: 'flex', alignItems: 'stretch', marginTop: 14 }}>
+            {debtCols.map((col, i) => (
+              <div key={col.key} style={{ flex: 1, textAlign: 'center', borderLeft: i > 0 ? `1px solid ${INICIO.border}` : 'none' }}>
+                <div style={{
+                  fontSize: 46, fontWeight: 800, lineHeight: 1, fontFamily: INICIO.mono,
+                  color: col.n > 0 ? (critical ? INICIO.criticalLight : INICIO.textMain) : INICIO.green,
+                }}>
+                  {col.n}
+                </div>
+                <div style={{ marginTop: 8 }}><TermTag style={{ fontSize: 12 }}>{col.term}</TermTag></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── 5. SESIÓN DE HOY / DÍA CERRADO / DÍA LIBRE ── */}
+      {dayClosed ? (
+        <div style={{ padding: '4px 20px 18px' }}>
+          <div style={{ fontSize: 23, fontWeight: 700, color: INICIO.textMain }}>Día cerrado.</div>
+          <div style={{ fontSize: 13, color: INICIO.textSofter, marginTop: 6 }}>{tomorrowSummary}</div>
+        </div>
+      ) : !sessionAct ? (
+        <div style={{ padding: '4px 20px 18px' }}>
+          <div style={{ fontSize: 23, fontWeight: 700, color: INICIO.textMain }}>Día libre.</div>
+          <div style={{ fontSize: 13, color: INICIO.textSofter, marginTop: 6 }}>{tomorrowSummary}</div>
+        </div>
+      ) : (() => {
+        const Icon = ACT_ICONS[sessionAct.type];
+        const r = sessionIsIndiv ? routines.find(x => x.id === sessionAct.routineId) : null;
+        const title = sessionIsIndiv ? (r?.name || 'Entrenamiento individual') : 'Gimnasio';
+        const phases = r?.phases?.length || 0;
+        const totalEx = r ? r.phases.reduce((s, p) => s + (p.exercises?.length || 0), 0) : 0;
+        const meta = sessionIsIndiv
+          ? [phases ? `${phases} fases` : '', totalEx ? `${totalEx} ejercicios` : '', r?.duration || ''].filter(Boolean).join(' · ')
+          : 'Sesión de fuerza';
+        return (
+          <div style={{ padding: '4px 20px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: INICIO.textMain, fontFamily: INICIO.mono, letterSpacing: '0.04em' }}>
+                HOY · {sessionAct.time}
+              </span>
+              <span style={{ fontSize: 12, color: INICIO.textSofter }}>
+                descuenta 1 <TermTag>{sessionIsIndiv ? 'INDIVIDUAL' : 'GIMNASIO'}</TermTag>
               </span>
             </div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <PlanBar label="Sesiones" value={planData.prog.completedSessions} max={planData.prog.effTotal || 1} color="var(--emerald-600)" />
-              <PlanBar label="Semana" value={planData.weekDone} max={planData.weekTarget} color="var(--navy-600)" />
+            <div style={{ background: INICIO.card, border: `0.5px solid ${INICIO.border}`, borderRadius: INICIO.radius, padding: '16px 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 46, height: 46, borderRadius: 12, background: 'rgba(201,162,75,0.12)', color: INICIO.bronze, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon size={22} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 19, fontWeight: 700, color: INICIO.textMain, lineHeight: 1.2 }}>{title}</div>
+                  {meta && <div style={{ fontSize: 12.5, color: INICIO.textSofter, marginTop: 3 }}>{meta}</div>}
+                </div>
+              </div>
+              <button
+                onClick={sessionIsIndiv ? onGoToEntreno : handleGymDone}
+                style={{
+                  marginTop: 16, width: '100%', padding: '14px', borderRadius: 12, border: 'none',
+                  background: INICIO.bronze, color: INICIO.bg, fontSize: 15, fontWeight: 800,
+                  cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.01em',
+                }}
+              >
+                {sessionIsIndiv ? 'Empezar y descontar' : <>Marcar <TermTag style={{ color: INICIO.bg }}>GIMNASIO</TermTag> hecho</>}
+              </button>
             </div>
           </div>
+        );
+      })()}
+
+      {/* ── 6. RESTO DEL DÍA ── */}
+      {restActs.length > 0 && (
+        <div style={{ padding: '0 20px 24px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {restActs.map((act, i) => {
+            const Icon = ACT_ICONS[act.type];
+            const isDone = act.done;
+            const pendingGym = act.type === 'gym' && !act.done && !act.excused;
+            const term = act.type === 'gym' ? 'GIMNASIO' : act.type === 'indiv' ? 'INDIVIDUAL' : null;
+            const plain = act.type === 'arsenal' ? 'Arsenal' : act.type === 'match' ? (act.match?.competition || 'Partido') : null;
+            return (
+              <div
+                key={i}
+                onClick={pendingGym ? handleGymDone : undefined}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '7px 11px', borderRadius: 99,
+                  border: `0.5px solid ${INICIO.border}`,
+                  background: isDone ? 'transparent' : INICIO.card,
+                  opacity: isDone || act.excused ? 0.5 : 1,
+                  cursor: pendingGym ? 'pointer' : 'default',
+                }}
+              >
+                {isDone
+                  ? <span style={{ color: INICIO.green, lineHeight: 0 }}><CheckIcon size={12} /></span>
+                  : <span style={{ color: INICIO.textSofter, lineHeight: 0 }}><Icon size={13} /></span>}
+                <span style={{ fontSize: 12, color: isDone ? INICIO.textSofter : INICIO.textSoft, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  {term ? <TermTag>{term}</TermTag> : plain}
+                  {isDone ? ' hecho' : act.excused ? ' excepción' : <span style={{ color: INICIO.textSofter }}>{act.time}</span>}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {previewRoutineId && (
-        <RoutinePreviewModal
-          routine={routines.find(r => r.id === previewRoutineId)}
-          exerciseMap={exerciseMap}
-          catalog={catalog}
-          catLinks={catLinks}
-          onClose={() => setPreviewRoutineId(null)}
-        />
-      )}
-
-      {excuseType && (
-        <ExcuseModal
-          subtitle={`${ACT_LABEL[excuseType]} · ${headerDate}`}
-          onConfirm={confirmExcuse}
-          onClose={() => setExcuseType(null)}
-        />
+      {/* Sin plan activo: acceso a Planes */}
+      {!activePlan && (
+        <div style={{ padding: '4px 20px 24px' }}>
+          <button
+            onClick={onGoToDesafios}
+            style={{ width: '100%', padding: '13px', borderRadius: 12, border: `0.5px solid ${INICIO.border}`, background: INICIO.card, color: INICIO.textSoft, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            No tenés un plan activo · Ver planes
+          </button>
+        </div>
       )}
 
     </div>
