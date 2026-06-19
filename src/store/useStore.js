@@ -239,15 +239,19 @@ export function computePlanWeeklyLog(plan, history) {
 }
 
 // ─── Ruta crítica ──────────────────────────────────────────────────────────────
-// Detecta si la semana actual es matemáticamente imposible de cumplir con los días
-// que quedan (capacidad ~1.5 sesiones/día) y proyecta cómo se carga la semana
-// siguiente si esta termina como está hoy. Devuelve { isCritical: false } salvo
-// que la situación sea realmente crítica.
+// Proyecta, semana por semana, lo que cuesta NO completar la semana actual:
+// si esta semana cierra como está hoy, su faltante se vuelve deuda y se arrastra.
+// Cada semana siguiente queda con objetivo OBLIGATORIO = base + deuda arrastrada.
+// La recuperación realista es de 2/tipo por semana (tope de compensación del
+// modelo de computePlanWeeklyLog): lo que excede ese tope se vuelve a arrastrar,
+// y si al final del plan todavía queda deuda, el plan se rompe (no cierra).
+const COMP_CAP = 2; // máximo recuperable por tipo en una semana
+
 export function computeCriticalPath(plan, history) {
   const { activityType = 'individual' } = plan;
   const log = computePlanWeeklyLog(plan, history);
   const current = log.find(w => w.isCurrent);
-  if (!current) return { isCritical: false };
+  if (!current) return { isCritical: false, cascade: [], breaks: false, nextWeek: null };
 
   const wantsGym = activityType === 'gym' || activityType === 'both';
   const wantsInd = activityType === 'individual' || activityType === 'both';
@@ -266,7 +270,6 @@ export function computeCriticalPath(plan, history) {
   // Crítico: no entran en los días que quedan (cada día rinde como mucho ~1.5 sesiones)
   const capacity   = daysLeft * 1.5;
   const isCritical = totalMissing > 0 && totalMissing > capacity;
-  if (!isCritical) return { isCritical: false };
 
   // Para NO sumar deuda nueva esta semana hay que llegar al menos al objetivo base
   const recommended = {
@@ -274,34 +277,49 @@ export function computeCriticalPath(plan, history) {
     indiv: wantsInd ? Math.max(0, (current.individualTarget || 0) - current.individual) : 0,
   };
 
-  // Proyección: si esta semana cierra como está hoy, ¿cómo queda la siguiente?
-  // Reusa el modelo de deuda (tope de compensación 2/semana) de computePlanWeeklyLog.
+  // Deuda que se arrastra si esta semana cierra como está hoy (incluye deuda previa)
   const idx  = log.indexOf(current);
   const prev = idx > 0 ? log[idx - 1] : null;
   const debtAfter = (prior, target, done) => {
-    const compCap = Math.min(prior, 2);
-    const comp = Math.max(0, Math.min(done - target, compCap));
+    const comp = Math.max(0, Math.min(done - target, Math.min(prior, COMP_CAP)));
     const miss = Math.max(0, target - done);
     return Math.max(0, prior - comp + miss);
   };
-  const gymDebtAfter = wantsGym ? debtAfter(prev?.accGymDebt   || 0, current.gymTarget        || 0, current.gym)        : 0;
-  const indDebtAfter = wantsInd ? debtAfter(prev?.accIndivDebt || 0, current.individualTarget || 0, current.individual) : 0;
+  let gymDebt = wantsGym ? debtAfter(prev?.accGymDebt   || 0, current.gymTarget        || 0, current.gym)        : 0;
+  let indDebt = wantsInd ? debtAfter(prev?.accIndivDebt || 0, current.individualTarget || 0, current.individual) : 0;
 
-  const nextRaw = log.find(w => w.num === current.num + 1 && !w.isPast);
-  let nextWeek = null;
-  if (nextRaw) {
-    const gym   = wantsGym ? (nextRaw.gymTarget        || 0) + Math.min(gymDebtAfter, 2) : 0;
-    const indiv = wantsInd ? (nextRaw.individualTarget || 0) + Math.min(indDebtAfter, 2) : 0;
-    const total = gym + indiv;
-    nextWeek = { num: nextRaw.num, gym, indiv, total, impossible: total > 7 * 1.5 };
+  // Cascada por cada semana futura: obligatorio = base + deuda; lo no recuperable
+  // (más de COMP_CAP por tipo) se arrastra a la siguiente.
+  const cascade = [];
+  for (const fw of log.filter(w => w.isFuture)) {
+    const gymBase   = wantsGym ? (fw.gymTarget        || 0) : 0;
+    const indivBase = wantsInd ? (fw.individualTarget || 0) : 0;
+    const gymComp   = gymDebt;
+    const indivComp = indDebt;
+    cascade.push({
+      num: fw.num,
+      gymBase,   gymComp,   gym:   gymBase + gymComp,     gymImpossible:   wantsGym && gymComp > COMP_CAP,
+      indivBase, indivComp, indiv: indivBase + indivComp, indivImpossible: wantsInd && indivComp > COMP_CAP,
+      impossible: (wantsGym && gymComp > COMP_CAP) || (wantsInd && indivComp > COMP_CAP),
+    });
+    gymDebt = Math.max(0, gymDebt - COMP_CAP);
+    indDebt = Math.max(0, indDebt - COMP_CAP);
   }
+  // Si tras la última semana queda deuda, no alcanzan las semanas para recuperar
+  const breaks = gymDebt > 0 || indDebt > 0;
+
+  const c0 = cascade[0];
+  const nextWeek = c0
+    ? { num: c0.num, gym: c0.gym, indiv: c0.indiv, total: c0.gym + c0.indiv, impossible: c0.impossible }
+    : null;
 
   return {
-    isCritical: true,
+    isCritical,
     weekNum: current.num,
     daysLeft,
     gymMissing, indivMissing, totalMissing,
     recommended,
+    cascade, breaks,
     nextWeek,
   };
 }

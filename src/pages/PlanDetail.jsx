@@ -121,6 +121,56 @@ function CriticalBanner({ cp, onClose }) {
   );
 }
 
+// ─── Bloque de proyección (ruta crítica multi-semana) ──────────────────────────
+// Muestra el objetivo OBLIGATORIO de cada semana restante si no se completa la
+// actual, con el desglose base + a recuperar, y avisa si el plan se rompe.
+function projectionNote(cp) {
+  if (cp.breaks) {
+    return 'aun haciendo el máximo recuperable cada semana, no alcanzan las que quedan para ponerte al día. Esta semana es clave.';
+  }
+  const firstImp = cp.cascade.find(w => w.impossible);
+  if (firstImp) {
+    return `La Semana ${firstImp.num} pide recuperar más de lo que entra en una semana. Si no completás antes, se vuelve imposible.`;
+  }
+  return 'Cada semana que dejás pasar sube el mínimo obligatorio de la siguiente. Lo más fácil es cerrar esta semana.';
+}
+
+function ProjTypeLine({ n, label, base, comp, impossible }) {
+  return (
+    <div className={`plan-proj-line${impossible ? ' impossible' : ''}`}>
+      <span className="plan-proj-num">{n}</span>
+      <span className="plan-proj-type">{label}</span>
+      <span className="plan-proj-detail">
+        {comp > 0 ? `${base} base + ${comp} a recuperar` : `${base} base`}
+      </span>
+      {impossible && <span className="plan-proj-imp">no entra en 1 semana</span>}
+    </div>
+  );
+}
+
+function ProjectionBlock({ cp }) {
+  return (
+    <div className="plan-proj">
+      <div className="plan-proj-title">Proyección si no completás esta semana · mínimo obligatorio</div>
+      {cp.cascade.map(w => (
+        <div key={w.num} className="plan-proj-week">
+          <div className="plan-proj-week-label">Semana {w.num}</div>
+          {w.gym > 0 && (
+            <ProjTypeLine n={w.gym} label="gym" base={w.gymBase} comp={w.gymComp} impossible={w.gymImpossible} />
+          )}
+          {w.indiv > 0 && (
+            <ProjTypeLine n={w.indiv} label="individual" base={w.indivBase} comp={w.indivComp} impossible={w.indivImpossible} />
+          )}
+        </div>
+      ))}
+      <div className={`plan-proj-note${cp.breaks ? ' breaks' : ''}`}>
+        {cp.breaks && <strong>El plan se rompe: </strong>}
+        {projectionNote(cp)}
+      </div>
+    </div>
+  );
+}
+
 // ─── Conteo animado (solo presentación) ───────────────────────────────────────
 
 function useCountUp(target, duration = 800) {
@@ -573,6 +623,9 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
     dismissed[a.id] !== TODAY &&
     !(showCritical && (a.id === 'week-red' || a.id === 'week-yellow'))
   );
+  // Bloque de proyección: acompaña a la alerta de semana cuando hay faltante real
+  const weekAlertVisible = showCritical || visibleAlerts.some(a => a.id === 'week-red' || a.id === 'week-yellow');
+  const showProjection = weekAlertVisible && criticalPath.totalMissing > 0 && criticalPath.cascade.length > 0;
 
   // ── Activity action handlers (mark done / "no hecho") ──────────────────────
   const todayDay = history[TODAY] || {};
@@ -712,6 +765,9 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
           ))}
         </div>
       )}
+
+      {/* ── Proyección de ruta crítica (multi-semana) ── */}
+      {showProjection && <ProjectionBlock cp={criticalPath} />}
 
       {/* ── HOY (interactivo) ── */}
       <div className="hoy-acts stagger">
