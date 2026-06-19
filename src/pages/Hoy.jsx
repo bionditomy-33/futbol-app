@@ -33,6 +33,30 @@ function CriticalBadge() {
   );
 }
 
+// Sección 4: traduce la deuda en una consecuencia concreta de la semana siguiente.
+function Sentence({ cp, critical }) {
+  const barColor = critical ? INICIO.critical : INICIO.bronze;
+  const nw = cp.nextWeek;
+  let body;
+  if (!nw) {
+    body = <>Son las últimas sesiones del plan. Esta semana, o no cierra.</>;
+  } else {
+    const segs = [];
+    if (nw.gym > 0)   segs.push(nw.gym   >= 6 ? <><TermTag>GIMNASIO</TermTag> todos los días</>   : <>{nw.gym} <TermTag>GIMNASIO</TermTag></>);
+    if (nw.indiv > 0) segs.push(nw.indiv >= 6 ? <><TermTag>INDIVIDUAL</TermTag> todos los días</> : <>{nw.indiv} <TermTag>INDIVIDUAL</TermTag></>);
+    const tail = (nw.gym >= 6 || nw.indiv >= 6) ? ', obligatorio.' : ', sin margen.';
+    body = <>Semana {nw.num}: {segs.map((s, i) => <span key={i}>{i > 0 ? ' + ' : ''}{s}</span>)}{tail}</>;
+  }
+  return (
+    <div style={{ margin: '0 20px 14px', paddingLeft: 14, borderLeft: `2px solid ${barColor}` }}>
+      <div style={{ fontSize: 11, fontFamily: INICIO.mono, letterSpacing: '0.07em', color: INICIO.textSofter, textTransform: 'uppercase', marginBottom: 5 }}>
+        Si no las hacés
+      </div>
+      <div style={{ fontSize: 14.5, color: INICIO.textSoft, lineHeight: 1.4 }}>{body}</div>
+    </div>
+  );
+}
+
 export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
   const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, markPlanAutoApplied, updateDay } = useStore();
   const [templateSuggestionDismissed, setTemplateSuggestionDismissed] = useState(false);
@@ -237,6 +261,11 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
             ))}
           </div>
         </div>
+      )}
+
+      {/* ── 4. SENTENCIA (solo atrasado / crítico) ── */}
+      {activePlan && planState && planState.effStatus === 'behind' && (
+        <Sentence cp={planState.cp} critical={critical} />
       )}
 
       {/* ── 5. SESIÓN DE HOY / DÍA CERRADO / DÍA LIBRE ── */}
