@@ -610,17 +610,12 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
     return out;
   })();
 
-  // Descarte por día (persistido en localStorage; reaparece al día siguiente)
-  const dismissKey = `planAlertsDismissed:${plan.id}`;
-  const [dismissed, setDismissed] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(dismissKey) || '{}'); } catch { return {}; }
-  });
+  // Descarte de alertas: efímero por visita (no se persiste). PlanDetail se
+  // re-monta al entrar a Entrenamiento, así que al volver a la tab las alertas
+  // reaparecen; si la cerrás sin querer, vuelve a salir la próxima vez.
+  const [dismissed, setDismissed] = useState({});
   function dismissAlert(id) {
-    setDismissed(prev => {
-      const next = { ...prev, [id]: TODAY };
-      try { localStorage.setItem(dismissKey, JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
+    setDismissed(prev => ({ ...prev, [id]: true }));
   }
   // Banner crítico: tiene prioridad y reemplaza a las alertas genéricas de semana.
   // Si el plan ya se rompe (breaks), no se puede descartar; si no, se puede ocultar
@@ -631,7 +626,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   // (el banner crítico la reemplaza), aunque el banner esté cerrado por esta visita.
   const suppressWeekAlerts = criticalPath.isCritical && planActiveNow;
   const visibleAlerts = alerts.filter(a =>
-    dismissed[a.id] !== TODAY &&
+    !dismissed[a.id] &&
     !(suppressWeekAlerts && (a.id === 'week-red' || a.id === 'week-yellow'))
   );
   // Bloque de proyección: acompaña a la alerta de semana cuando hay faltante real
