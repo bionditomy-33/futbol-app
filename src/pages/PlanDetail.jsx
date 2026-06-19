@@ -518,21 +518,25 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
     if (isFirstWeek || progress.isExpired || progress.isComplete || progress.isPending) return [];
     const out = [];
 
-    // Nivel semana
+    // Nivel semana — desglosado por tipo (gym vs individual), no un número genérico
     if (currentWeek) {
-      const weekTarget = (currentWeek.gymEffTarget || 0) + (currentWeek.indivEffTarget || 0);
-      const weekDone   = (currentWeek.gym || 0) + (currentWeek.individual || 0);
-      const missing    = weekTarget - weekDone;
-      if (weekTarget > 0 && missing > 0) {
+      const gymMiss = (actType === 'gym' || actType === 'both')
+        ? Math.max(0, (currentWeek.gymEffTarget || 0) - currentWeek.gym) : 0;
+      const indMiss = (actType === 'individual' || actType === 'both')
+        ? Math.max(0, (currentWeek.indivEffTarget || 0) - currentWeek.individual) : 0;
+      const missing = gymMiss + indMiss;
+      const parts = [gymMiss > 0 && `${gymMiss} gym`, indMiss > 0 && `${indMiss} individual`]
+        .filter(Boolean).join(' + ');
+      if (missing > 0) {
         if (missing > daysLeftInWeek) {
           out.push({
             id: 'week-red', level: 'red',
-            text: `Si no completás ${missing} ${missing === 1 ? 'sesión' : 'sesiones'} más esta semana, vas a acumular deuda para la próxima.`,
+            text: `Si no completás ${parts} más esta semana, vas a acumular deuda para la próxima.`,
           });
         } else if (lateWeek) {
           out.push({
             id: 'week-yellow', level: 'yellow',
-            text: `Llevás ${weekDone} ${weekDone === 1 ? 'sesión' : 'sesiones'} de ${weekTarget} esta semana. Te faltan ${missing} para cumplir el objetivo.`,
+            text: `Esta semana te faltan ${parts} para cumplir el objetivo.`,
           });
         }
       }
