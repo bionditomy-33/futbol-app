@@ -251,7 +251,10 @@ function RhythmBadge({ onTrack, ahead }) {
     </span>
   );
   return (
-    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: 'var(--red-100)', color: 'var(--red-800)' }}>
+    <span
+      title="Vas por debajo del ritmo esperado para esta semana"
+      style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: 'var(--red-100)', color: 'var(--red-800)', cursor: 'help' }}
+    >
       Atrasado
     </span>
   );

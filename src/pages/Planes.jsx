@@ -616,11 +616,14 @@ export default function Planes({ onBack }) {
               <span style={{ fontSize: 12, color: 'var(--gray-mid)' }}>
                 {prog.remainingDays > 0 ? `${prog.remainingDays} días restantes` : 'Plazo vencido'}
               </span>
-              <span style={{
-                fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20,
-                background: prog.isOnTrack ? 'var(--emerald-100)' : 'var(--red-100)',
-                color: prog.isOnTrack ? 'var(--emerald-800)' : 'var(--red-800)',
-              }}>
+              <span
+                title={prog.isOnTrack ? undefined : 'Vas por debajo del ritmo esperado para esta semana'}
+                style={{
+                  fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20,
+                  background: prog.isOnTrack ? 'var(--emerald-100)' : 'var(--red-100)',
+                  color: prog.isOnTrack ? 'var(--emerald-800)' : 'var(--red-800)',
+                  cursor: prog.isOnTrack ? 'default' : 'help',
+                }}>
                 {prog.isOnTrack ? '✓ En ritmo' : `Atrasado`}
               </span>
             </div>
