@@ -75,7 +75,7 @@ function fmtSessions(gym, indiv) {
   return [gym > 0 && `${gym} gym`, indiv > 0 && `${indiv} indiv`].filter(Boolean).join(' + ');
 }
 
-function CriticalBanner({ cp, onClose }) {
+function CriticalBanner({ cp, dismissable, onClose }) {
   const stats = [];
   if (cp.gymMissing > 0)   stats.push({ n: cp.gymMissing,   label: 'gym' });
   if (cp.indivMissing > 0) stats.push({ n: cp.indivMissing, label: 'individual' });
@@ -88,9 +88,11 @@ function CriticalBanner({ cp, onClose }) {
       <div className="plan-critical-head">
         <span className="plan-critical-badge"><AlertTriangle size={12} /> CRÍTICO</span>
         <span className="plan-critical-week">Semana {cp.weekNum}</span>
-        <button className="plan-critical-close" onClick={onClose} aria-label="Descartar">
-          <XIcon size={15} />
-        </button>
+        {dismissable && (
+          <button className="plan-critical-close" onClick={onClose} aria-label="Descartar">
+            <XIcon size={15} />
+          </button>
+        )}
       </div>
 
       <div className="plan-critical-stats">
@@ -392,6 +394,9 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   const [previewRoutineId, setPreviewRoutineId] = useState(null);
   const [pickerTarget, setPickerTarget] = useState(null); // dateStr al que asignar/reemplazar rutina
   const [editingTime, setEditingTime] = useState(false);
+  // Dismiss del banner crítico: efímero (se resetea al re-montar, o sea al volver a
+  // entrar a Entrenamiento). Así reaparece cada vez que entrás, no una sola vez.
+  const [criticalDismissed, setCriticalDismissed] = useState(false);
 
   const { schedule, matches, weekTemplate, weekTemplates, updateDay, setDayExcused, removeActivityFromDay, assignRoutine, setActivityTime, exerciseMap, catalog, catLinks } = useStore();
   const [excuseType, setExcuseType] = useState(null);
@@ -617,11 +622,17 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
       return next;
     });
   }
-  // Banner crítico: tiene prioridad y reemplaza a las alertas genéricas de semana
-  const showCritical = criticalPath.isCritical && planActiveNow && dismissed['plan-critical'] !== TODAY;
+  // Banner crítico: tiene prioridad y reemplaza a las alertas genéricas de semana.
+  // Si el plan ya se rompe (breaks), no se puede descartar; si no, se puede ocultar
+  // por esta visita (reaparece al volver a entrar a Entrenamiento).
+  const criticalDismissable = !criticalPath.breaks;
+  const showCritical = criticalPath.isCritical && planActiveNow && !(criticalDismissable && criticalDismissed);
+  // Mientras la situación sea crítica, la alerta genérica de semana queda suprimida
+  // (el banner crítico la reemplaza), aunque el banner esté cerrado por esta visita.
+  const suppressWeekAlerts = criticalPath.isCritical && planActiveNow;
   const visibleAlerts = alerts.filter(a =>
     dismissed[a.id] !== TODAY &&
-    !(showCritical && (a.id === 'week-red' || a.id === 'week-yellow'))
+    !(suppressWeekAlerts && (a.id === 'week-red' || a.id === 'week-yellow'))
   );
   // Bloque de proyección: acompaña a la alerta de semana cuando hay faltante real
   const weekAlertVisible = showCritical || visibleAlerts.some(a => a.id === 'week-red' || a.id === 'week-yellow');
@@ -753,7 +764,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
       {/* ── Banner crítico (ruta crítica) ── */}
       {showCritical && (
         <div className="plan-alerts">
-          <CriticalBanner cp={criticalPath} onClose={() => dismissAlert('plan-critical')} />
+          <CriticalBanner cp={criticalPath} dismissable={criticalDismissable} onClose={() => setCriticalDismissed(true)} />
         </div>
       )}
 
