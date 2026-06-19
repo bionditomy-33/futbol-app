@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronDown, CheckCircleIcon, XIcon, PlayIcon, PauseIcon }
 import { ActivityList, RoutinePreviewModal } from '../components/DayActivities';
 import ExcuseModal from '../components/ExcuseModal';
 import AnimatedModal from '../components/AnimatedModal';
+import LockedPlan from '../components/LockedPlan';
 import { useToday } from '../hooks/useToday';
 import { CAT_PALETTE } from '../utils/colors';
 
@@ -401,7 +402,7 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
   // entrar a Entrenamiento). Así reaparece cada vez que entrás, no una sola vez.
   const [criticalDismissed, setCriticalDismissed] = useState(false);
 
-  const { schedule, matches, weekTemplate, weekTemplates, updateDay, setDayExcused, removeActivityFromDay, assignRoutine, setActivityTime, exerciseMap, catalog, catLinks } = useStore();
+  const { schedule, matches, weekTemplate, weekTemplates, updateDay, setDayExcused, removeActivityFromDay, assignRoutine, setActivityTime, updatePlan, exerciseMap, catalog, catLinks } = useStore();
   const [excuseType, setExcuseType] = useState(null);
 
   const progress = getPlanProgress(plan, history);
@@ -686,6 +687,20 @@ export default function PlanDetail({ plan, history, routines, onBack, onComplete
       else next.add(num);
       return next;
     });
+  }
+
+  // ── Estado crítico sin resolver: pantalla trabada (obliga a decidir) ─────────
+  const debtAcceptedThisWeek = !!currentWeek && plan.debtAcceptedWeek === currentWeek.startDate;
+  if (criticalPath.isCritical && planActiveNow && !debtAcceptedThisWeek) {
+    return (
+      <LockedPlan
+        plan={plan}
+        progress={progress}
+        cp={criticalPath}
+        onReprogram={() => onEdit?.(plan)}
+        onAcceptDebt={() => updatePlan(plan.id, { debtAcceptedWeek: currentWeek.startDate })}
+      />
+    );
   }
 
   // ── Close form view ──────────────────────────────────────────────────────────

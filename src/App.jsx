@@ -89,6 +89,7 @@ export default function App() {
   const labIsDirtyRef = useRef(false);
   const [cleanupPrompt, setCleanupPrompt] = useState(null);
   const [planCelebration, setPlanCelebration] = useState(null);
+  const [planesEditId, setPlanesEditId] = useState(null);
   const TODAY = useToday();
 
   // Must be before any early return — React hooks must always be called unconditionally
@@ -174,6 +175,13 @@ export default function App() {
     navigateTo({ tab: id, view: null });
   }
 
+  // Abrir el editor de un plan (desde la pantalla trabada de estado crítico)
+  function goEditPlan(planId) {
+    setPlanesEditId(planId);
+    setMainTab('mas');
+    setMasView('planes');
+  }
+
   function confirmLeave() {
     labIsDirtyRef.current = false;
     applyNav(pendingNav);
@@ -202,7 +210,7 @@ export default function App() {
               }
             }, 1800);
           }}
-          onEdit={() => { setMainTab('mas'); setMasView('planes'); }}
+          onEdit={(p) => goEditPlan(p.id)}
           onStartToday={() => { setSemanaEditToday(true); setMainTab('calendario'); setCalendarioTab('semana'); }}
         />
       );
@@ -305,6 +313,7 @@ export default function App() {
         <Hoy
           onGoToDesafios={() => { setMainTab('mas'); setMasView('planes'); }}
           onGoToEntreno={() => { setSemanaEditToday(true); setMainTab('calendario'); setCalendarioTab('semana'); }}
+          onReprogram={(p) => goEditPlan(p.id)}
         />
       )}
 
@@ -346,7 +355,7 @@ export default function App() {
       {mainTab === 'mas' && masView === 'catalogo'  && <Catalogo   onBack={() => setMasView(null)} />}
       {mainTab === 'mas' && masView === 'partidos'  && <Partidos   onBack={() => setMasView(null)} />}
       {mainTab === 'mas' && masView === 'historial' && <Historial  onBack={() => setMasView(null)} />}
-      {mainTab === 'mas' && masView === 'planes'    && <Planes     onBack={() => setMasView(null)} />}
+      {mainTab === 'mas' && masView === 'planes'    && <Planes     onBack={() => setMasView(null)} initialEditId={planesEditId} onConsumedEditId={() => setPlanesEditId(null)} />}
       {mainTab === 'mas' && masView === 'semana-tipo' && <SemanaTipo onBack={() => setMasView(null)} />}
 
       {/* Bottom navigation */}

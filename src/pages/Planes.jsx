@@ -79,7 +79,7 @@ const ACTIVITY_OPTIONS = [
   { value: 'both', label: 'Ambos' },
 ];
 
-export default function Planes({ onBack }) {
+export default function Planes({ onBack, initialEditId, onConsumedEditId }) {
   const { routines, history, plans, weekTemplates, schedule,
           createPlan, completePlan, deletePlan, updatePlan,
           applyWeekTemplate, markPlanAutoApplied, clearWeekSchedule } = useStore();
@@ -111,6 +111,15 @@ export default function Planes({ onBack }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plans, weekTemplates, applyPrompt]);
 
+  // Abrir el editor directamente cuando se llega desde la pantalla trabada (Reprogramar)
+  useEffect(() => {
+    if (!initialEditId) return;
+    const p = plans.find(pl => pl.id === initialEditId);
+    if (p) { setSelectedPlanId(null); openEditForm(p, false); }
+    onConsumedEditId?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEditId]);
+
   // ── Derived lists ────────────────────────────────────────────────────────────
   const pending   = useMemo(() => plans.filter(p => p.status !== 'completed' && today < p.startDate), [plans, today]);
   const active    = useMemo(() => plans.filter(p => p.status !== 'completed' && today >= p.startDate && today <= p.endDate), [plans, today]);
@@ -127,6 +136,7 @@ export default function Planes({ onBack }) {
           history={history}
           routines={routines}
           onBack={() => setSelectedPlanId(null)}
+          onEdit={(p) => { setSelectedPlanId(null); openEditForm(p, false); }}
           onComplete={(id, rating, notes) => {
             const p = plans.find(pl => pl.id === id);
             completePlan(id, rating, notes);

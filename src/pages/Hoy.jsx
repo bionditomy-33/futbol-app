@@ -4,6 +4,7 @@ import { toDateStr, addDays } from '../utils/dates';
 import { getDayActivities, getEffectiveTemplateDays as getEffectiveTmpl, buildGymTogglePatch } from '../utils/activities';
 import { FireIcon, GymIcon, BallIcon, ShieldIcon, TrophyIcon, CheckIcon } from '../components/Icons';
 import TermTag from '../components/TermTag';
+import LockedPlan from '../components/LockedPlan';
 import { INICIO } from '../utils/inicioTheme';
 import { useToday } from '../hooks/useToday';
 
@@ -21,21 +22,11 @@ const STATE_TITLE = {
   critical: 'El plan no cierra como está.',
 };
 
-function CriticalBadge() {
-  return (
-    <span style={{
-      fontFamily: INICIO.mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em',
-      color: INICIO.criticalLight, border: `1px solid ${INICIO.critical}`,
-      borderRadius: 6, padding: '2px 7px', textTransform: 'uppercase', flexShrink: 0,
-    }}>
-      Crítico
-    </span>
-  );
-}
-
 // Sección 4: traduce la deuda en una consecuencia concreta de la semana siguiente.
-function Sentence({ cp, critical }) {
-  const barColor = critical ? INICIO.critical : INICIO.bronze;
+// En el render normal de Inicio el estado crítico ya fue asumido (si no, se muestra
+// la pantalla trabada), así que acá se presenta siempre como "atrasado" (bronce).
+function Sentence({ cp }) {
+  const barColor = INICIO.bronze;
   const nw = cp.nextWeek;
   let body;
   if (!nw) {
@@ -57,8 +48,8 @@ function Sentence({ cp, critical }) {
   );
 }
 
-export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
-  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, markPlanAutoApplied, updateDay } = useStore();
+export default function Hoy({ onGoToDesafios, onGoToEntreno, onReprogram }) {
+  const { routines, schedule, history, matches, weekTemplate, weekTemplates, plans, applyWeekTemplate, markPlanAutoApplied, updateDay, updatePlan } = useStore();
   const [templateSuggestionDismissed, setTemplateSuggestionDismissed] = useState(false);
 
   const TODAY = useToday();
@@ -171,9 +162,6 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
     ? `Mañana: ${actLabelPlain(tomorrowActs[0])} ${tomorrowActs[0].time}`
     : 'Mañana: descanso';
 
-  const critical = planState?.status === 'critical';
-  const accent   = critical ? INICIO.criticalLight : INICIO.bronze;
-
   // Columnas del contador de deuda según el tipo de plan
   const debtCols = planState ? [
     planState.wantsGym && { key: 'gym',   term: 'GIMNASIO',   n: planState.gymMiss },
@@ -183,11 +171,24 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
   // Resto del día: las actividades que no son la sesión principal
   const restActs = todayActs.filter(a => a !== sessionAct);
 
+  // Estado crítico sin resolver: pantalla trabada que obliga a decidir.
+  if (activePlan && planState?.locked) {
+    return (
+      <LockedPlan
+        plan={activePlan}
+        progress={planState.prog}
+        cp={planState.cp}
+        onReprogram={() => onReprogram?.(activePlan)}
+        onAcceptDebt={() => updatePlan(activePlan.id, { debtAcceptedWeek: planState.currentWeek.startDate })}
+      />
+    );
+  }
+
   return (
     <div className="page-content" style={{ background: INICIO.bg, minHeight: '100%' }}>
 
-      {/* ── Barra fina superior (bronce / rojo en crítico) ── */}
-      <div style={{ height: 3, background: critical ? INICIO.barCritical : INICIO.barBronze }} />
+      {/* ── Barra fina superior (bronce; el rojo crítico vive en la pantalla trabada) ── */}
+      <div style={{ height: 3, background: INICIO.barBronze }} />
 
       {/* ── 1. HEADER ── */}
       <div style={{ padding: '18px 20px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -229,11 +230,8 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
       {/* ── 2. ESTADO DEL PLAN ── */}
       {activePlan && planState && (
         <div style={{ padding: '8px 20px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <div style={{ fontSize: 12, fontFamily: INICIO.mono, color: INICIO.bronze, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              {activePlan.name} · Semana {planState.prog.currentWeekNum}/{planState.prog.totalWeeks}
-            </div>
-            {critical && <CriticalBadge />}
+          <div style={{ fontSize: 12, fontFamily: INICIO.mono, color: INICIO.bronze, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            {activePlan.name} · Semana {planState.prog.currentWeekNum}/{planState.prog.totalWeeks}
           </div>
           <div style={{ fontSize: 23, fontWeight: 700, color: INICIO.textMain, marginTop: 6, letterSpacing: '-0.01em', lineHeight: 1.15 }}>
             {STATE_TITLE[planState.effStatus]}
@@ -252,7 +250,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
               <div key={col.key} style={{ flex: 1, textAlign: 'center', borderLeft: i > 0 ? `1px solid ${INICIO.border}` : 'none' }}>
                 <div style={{
                   fontSize: 46, fontWeight: 800, lineHeight: 1, fontFamily: INICIO.mono,
-                  color: col.n > 0 ? (critical ? INICIO.criticalLight : INICIO.textMain) : INICIO.green,
+                  color: col.n > 0 ? INICIO.textMain : INICIO.green,
                 }}>
                   {col.n}
                 </div>
@@ -265,7 +263,7 @@ export default function Hoy({ onGoToDesafios, onGoToEntreno }) {
 
       {/* ── 4. SENTENCIA (solo atrasado / crítico) ── */}
       {activePlan && planState && planState.effStatus === 'behind' && (
-        <Sentence cp={planState.cp} critical={critical} />
+        <Sentence cp={planState.cp} />
       )}
 
       {/* ── 5. SESIÓN DE HOY / DÍA CERRADO / DÍA LIBRE ── */}
